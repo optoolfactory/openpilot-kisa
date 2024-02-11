@@ -80,7 +80,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerActuatorDelay = 0.1  # Default delay
     ret.steerLimitTimer = 0.4
 
-    ret.radarTimeStep = 0.02  # 50Hz instead of standard 20Hz
+    #ret.radarTimeStep = 0.02  # 50Hz instead of standard 20Hz
 
     ret.smoothSteer.method = int( Params().get("KisaSteerMethod", encoding="utf8") )   # 1
     ret.smoothSteer.maxSteeringAngle = float( Params().get("KisaMaxSteeringAngle", encoding="utf8") )   # 90
@@ -268,6 +268,10 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 2087.
       ret.wheelbase = 3.09
       ret.steerRatio = 14.23
+    elif candidate == CAR.KIA_K8_GL3:
+      ret.mass = 1642.
+      ret.wheelbase = 2.895
+      ret.steerRatio = 13.27
     elif candidate == CAR.KIA_K8_HEV_1ST_GEN:
       ret.mass = 1630.  # https://carprices.ae/brands/kia/2023/k8/1.6-turbo-hybrid
       ret.wheelbase = 2.895
