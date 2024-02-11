@@ -107,6 +107,8 @@ class CAR(StrEnum):
   GRANDEUR_FL_IG = "HYUNDAI GRANDEUR FL (IG)"
   GRANDEUR_HEV_FL_IG = "HYUNDAI GRANDEUR HYBRID FL (IG)"
   NEXO_FE = "HYUNDAI NEXO (FE)"
+  SONATA_HEV_LF = "HYUNDAI SONATA HYBRID (LF)"
+
 
   # Kia
   KIA_FORTE = "KIA FORTE E 2018 & GT 2021"
@@ -251,6 +253,9 @@ CAR_INFO: Dict[str, Optional[Union[HyundaiCarInfo, List[HyundaiCarInfo]]]] = {
   CAR.GRANDEUR_FL_IG: HyundaiCarInfo("Hyundai Grandeur IG FL", "All", car_parts=CarParts.common([CarHarness.hyundai_k])),
   CAR.GRANDEUR_HEV_FL_IG: HyundaiCarInfo("Hyundai Grandeur IG FL Hybrid", "All", car_parts=CarParts.common([CarHarness.hyundai_k])),
   CAR.NEXO_FE: HyundaiCarInfo("Hyundai NEXO", "All", car_parts=CarParts.common([CarHarness.hyundai_h])),
+  CAR.SONATA_HEV_LF: HyundaiCarInfo("Hyundai LF Sonata Hybrid", "All", car_parts=CarParts.common([CarHarness.hyundai_h])),
+
+
 
   # Kia
   CAR.KIA_FORTE: [
@@ -532,7 +537,8 @@ HYBRID_CAR = {CAR.IONIQ_PHEV, CAR.ELANTRA_HEV_2021, CAR.KIA_NIRO_PHEV, CAR.KIA_N
               CAR.IONIQ_HEV_2022, CAR.SANTA_FE_HEV_2022, CAR.SANTA_FE_PHEV_2022, CAR.IONIQ_PHEV_2019, CAR.TUCSON_HYBRID_4TH_GEN,
               CAR.KIA_SPORTAGE_HYBRID_5TH_GEN, CAR.KIA_SORENTO_PHEV_4TH_GEN, CAR.KIA_K5_HEV_2020, CAR.KIA_NIRO_HEV_2ND_GEN,
               CAR.KIA_SORENTO_HEV_4TH_GEN, CAR.KIA_OPTIMA_H, CAR.KIA_OPTIMA_H_G4_FL, CAR.KIA_K8_HEV_1ST_GEN,
-              CAR.AZERA_HEV_6TH_GEN, CAR.KIA_NIRO_PHEV_2022, CAR.K5_HEV_JF, CAR.K7_HEV_YG, CAR.GRANDEUR_HEV_IG, CAR.GRANDEUR_HEV_FL_IG, CAR.AVANTE_HEV_CN7}
+              CAR.AZERA_HEV_6TH_GEN, CAR.KIA_NIRO_PHEV_2022, CAR.K5_HEV_JF, CAR.K7_HEV_YG, CAR.GRANDEUR_HEV_IG, CAR.GRANDEUR_HEV_FL_IG, CAR.AVANTE_HEV_CN7,
+              CAR.SONATA_HEV_LF}
 EV_CAR = {CAR.IONIQ_EV_2020, CAR.IONIQ_EV_LTD, CAR.KONA_EV, CAR.KIA_NIRO_EV, CAR.KIA_NIRO_EV_2ND_GEN, CAR.KONA_EV_2022,
           CAR.KIA_EV6, CAR.IONIQ_5, CAR.IONIQ_6, CAR.GENESIS_GV60_EV_1ST_GEN, CAR.KONA_EV_2ND_GEN,
           CAR.NEXO_FE, CAR.SOUL_EV_SK3}
@@ -643,4 +649,5 @@ DBC = {
   CAR.CUSTIN_1ST_GEN: dbc_dict('hyundai_kia_generic', None),
   CAR.KIA_NIRO_PHEV_2022: dbc_dict('hyundai_kia_generic', 'hyundai_kia_mando_front_radar_generated'),
   CAR.STARIA_4TH_GEN: dbc_dict('hyundai_canfd', None),
+  CAR.SONATA_HEV_LF: dbc_dict('hyundai_kia_generic', RadarTrack),
 }
