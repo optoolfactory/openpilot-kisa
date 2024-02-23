@@ -288,6 +288,11 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 1640.0
       ret.wheelbase = 2.84
       ret.steerRatio = 13.56
+    elif candidate == CAR.GENESIS_EG70:
+      ret.steerActuatorDelay = 0.1
+      ret.mass = 1640.0
+      ret.wheelbase = 2.84
+      ret.steerRatio = 13.56
     elif candidate == CAR.GENESIS_G70_2020:
       ret.mass = 3673.0 * CV.LB_TO_KG
       ret.wheelbase = 2.83
