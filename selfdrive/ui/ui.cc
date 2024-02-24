@@ -456,12 +456,19 @@ void UIState::updateStatus() {
     emit offroadTransition(!scene.started);
   }
 
+  if(scene.hotspot_on_boot) {
+    if(scene.ipAddress.length() > 1 && !scene.hotspot_trigger) {
+      scene.hotspot_trigger = true;
+      emit hotspotSignal();
+    }
+  }
+
   // this is useful to save compiling time before depart when you use remote ignition
   if (!scene.auto_gitpull && (sm->frame - scene.started_frame > 30*UI_FREQ)) {
     if (Params().getBool("GitPullOnBoot")) {
       scene.auto_gitpull = true;
       Params().put("RunCustomCommand", "2", 1);
-    } else if (sm->frame - scene.started_frame > 60*UI_FREQ) {
+    } else if (sm->frame - scene.started_frame > 300*UI_FREQ) {
       scene.auto_gitpull = true;
       Params().put("RunCustomCommand", "1", 1);
     }
@@ -521,6 +528,7 @@ void UIState::updateStatus() {
     scene.ufc_mode = params.getBool("UFCModeEnabled");
     scene.op_long_enabled = params.getBool("ExperimentalLongitudinalEnabled");
     scene.model_name = QString::fromStdString(params.get("DrivingModel"));
+    scene.hotspot_on_boot = params.getBool("KisaHotspotOnBoot");
 
     if (scene.autoScreenOff > 0) {
       scene.nTime = scene.autoScreenOff * 60 * UI_FREQ;
@@ -559,6 +567,7 @@ UIState::UIState(QObject *parent) : QObject(parent) {
   timer = new QTimer(this);
   QObject::connect(timer, &QTimer::timeout, this, &UIState::update);
   timer->start(1000 / UI_FREQ);
+
 }
 
 void UIState::update() {

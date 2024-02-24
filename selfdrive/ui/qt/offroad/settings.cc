@@ -324,16 +324,18 @@ SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
     std::system("date '+%F %T' > /data/params/d/LastUpdateTime");
     QString last_ping = QString::fromStdString(params.get("LastAthenaPingTime"));
     QString desc = "";
-    QString commit_local = QString::fromStdString(Params().get("GitCommit").substr(0, 10));
-    QString commit_remote = QString::fromStdString(Params().get("GitCommitRemote").substr(0, 10));
+    QString commit_local = QString::fromStdString(params.get("GitCommit").substr(0, 5));
+    QString commit_remote = QString::fromStdString(params.get("GitCommitRemote").substr(0, 5));
+    QString commit_local_date = QString::fromStdString(params.get("GitCommitLocalDate"));
+    QString commit_remote_date = QString::fromStdString(params.get("GitCommitRemoteDate"));
     QString empty = "";
-    desc += tr("LOCAL: %1  REMOTE: %2%3%4 ").arg(commit_local, commit_remote, empty, empty);
+    desc = tr("LOCAL: %1(%2)  /  REMOTE: %3(%4)").arg(commit_local, commit_local_date, commit_remote, commit_remote_date);
     if (!last_ping.length()) {
-      desc += tr("Network connection is missing or unstable. Check the connection.");
+      desc = tr("Network connection is missing or unstable. Check the connection.");
       ConfirmationDialog::alert(desc, this);
     } else if (commit_local == commit_remote) {
       params.put("RunCustomCommand", "1", 1);
-      desc += tr("Checking update takes a time. If Same message, no update required.");
+      desc = tr("Checking update takes a time. If Same message, no update required.");
       ConfirmationDialog::alert(desc, this);
     } else {
       if (QFileInfo::exists("/data/KisaPilot_Updates.txt")) {
@@ -397,8 +399,10 @@ void SoftwarePanel::updateLabels() {
   if (tm != "") {
     lastUpdate = timeAgo(QDateTime::fromString(tm, "yyyy-MM-dd HH:mm:ss"));
   }
-  QString lhash = QString::fromStdString(params.get("GitCommit").substr(0, 10));
-  QString rhash = QString::fromStdString(params.get("GitCommitRemote").substr(0, 10));
+  QString lhash = QString::fromStdString(params.get("GitCommit").substr(0, 5));
+  QString rhash = QString::fromStdString(params.get("GitCommitRemote").substr(0, 5));
+  QString lhash_date = QString::fromStdString(params.get("GitCommitLocalDate"));
+  QString rhash_date = QString::fromStdString(params.get("GitCommitRemoteDate"));
 
   if (lhash == rhash) {
     gitCommitLbl->setStyleSheet("color: #aaaaaa");
@@ -412,7 +416,7 @@ void SoftwarePanel::updateLabels() {
   updateBtn->setEnabled(true);
   gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)));
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
-  gitCommitLbl->setText(lhash + "     " + rhash);
+  gitCommitLbl->setText(lhash + "(" + lhash_date + ")" + " / " + rhash + "(" + rhash_date + ")");
 }
 
 
@@ -474,63 +478,23 @@ DrivingPanel::DrivingPanel(QWidget *parent) : QFrame(parent) {
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(50, 0, 50, 0);
   layout->setSpacing(30);
-  // kisapilot
-  layout->addWidget(new AutoResumeToggle());
-  layout->addWidget(new RESCountatStandstill());
-  layout->addWidget(new CruiseGapAdjustToggle());
-  layout->addWidget(new CruiseGapBySpdOn());
-  layout->addWidget(new CruiseGapBySpd());
-  layout->addWidget(new StandstillResumeAltToggle());
-  layout->addWidget(new DepartChimeAtResume());
-  layout->addWidget(new VariableCruiseToggle());
-  //layout->addWidget(new VariableCruiseLevel());
-  layout->addWidget(new CruiseSpammingLevel());
-  layout->addWidget(new CruiseSetwithRoadLimitSpeed());
-  layout->addWidget(new CruiseSetwithRoadLimitSpeedOffset());
-  layout->addWidget(new CruisemodeSelInit());
-  layout->addWidget(new LaneChangeSpeed());
-  layout->addWidget(new LaneChangeDelay());
-  layout->addWidget(new LCTimingFactorUD());
-  layout->addWidget(new LCTimingFactor());
-  layout->addWidget(new LeftCurvOffset());
-  layout->addWidget(new RightCurvOffset());
-  //layout->addWidget(new BlindSpotDetectToggle());
 
+  // kisapilot
+  layout->addWidget(new CResumeGroup());
+  layout->addWidget(horizontal_line());
+  layout->addWidget(new CCruiseGapGroup());
+  layout->addWidget(horizontal_line());
+  layout->addWidget(new CVariableCruiseGroup());
+  layout->addWidget(horizontal_line());
+  layout->addWidget(new CLaneChangeGroup());
+  layout->addWidget(horizontal_line());
+  layout->addWidget(new CDrivingQuality());
+  layout->addWidget(horizontal_line());
+  layout->addWidget(new CSafetyandMap());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new CSteerWidget());
-  layout->addWidget(new SteerAngleCorrection());
-  layout->addWidget(new TurnSteeringDisableToggle());
-  layout->addWidget(new CruiseOverMaxSpeedToggle());
-  layout->addWidget(new OSMEnabledToggle());
-  layout->addWidget(new OSMSpeedLimitEnabledToggle());
-  layout->addWidget(new SpeedLimitOffset());
-  layout->addWidget(new OSMCustomSpeedLimitUD());
-  layout->addWidget(new OSMCustomSpeedLimit());
-  layout->addWidget(new SpeedLimitSignType());
-  layout->addWidget(new CamDecelDistAdd());
-  layout->addWidget(new CurvDecelSelect());
-  layout->addWidget(new VCurvSpeedUD());
-  layout->addWidget(new VCurvSpeed());
-  layout->addWidget(new OCurvSpeedUD());
-  layout->addWidget(new OCurvSpeed());
-  layout->addWidget(new SpeedBumpDecelToggle());
-  layout->addWidget(new KISAEarlyStoppingToggle());
-  layout->addWidget(new AutoEnabledToggle());
-  layout->addWidget(new AutoEnableSpeed());
-  layout->addWidget(new CruiseAutoResToggle());
-  layout->addWidget(new RESChoice());
-  layout->addWidget(new AutoResCondition());
-  layout->addWidget(new AutoResLimitTime());
-  layout->addWidget(new AutoRESDelay());
-  layout->addWidget(new LaneWidth());
-  layout->addWidget(new SpeedLaneWidthUD());
-  layout->addWidget(new SpeedLaneWidth());
-  layout->addWidget(new RoutineDriveOnToggle());
-  layout->addWidget(new RoutineDriveOption());
-  layout->addWidget(new CloseToRoadEdgeToggle());
-  layout->addWidget(new KISAEdgeOffset());
-  layout->addWidget(new ToAvoidLKASFaultToggle());
-  layout->addWidget(new ToAvoidLKASFault());
-  layout->addWidget(new SetSpeedByFive());
+  layout->addWidget(horizontal_line());
+
   layout->addWidget(new UseLegacyLaneModel());
 }
 
@@ -544,17 +508,21 @@ DeveloperPanel::DeveloperPanel(QWidget *parent) : QFrame(parent) {
   layout->addWidget(new DebugUiTwoToggle());
   layout->addWidget(new DebugUiThreeToggle());
   layout->addWidget(new KISADebug());
-  layout->addWidget(new ShowErrorToggle());
   layout->addWidget(new LongLogToggle());
+  layout->addWidget(horizontal_line());
+  layout->addWidget(new ShowErrorToggle());
   layout->addWidget(new PrebuiltToggle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new LDWSToggle());
   layout->addWidget(new GearDToggle());
   layout->addWidget(new SteerWarningFixToggle());
   layout->addWidget(new IgnoreCanErroronISGToggle());
+  layout->addWidget(new NoSmartMDPSToggle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new UFCModeEnabledToggle());
   layout->addWidget(new StockLKASEnabledatDisenagedStatusToggle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new JoystickModeToggle());
-  layout->addWidget(new NoSmartMDPSToggle());
   layout->addWidget(new UserSpecificFeature());
   layout->addWidget(new MapboxToken());
 
@@ -576,6 +544,7 @@ TuningPanel::TuningPanel(QWidget *parent) : QFrame(parent) {
   //layout->addWidget(new LabelControl(tr("〓〓〓〓〓〓〓〓〓〓〓〓【 TUNING 】〓〓〓〓〓〓〓〓〓〓〓〓"), ""));
   layout->addWidget(new CameraOffset());
   layout->addWidget(new PathOffset());
+  layout->addWidget(new SteerAngleCorrection());
   layout->addWidget(horizontal_line());
 
   layout->addWidget(new SteerActuatorDelay());

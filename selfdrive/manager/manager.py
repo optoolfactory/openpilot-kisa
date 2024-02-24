@@ -2,7 +2,6 @@
 import datetime
 import os
 import signal
-import subprocess
 import sys
 import traceback
 from typing import List, Tuple, Union
@@ -10,30 +9,25 @@ from typing import List, Tuple, Union
 from cereal import log
 import cereal.messaging as messaging
 import openpilot.selfdrive.sentry as sentry
-from openpilot.common.basedir import BASEDIR, PYEXTRADIR
+from openpilot.common.basedir import PYEXTRADIR
 from openpilot.common.params import Params, ParamKeyType
 from openpilot.common.text_window import TextWindow
-from openpilot.selfdrive.boardd.set_time import set_time
 from openpilot.system.hardware import HARDWARE, PC
-from openpilot.selfdrive.manager.helpers import unblock_stdout, write_onroad_params
+from openpilot.selfdrive.manager.helpers import unblock_stdout, write_onroad_params, save_bootlog
 from openpilot.selfdrive.manager.process import ensure_running
 from openpilot.selfdrive.manager.process_config import managed_processes
 from openpilot.selfdrive.athena.registration import register, UNREGISTERED_DONGLE_ID
 from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import is_dirty, get_commit, get_version, get_origin, get_short_branch, \
                            get_normalized_origin, terms_version, training_version, \
-                           is_tested_branch, is_release_branch
+                           is_tested_branch, is_release_branch, get_commit_date
 
 
 sys.path.append(os.path.join(PYEXTRADIR, "pyextra"))
 
 
 def manager_init() -> None:
-  # update system time from panda
-  set_time(cloudlog)
-
-  # save boot log
-  #subprocess.call("./bootlog", cwd=os.path.join(BASEDIR, "system/loggerd"))
+  #save_bootlog()
 
   params = Params()
   params.clear_all(ParamKeyType.CLEAR_ON_MANAGER_START)
@@ -90,7 +84,7 @@ def manager_init() -> None:
     ("PathOffsetAdj", "0"),
     ("SteerRatioAdj", "1375"),
     ("SteerRatioMaxAdj", "1750"),
-    ("SteerActuatorDelayAdj", "36"),
+    ("SteerActuatorDelayAdj", "15"),
     ("SteerLimitTimerAdj", "100"),
     ("TireStiffnessFactorAdj", "85"),
     ("SteerMaxBaseAdj", "384"),
@@ -232,6 +226,7 @@ def manager_init() -> None:
     ("CruiseSetwithRoadLimitSpeedOffset", "0"),
     ("KisaLiveTorque", "1"),
     ("ExternalDeviceIP", ""),
+    ("ExternalDeviceIPAuto", "1"),
     ("ExternalDeviceIPNow", ""),
     ("SetSpeedFive", "0"),
     ("KISALongAlt", "0"),
@@ -244,8 +239,13 @@ def manager_init() -> None:
     ("CruiseSpammingSpd", "50,80,110"),
     ("CruiseSpammingLevel", "15,10,5,0"),
     ("KisaCruiseGapSet", "4"),
-    ("UseLegacyLaneModel", "0"),
+    ("UseLegacyLaneModel", "2"),
     ("DrivingModel", "DrivingModel"),
+    ("GitCommitRemote", "0000000000000000000000000000000000000000"),
+    ("GitCommitRemoteDate", "00-00"),
+    ("LCTimingKeepFactorLeft", "10"),
+    ("LCTimingKeepFactorRight", "10"),
+    ("LCTimingKeepFactorEnable", "1"),
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
@@ -257,13 +257,6 @@ def manager_init() -> None:
   for k, v in default_params:
     if params.get(k) is None:
       params.put(k, v)
-
-  # is this dashcam?
-  if os.getenv("PASSIVE") is not None:
-    params.put_bool("Passive", bool(int(os.getenv("PASSIVE", "0"))))
-
-  if params.get("Passive") is None:
-    raise Exception("Passive must be set to continue")
 
   # Create folders needed for msgq
   try:
@@ -277,9 +270,10 @@ def manager_init() -> None:
   params.put("Version", get_version())
   params.put("TermsVersion", terms_version)
   params.put("TrainingVersion", training_version)
-  params.put("GitCommit", get_commit(default=""))
-  params.put("GitBranch", get_short_branch(default=""))
-  params.put("GitRemote", get_origin(default=""))
+  params.put("GitCommit", get_commit())
+  params.put("GitCommitDate", get_commit_date())
+  params.put("GitBranch", get_short_branch())
+  params.put("GitRemote", get_origin())
   params.put_bool("IsTestedBranch", is_tested_branch())
   params.put_bool("IsReleaseBranch", is_release_branch())
 
@@ -291,6 +285,9 @@ def manager_init() -> None:
     serial = params.get("HardwareSerial")
     raise Exception(f"Registration failed for device {serial}")
   os.environ['DONGLE_ID'] = dongle_id  # Needed for swaglog
+  os.environ['GIT_ORIGIN'] = get_normalized_origin() # Needed for swaglog
+  os.environ['GIT_BRANCH'] = get_short_branch() # Needed for swaglog
+  os.environ['GIT_COMMIT'] = get_commit() # Needed for swaglog
 
   if not is_dirty():
     os.environ['CLEAN'] = '1'
@@ -309,7 +306,7 @@ def manager_init() -> None:
   if os.path.isfile('/data/log/error.txt'):
     os.remove('/data/log/error.txt')
 
-def manager_prepare() -> None:
+  # preimport all processes
   for p in managed_processes.values():
     p.prepare()
 
@@ -340,7 +337,7 @@ def manager_thread() -> None:
     ignore.append("pandad")
   ignore += [x for x in os.getenv("BLOCK", "").split(",") if len(x) > 0]
 
-  sm = messaging.SubMaster(['deviceState', 'carParams'], poll=['deviceState'])
+  sm = messaging.SubMaster(['deviceState', 'carParams'], poll='deviceState')
   pm = messaging.PubMaster(['managerState'])
 
   write_onroad_params(False, params)
@@ -349,7 +346,7 @@ def manager_thread() -> None:
   started_prev = False
 
   while True:
-    sm.update()
+    sm.update(1000)
 
     started = sm['deviceState'].started
 
@@ -389,17 +386,8 @@ def manager_thread() -> None:
 
 
 def main() -> None:
-  prepare_only = os.getenv("PREPAREONLY") is not None
-
   manager_init()
-
-  # Start UI early so prepare can happen in the background
-  if not prepare_only:
-    managed_processes['ui'].start()
-
-  manager_prepare()
-
-  if prepare_only:
+  if os.getenv("PREPAREONLY") is not None:
     return
 
   # SystemExit on sigterm

@@ -47,6 +47,8 @@ class ENavi:
     self.dest = {"latitude": 0.0, "longitude": 0.0,}
     self.waypoints = [(0.0, 0.0),]
 
+    self.Auto_IP = self.params.get_bool("ExternalDeviceIPAuto")
+
     self.KISA_Debug = self.params.get_bool("KISADebug")
     if self.KISA_Debug:
       self.kisa_0 = ""
@@ -73,25 +75,45 @@ class ENavi:
 
     self.ip_count = 0
 
-    try:
-      self.ip_count = int(len(self.params.get("ExternalDeviceIP", encoding="utf8").split(',')))
-      if self.ip_count > 0:
-        ip_list = self.params.get("ExternalDeviceIP", encoding="utf8").split(',')
-        for input_list in ip_list:
-          if '-' in input_list:
-            t_out = input_list.split('-')
-            left1 = t_out[0].split('.')
-            leftp = left1[-1]
-            right1 = t_out[-1].split('.')
-            rightp = right1[0]
-            for x in range(int(leftp), int(rightp)+1):
-              self.ip_list_out.append(input_list.replace(leftp+"-"+rightp, str(x)))
+    if self.Auto_IP:
+      try:
+        out = subprocess.check_output("ip route", shell=True)
+        ip_via = str(out.strip().decode()).split('via ')[1].split(' ')[0]
+        ip_src = str(out.strip().decode()).split('src ')[1].split(' ')[0]
+        compare1 = ip_src.split('.')
+        c_num = 0
+        for compare2 in ip_via.split('.'):
+          if compare2 != compare1[c_num]:
+            break
           else:
-            self.ip_list_out.append(input_list)
+            c_num += 1
+        compare1[c_num] = '*'
+        ip_s = '.'.join(compare1)
+        for x in range(2, 255):
+          self.ip_list_out.append(ip_s.replace('*', str(x)))
         random.shuffle(self.ip_list_out)
-    except:
-      self.ip_count = 0
-      pass
+      except:
+        pass
+    else:
+      try:
+        self.ip_count = int(len(self.params.get("ExternalDeviceIP", encoding="utf8").split(',')))
+        if self.ip_count > 0:
+          ip_list = self.params.get("ExternalDeviceIP", encoding="utf8").split(',')
+          for input_list in ip_list:
+            if '-' in input_list:
+              t_out = input_list.split('-')
+              left1 = t_out[0].split('.')
+              leftp = left1[-1]
+              right1 = t_out[-1].split('.')
+              rightp = right1[0]
+              for x in range(int(leftp), int(rightp)+1):
+                self.ip_list_out.append(input_list.replace(leftp+"-"+rightp, str(x)))
+            else:
+              self.ip_list_out.append(input_list)
+          random.shuffle(self.ip_list_out)
+      except:
+        self.ip_count = 0
+        pass
     self.is_metric = self.params.get_bool("IsMetric")
     self.navi_selection = int(self.params.get("KISANaviSelect", encoding="utf8"))
 
@@ -118,6 +140,15 @@ class ENavi:
       self.waze_lon = 0
       self.waze_lat_prev = 0
       self.waze_lon_prev = 0
+
+  def int_to_degree(self, int_value):
+    int_value = (int_value/ 100) / 3600
+    degree = int_value
+    int_value = 60 * (int_value - degree)
+    minute = int_value
+    int_value = 60 * (int_value - minute)
+    second = int_value
+    return(float(degree) + float(minute)/60 + float(second)/(60*60))
 
   def update(self):
     self.count += 1
@@ -237,9 +268,13 @@ class ENavi:
           if "kisadestlat" in line:
             arr = line.split('kisadestlat: ')
             self.kisa_lat = arr[1]
+            if int(float(self.kisa_lat)) > 180:
+              self.kisa_lat = self.int_to_degree(int(arr[1]))
           if "kisadestlon" in line:
             arr = line.split('kisadestlon: ')
             self.kisa_lon = arr[1]
+            if int(float(self.kisa_lon)) > 360:
+              self.kisa_lon = self.int_to_degree(int(arr[1]))
 
           if self.kisa_lat and self.kisa_lon and self.kisa_lat != self.kisa_lat_prev and self.kisa_lon != self.kisa_lon_prev:
             self.dest_changed = True

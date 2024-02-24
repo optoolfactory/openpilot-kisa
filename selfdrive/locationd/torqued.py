@@ -52,7 +52,7 @@ class TorqueBuckets(PointBuckets):
 class TorqueEstimator(ParameterEstimator):
   def __init__(self, CP, decimated=False):
     self.hist_len = int(HISTORY / DT_MDL)
-    self.lag = CP.steerActuatorDelay   # from controlsd
+    self.lag = CP.steerActuatorDelay + .2   # from controlsd
     if decimated:
       self.min_bucket_points = MIN_BUCKET_POINTS / 10
       self.min_points_total = MIN_POINTS_TOTAL_QLOG
@@ -214,11 +214,11 @@ class TorqueEstimator(ParameterEstimator):
     return msg
 
 
-def main():
+def main(demo=False):
   config_realtime_process([0, 1, 2, 3], 5)
 
   pm = messaging.PubMaster(['liveTorqueParameters'])
-  sm = messaging.SubMaster(['carControl', 'carState', 'liveLocationKalman'], poll=['liveLocationKalman'])
+  sm = messaging.SubMaster(['carControl', 'carState', 'liveLocationKalman'], poll='liveLocationKalman')
 
   params = Params()
   with car.CarParams.from_bytes(params.get("CarParams", block=True)) as CP:
@@ -242,4 +242,8 @@ def main():
       params.put_nonblocking("LiveTorqueParameters", msg.to_bytes())
 
 if __name__ == "__main__":
-  main()
+  import argparse
+  parser = argparse.ArgumentParser(description='Process the --demo argument.')
+  parser.add_argument('--demo', action='store_true', help='A boolean for demo mode.')
+  args = parser.parse_args()
+  main(demo=args.demo)

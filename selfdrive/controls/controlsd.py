@@ -8,7 +8,6 @@ from typing import SupportsFloat
 from cereal import car, log
 from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
-from openpilot.common.profiler import Profiler
 from openpilot.common.params import Params
 import cereal.messaging as messaging
 from cereal.visionipc import VisionIpcClient, VisionStreamType
@@ -18,8 +17,7 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system.version import get_short_branch
 from openpilot.selfdrive.boardd.boardd import can_list_to_can_capnp
 from openpilot.selfdrive.car.car_helpers import get_car, get_startup_event, get_one_can
-from openpilot.selfdrive.controls.lib.lateral_planner import CAMERA_OFFSET, CAMERA_OFFSET_A
-from openpilot.selfdrive.controls.lib.drive_helpers import VCruiseHelper, get_lag_adjusted_curvature
+from openpilot.selfdrive.controls.lib.drive_helpers import VCruiseHelper, clip_curvature, get_lag_adjusted_curvature
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl, MIN_LATERAL_CONTROL_SPEED
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
@@ -37,9 +35,13 @@ from decimal import Decimal
 
 import openpilot.common.log as trace1
 
+USE_LEGACY_LANE_MODEL = int(Params().get("UseLegacyLaneModel", encoding="utf8")) if Params().get("UseLegacyLaneModel", encoding="utf8") is not None else 0
+
 SOFT_DISABLE_TIME = 3  # seconds
 LDW_MIN_SPEED = 50 * CV.KPH_TO_MS if Params().get_bool("IsMetric") else 31 * CV.MPH_TO_MS
 LANE_DEPARTURE_THRESHOLD = 0.1
+CAMERA_OFFSET = (float(Decimal(Params().get("CameraOffsetAdj", encoding="utf8")) * Decimal('0.001')))
+CAMERA_OFFSET_A = CAMERA_OFFSET + 0.15
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
@@ -49,9 +51,14 @@ IGNORE_PROCESSES = {"loggerd", "encoderd", "statsd", "mapd", "navd"}
 ThermalStatus = log.DeviceState.ThermalStatus
 State = log.ControlsState.OpenpilotState
 PandaType = log.PandaState.PandaType
-Desire = log.LateralPlan.Desire
-LaneChangeState = log.LateralPlan.LaneChangeState
-LaneChangeDirection = log.LateralPlan.LaneChangeDirection
+if USE_LEGACY_LANE_MODEL:
+  Desire = log.LateralPlan.Desire
+  LaneChangeState = log.LateralPlan.LaneChangeState
+  LaneChangeDirection = log.LateralPlan.LaneChangeDirection
+else:
+  Desire = log.Desire
+  LaneChangeState = log.LaneChangeState
+  LaneChangeDirection = log.LaneChangeDirection
 EventName = car.CarEvent.EventName
 ButtonType = car.CarState.ButtonEvent.Type
 SafetyModel = car.CarParams.SafetyModel
@@ -69,7 +76,7 @@ class Controls:
     config_realtime_process(4, Priority.CTRL_HIGH)
 
     # Ensure the current branch is cached, otherwise the first iteration of controlsd lags
-    self.branch = get_short_branch("")
+    self.branch = get_short_branch()
 
     # Setup sockets
     self.pm = messaging.PubMaster(['sendcan', 'controlsState', 'carState',
@@ -89,7 +96,8 @@ class Controls:
                                    'driverMonitoringState', 'longitudinalPlan', 'lateralPlan', 'liveLocationKalman',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
                                    'testJoystick', 'liveENaviData', 'liveMapData'] + self.camera_packets + self.sensor_packets,
-                                  ignore_alive=ignore, ignore_avg_freq=['radarState', 'testJoystick', 'liveENaviData', 'liveMapData'], ignore_valid=['testJoystick', 'liveENaviData', 'liveMapData'])
+                                  ignore_alive=ignore, ignore_avg_freq=ignore+['radarState', 'testJoystick', 'liveENaviData', 'liveMapData'], ignore_valid=['testJoystick', 'liveENaviData', 'liveMapData'],
+                                  frequency=int(1/DT_CTRL))
 
     if CI is None:
       # wait for one pandaState and one CAN packet
@@ -114,7 +122,6 @@ class Controls:
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
     openpilot_enabled_toggle = self.params.get_bool("OpenpilotEnabledToggle")
-    passive = self.params.get_bool("Passive") or not openpilot_enabled_toggle
 
     self.auto_enabled = self.params.get_bool("AutoEnable") and self.params.get_bool("UFCModeEnabled")
     self.variable_cruise = self.params.get_bool("KisaVariableCruise")
@@ -136,7 +143,7 @@ class Controls:
 
     car_recognized = self.CP.carName != 'mock'
 
-    controller_available = self.CI.CC is not None and not passive and not self.CP.dashcamOnly
+    controller_available = self.CI.CC is not None and openpilot_enabled_toggle and not self.CP.dashcamOnly
     self.CP.passive = not car_recognized or not controller_available or self.CP.dashcamOnly
     if self.CP.passive:
       safety_config = car.CarParams.SafetyConfig.new_message()
@@ -231,7 +238,6 @@ class Controls:
 
     # controlsd is driven by can recv, expected at 100Hz
     self.rk = Ratekeeper(100, print_delay_threshold=None)
-    self.prof = Profiler(False)  # off by default
 
     self.hkg_stock_lkas = True
     self.hkg_stock_lkas_timer = 0
@@ -289,6 +295,8 @@ class Controls:
     self.interface_safetyModel = ""
     self.rx_checks_ok = False
     self.mismatch_counter_ok = False
+
+    self.legacy_lane_mode = int(self.params.get("UseLegacyLaneModel", encoding="utf8"))
 
   def auto_enable(self, CS):
     if self.state != State.enabled:
@@ -393,8 +401,9 @@ class Controls:
 
     # Handle lane change
     if not self.lkas_temporary_off:
-      if self.sm['lateralPlan'].laneChangeState == LaneChangeState.preLaneChange:
-        direction = self.sm['lateralPlan'].laneChangeDirection
+      latplan_type = self.sm['lateralPlan'] if self.legacy_lane_mode else self.sm['modelV2'].meta
+      if latplan_type.laneChangeState == LaneChangeState.preLaneChange:
+        direction = latplan_type.laneChangeDirection
         if (CS.leftBlindspot and direction == LaneChangeDirection.left) or \
           (CS.rightBlindspot and direction == LaneChangeDirection.right):
           self.events.add(EventName.laneChangeBlocked)
@@ -409,7 +418,7 @@ class Controls:
               self.events.add(EventName.preLaneChangeRight)
             else:
               self.events.add(EventName.laneChange)
-      elif self.sm['lateralPlan'].laneChangeState in (LaneChangeState.laneChangeStarting,
+      elif latplan_type.laneChangeState in (LaneChangeState.laneChangeStarting,
                                                       LaneChangeState.laneChangeFinishing):
         self.events.add(EventName.laneChange)
 
@@ -467,7 +476,7 @@ class Controls:
     num_events = len(self.events)
 
     not_running = {p.name for p in self.sm['managerState'].processes if not p.running and p.shouldBeRunning}
-    if self.sm.rcv_frame['managerState'] and (not_running - IGNORE_PROCESSES):
+    if self.sm.recv_frame['managerState'] and (not_running - IGNORE_PROCESSES):
       self.events.add(EventName.processNotRunning)
       if not_running != self.not_running_prev:
         cloudlog.event("process_not_running", not_running=not_running, error=True)
@@ -514,7 +523,7 @@ class Controls:
       self.logged_comm_issue = None
 
     if not (self.CP.notCar and self.joystick_mode):
-      if not self.sm['lateralPlan'].mpcSolutionValid:
+      if not self.sm['lateralPlan'].mpcSolutionValid and self.legacy_lane_mode:
         self.events.add(EventName.plannerError)
       if not self.sm['liveLocationKalman'].posenetOK:
         self.events.add(EventName.posenetInvalid)
@@ -526,7 +535,7 @@ class Controls:
         self.events.add(EventName.paramsdTemporaryError)
 
     # conservative HW alert. if the data or frequency are off, locationd will throw an error
-    if any((self.sm.frame - self.sm.rcv_frame[s])*DT_CTRL > 10. for s in self.sensor_packets):
+    if any((self.sm.frame - self.sm.recv_frame[s])*DT_CTRL > 10. for s in self.sensor_packets):
       self.events.add(EventName.sensorDataInvalid)
 
     if not REPLAY:
@@ -556,9 +565,12 @@ class Controls:
 
     # TODO: fix simulator
     if not SIMULATION or REPLAY:
+      # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
       if not self.sm['liveLocationKalman'].gpsOK and self.sm['liveLocationKalman'].inputsOK and (self.distance_traveled > 1000):
-        # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
         self.events.add(EventName.noGps)
+      if self.sm['liveLocationKalman'].gpsOK:
+        self.distance_traveled = 0
+      self.distance_traveled += CS.vEgo * DT_CTRL
 
       if self.sm['modelV2'].frameDropPerc > 20:
         self.events.add(EventName.modeldLagging)
@@ -596,6 +608,17 @@ class Controls:
         self.set_initial_state()
         self.params.put_bool_nonblocking("ControlsReady", True)
 
+        cloudlog.event(
+          "controlsd.initialized",
+          dt=self.sm.frame*DT_CTRL,
+          timeout=timed_out,
+          canValid=CS.canValid,
+          invalid=[s for s, valid in self.sm.valid.items() if not valid],
+          not_alive=[s for s, alive in self.sm.alive.items() if not alive],
+          not_freq_ok=[s for s, freq_ok in self.sm.freq_ok.items() if not freq_ok],
+          error=True,
+        )
+
     # Check for CAN timeout
     if not can_strs:
       self.can_rcv_timeout_counter += 1
@@ -614,8 +637,6 @@ class Controls:
     if self.enabled and any(not ps.controlsAllowed for ps in self.sm['pandaStates']
            if ps.safetyModel not in IGNORED_SAFETY_MODES):
       self.mismatch_counter += 1
-
-    self.distance_traveled += CS.vEgo * DT_CTRL
 
     return CS
 
@@ -729,8 +750,8 @@ class Controls:
         self.LaC.update_live_torque_params(torque_params.latAccelFactorFiltered, torque_params.latAccelOffsetFiltered,
                                            torque_params.frictionCoefficientFiltered)
 
-    lat_plan = self.sm['lateralPlan']
     long_plan = self.sm['longitudinalPlan']
+    model_v2 = self.sm['modelV2']
 
     CC = car.CarControl.new_message()
     CC.enabled = self.enabled
@@ -748,9 +769,10 @@ class Controls:
     actuators.longControlState = self.LoC.long_control_state
 
     # Enable blinkers while lane changing
-    if self.sm['lateralPlan'].laneChangeState != LaneChangeState.off:
-      CC.leftBlinker = self.sm['lateralPlan'].laneChangeDirection == LaneChangeDirection.left
-      CC.rightBlinker = self.sm['lateralPlan'].laneChangeDirection == LaneChangeDirection.right
+    lat_plan = self.sm['lateralPlan'] if self.legacy_lane_mode else model_v2.meta
+    if lat_plan.laneChangeState != LaneChangeState.off:
+      CC.leftBlinker = lat_plan.laneChangeDirection == LaneChangeDirection.left
+      CC.rightBlinker = lat_plan.laneChangeDirection == LaneChangeDirection.right
 
     if CS.leftBlinker or CS.rightBlinker:
       self.last_blinker_frame = self.sm.frame
@@ -765,14 +787,20 @@ class Controls:
     if not self.joystick_mode:
       # accel PID loop
       pid_accel_limits = self.CI.get_pid_accel_limits(self.CP, CS.vEgo, self.v_cruise_helper.v_cruise_kph * CV.KPH_TO_MS)
-      t_since_plan = (self.sm.frame - self.sm.rcv_frame['longitudinalPlan']) * DT_CTRL
+      t_since_plan = (self.sm.frame - self.sm.recv_frame['longitudinalPlan']) * DT_CTRL
       actuators.accel, actuators.oaccel = self.LoC.update(CC.longActive, CS, long_plan, pid_accel_limits, t_since_plan, self.CP, self.sm['radarState'])
 
       # Steering PID loop and lateral MPC
-      self.desired_curvature, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo,
-                                                                                       lat_plan.psis,
-                                                                                       lat_plan.curvatures,
-                                                                                       lat_plan.curvatureRates)
+      if self.legacy_lane_mode == 2:
+        model_speed = self.sm['lateralPlan'].modelSpeed
+        desired_curvature1, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates)
+        desired_curvature2 = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
+        desired_curvature3 = interp(CS.vEgo, [0.3, 1.0], [desired_curvature1, desired_curvature2])
+        self.desired_curvature = interp(model_speed, [50, 100], [desired_curvature3, desired_curvature1])
+      elif self.legacy_lane_mode == 1:
+        self.desired_curvature, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates)
+      else:
+        self.desired_curvature = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
       actuators.steer, actuators.steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
                                                                              self.steer_limited, self.desired_curvature,
                                                                              self.desired_curvature_rate, self.sm['liveLocationKalman'])
@@ -780,9 +808,9 @@ class Controls:
       self.desired_angle_deg = actuators.steeringAngleDeg
     else:
       lac_log = log.ControlsState.LateralDebugState.new_message()
-      if self.sm.rcv_frame['testJoystick'] > 0:
+      if self.sm.recv_frame['testJoystick'] > 0:
         # reset joystick if it hasn't been received in a while
-        should_reset_joystick = (self.sm.frame - self.sm.rcv_frame['testJoystick'])*DT_CTRL > 0.2
+        should_reset_joystick = (self.sm.frame - self.sm.recv_frame['testJoystick'])*DT_CTRL > 0.2
         if not should_reset_joystick:
           joystick_axes = self.sm['testJoystick'].axes
         else:
@@ -816,7 +844,11 @@ class Controls:
         if undershooting and turning and good_speed and max_torque:
           lac_log.active and self.events.add(EventName.steerSaturated)
       elif lac_log.saturated:
-        dpath_points = lat_plan.dPathPoints
+        # TODO probably should not use dpath_points but curvature
+        if self.legacy_lane_mode:
+          dpath_points = lat_plan.dPathPoints
+        else:
+          dpath_points = model_v2.position.y
         if len(dpath_points):
           # Check if we deviated from the path
           # TODO use desired vs actual curvature
@@ -861,7 +893,7 @@ class Controls:
 
     CC.cruiseControl.override = self.enabled and not CC.longActive and self.CP.openpilotLongitudinalControl
     CC.cruiseControl.cancel = CS.cruiseState.enabled and (not self.enabled or not self.CP.pcmCruise)
-    if self.joystick_mode and self.sm.rcv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
+    if self.joystick_mode and self.sm.recv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
       CC.cruiseControl.cancel = True
 
     speeds = self.sm['longitudinalPlan'].speeds
@@ -996,7 +1028,7 @@ class Controls:
       controlsState.alertSound = current_alert.audible_alert
 
     controlsState.longitudinalPlanMonoTime = self.sm.logMonoTime['longitudinalPlan']
-    controlsState.lateralPlanMonoTime = self.sm.logMonoTime['lateralPlan']
+    controlsState.lateralPlanMonoTime = self.sm.logMonoTime['lateralPlan'] if self.legacy_lane_mode else self.sm.logMonoTime['modelV2']
     controlsState.enabled = self.enabled
     controlsState.active = self.active
     controlsState.curvature = curvature

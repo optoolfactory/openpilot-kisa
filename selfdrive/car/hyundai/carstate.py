@@ -40,8 +40,8 @@ class CarState(CarStateBase):
     else:  # preferred and elect gear methods use same definition
       self.shifter_values = can_define.dv["LVR12"]["CF_Lvr_Gear"]
 
-    self.accelerator_msg_canfd = "ACCELERATOR" if CP.carFingerprint in EV_CAR else \
-                                 "ACCELERATOR_ALT" if CP.carFingerprint in HYBRID_CAR else \
+    self.accelerator_msg_canfd = "ACCELERATOR" if CP.flags & HyundaiFlags.EV else \
+                                 "ACCELERATOR_ALT" if CP.flags & HyundaiFlags.HYBRID else \
                                  "ACCELERATOR_BRAKE_ALT"
     self.cruise_btns_msg_canfd = "CRUISE_BUTTONS_ALT" if CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS else \
                                  "CRUISE_BUTTONS"
@@ -376,6 +376,7 @@ class CarState(CarStateBase):
       ret.cruiseState.available = cp_scc.vl["SCC11"]["MainMode_ACC"] != 0
       ret.cruiseState.enabled = cp_scc.vl["SCC12"]["ACCMode"] != 0
       ret.cruiseState.standstill = cp_scc.vl["SCC11"]["SCCInfoDisplay"] == 4.
+      ret.cruiseState.nonAdaptive = cp_cruise.vl["SCC11"]["SCCInfoDisplay"] == 2.  # Shows 'Cruise Control' on dash
 
       self.acc_active = cp_scc.vl["SCC12"]['ACCMode'] != 0
       if self.acc_active:
@@ -409,8 +410,8 @@ class CarState(CarStateBase):
     ret.cruiseState.cruiseSwState = self.cruise_buttons[-1]
     ret.cruiseState.modeSel = self.cruise_set_mode
 
-    if self.CP.carFingerprint in (HYBRID_CAR | EV_CAR):
-      if self.CP.carFingerprint in HYBRID_CAR:
+    if self.CP.flags & (HyundaiFlags.HYBRID | HyundaiFlags.EV):
+      if self.CP.flags & HyundaiFlags.HYBRID:
         ret.gas = cp.vl["E_EMS11"]["CR_Vcu_AccPedDep_Pos"] / 254.
         ret.engineRpm = cp.vl["E_EMS11"]["N"] # kisa
         ret.chargeMeter = 0
@@ -444,7 +445,7 @@ class CarState(CarStateBase):
 
     # Gear Selection via Cluster - For those Kia/Hyundai which are not fully discovered, we can use the Cluster Indicator for Gear Selection,
     # as this seems to be standard over all cars, but is not the preferred method.
-    if self.CP.carFingerprint in (HYBRID_CAR | EV_CAR):
+    if self.CP.flags & (HyundaiFlags.HYBRID | HyundaiFlags.EV):
       gear = cp.vl["ELECT_GEAR"]["Elect_Gear_Shifter"]
       if self.CP.carFingerprint == CAR.NEXO_FE:
         gear = cp.vl["EMS20"]["Elect_Gear_Shifter_NEXO"] # kisa, NEXO gear by multikyd
@@ -469,13 +470,10 @@ class CarState(CarStateBase):
     if not self.CP.openpilotLongitudinalControl or self.CP.sccBus == 2:
       aeb_src = "FCA11" if self.CP.flags & HyundaiFlags.USE_FCA.value else "SCC12"
       aeb_sig = "FCA_CmdAct" if self.CP.flags & HyundaiFlags.USE_FCA.value else "AEB_CmdAct"
-      if aeb_src == "FCA11":
-        aeb_warning = cp_cruise.vl[aeb_src]["CF_VSM_Warn"] != 0
-        aeb_braking = cp_cruise.vl[aeb_src]["CF_VSM_DecCmdAct"] != 0 or cp_cruise.vl[aeb_src][aeb_sig] != 0
-      else:
-        aeb_warning = cp_scc.vl[aeb_src]["CF_VSM_Warn"] != 0
-        aeb_braking = cp_scc.vl[aeb_src]["CF_VSM_DecCmdAct"] != 0 or cp_scc.vl[aeb_src][aeb_sig] != 0
-      ret.stockFcw = aeb_warning and not aeb_braking
+      aeb_warning = cp_cruise.vl[aeb_src]["CF_VSM_Warn"] != 0
+      scc_warning = cp_cruise.vl["SCC12"]["TakeOverReq"] == 1  # sometimes only SCC system shows an FCW
+      aeb_braking = cp_cruise.vl[aeb_src]["CF_VSM_DecCmdAct"] != 0 or cp_cruise.vl[aeb_src][aeb_sig] != 0
+      ret.stockFcw = (aeb_warning or scc_warning) and not aeb_braking
       ret.stockAeb = aeb_warning and aeb_braking
 
     if self.CP.enableBsm:
@@ -520,8 +518,8 @@ class CarState(CarStateBase):
     self.is_set_speed_in_mph = not self.is_metric
     speed_factor = CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS
 
-    if self.CP.carFingerprint in (EV_CAR | HYBRID_CAR):
-      offset = 255. if self.CP.carFingerprint in EV_CAR else 1023.
+    if self.CP.flags & (HyundaiFlags.EV | HyundaiFlags.HYBRID):
+      offset = 255. if self.CP.flags & HyundaiFlags.EV else 1023.
       ret.gas = cp.vl[self.accelerator_msg_canfd]["ACCELERATOR_PEDAL"] / offset
       ret.gasPressed = ret.gas > 1e-5
     else:
@@ -619,7 +617,7 @@ class CarState(CarStateBase):
     # It limits the vehicle speed, overridable by pressing the accelerator past a certain point.
     # The car will brake, but does not respect positive acceleration commands in this mode
     # TODO: find this message on ICE & HYBRID cars + cruise control signals (if exists)
-    if self.CP.carFingerprint in EV_CAR:
+    if self.CP.flags & HyundaiFlags.EV:
       ret.cruiseState.nonAdaptive = cp.vl["MANUAL_SPEED_LIMIT_ASSIST"]["MSLA_ENABLED"] == 1
 
     self.prev_cruise_buttons = self.cruise_buttons[-1]
@@ -669,9 +667,9 @@ class CarState(CarStateBase):
     if CP.enableBsm:
       messages.append(("LCA11", 50))
 
-    if CP.carFingerprint in (HYBRID_CAR | EV_CAR):
+    if CP.flags & (HyundaiFlags.HYBRID | HyundaiFlags.EV):
       messages.append(("E_EMS11", 50))
-      if CP.carFingerprint in (EV_CAR):
+      if CP.flags & HyundaiFlags.EV:
         messages.append(("EV_Info", 0))
     else:
       messages += [
@@ -683,7 +681,7 @@ class CarState(CarStateBase):
           ("EMS_366", 100),
         ]
 
-    if CP.carFingerprint in (HYBRID_CAR | EV_CAR):
+    if CP.flags & (HyundaiFlags.HYBRID | HyundaiFlags.EV):
       messages.append(("ELECT_GEAR", 20))
       if CP.carFingerprint == CAR.NEXO_FE:
         messages.append(("EMS20", 20))
@@ -759,7 +757,7 @@ class CarState(CarStateBase):
       ("DOORS_SEATBELTS", 4),
     ]
 
-    if CP.carFingerprint in EV_CAR:
+    if CP.flags & HyundaiFlags.EV:
       messages += [
         ("MANUAL_SPEED_LIMIT_ASSIST", 10),
       ]

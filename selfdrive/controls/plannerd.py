@@ -10,7 +10,7 @@ from openpilot.selfdrive.controls.lib.longitudinal_planner import LongitudinalPl
 from openpilot.selfdrive.controls.lib.lateral_planner import LateralPlanner
 import cereal.messaging as messaging
 
-USE_LEGACY_LANE_MODEL = Params().get_bool("UseLegacyLaneModel") if Params().get_bool("UseLegacyLaneModel") is not None else False
+USE_LEGACY_LANE_MODEL = int(Params().get("UseLegacyLaneModel", encoding="utf8")) if Params().get("UseLegacyLaneModel", encoding="utf8") is not None else 0
 
 def cumtrapz(x, t):
   return np.concatenate([[0], np.cumsum(((x[0:-1] + x[1:])/2) * np.diff(t))])
@@ -26,10 +26,12 @@ def publish_ui_plan(sm, pm, lateral_planner, longitudinal_planner):
   if USE_LEGACY_LANE_MODEL:
     uiPlan.position.x = np.interp(plan_odo, model_odo, lateral_planner.lat_mpc.x_sol[:,0]).tolist()
     uiPlan.position.y = np.interp(plan_odo, model_odo, lateral_planner.lat_mpc.x_sol[:,1]).tolist()
+    uiPlan.position.z = np.interp(plan_odo, model_odo, lateral_planner.path_xyz[:,2]).tolist()
   else:
-    uiPlan.position.x = np.interp(plan_odo, model_odo, lateral_planner.x_sol[:,0]).tolist()
-    uiPlan.position.y = np.interp(plan_odo, model_odo, lateral_planner.x_sol[:,1]).tolist()
-  uiPlan.position.z = np.interp(plan_odo, model_odo, lateral_planner.path_xyz[:,2]).tolist()
+    uiPlan.position.x = list(sm['modelV2'].position.x)
+    uiPlan.position.y = list(sm['modelV2'].position.y)
+    uiPlan.position.z = list(sm['modelV2'].position.z)
+
   uiPlan.accel = longitudinal_planner.a_desired_trajectory_full.tolist()
   pm.send('uiPlan', ui_send)
 
@@ -49,13 +51,12 @@ def plannerd_thread():
 
   pm = messaging.PubMaster(['longitudinalPlan', 'lateralPlan', 'uiPlan'])
   sm = messaging.SubMaster(['carControl', 'carState', 'controlsState', 'radarState', 'modelV2'],
-                           poll=['radarState', 'modelV2'], ignore_avg_freq=['radarState'])
+                           poll='modelV2', ignore_avg_freq=['radarState'])
 
   while True:
     sm.update()
-
     if sm.updated['modelV2']:
-      lateral_planner.update(sm, CP)
+      lateral_planner.update(sm)
       lateral_planner.publish(sm, pm)
       longitudinal_planner.update(sm, CP)
       longitudinal_planner.publish(sm, pm)

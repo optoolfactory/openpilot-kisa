@@ -33,6 +33,7 @@ struct InitData {
   deviceType @3 :DeviceType;
   version @4 :Text;
   gitCommit @10 :Text;
+  gitCommitDate @21 :Text;
   gitBranch @11 :Text;
   gitRemote @13 :Text;
 
@@ -299,6 +300,29 @@ struct GpsLocationData {
   }
 }
 
+enum Desire {
+  none @0;
+  turnLeft @1;
+  turnRight @2;
+  laneChangeLeft @3;
+  laneChangeRight @4;
+  keepLeft @5;
+  keepRight @6;
+}
+
+enum LaneChangeState {
+  off @0;
+  preLaneChange @1;
+  laneChangeStarting @2;
+  laneChangeFinishing @3;
+}
+
+enum LaneChangeDirection {
+  none @0;
+  left @1;
+  right @2;
+}
+
 struct CanData {
   address @0 :UInt32;
   busTime @1 :UInt16;
@@ -497,6 +521,7 @@ struct PandaState @0xa7649e2575e4591e {
     redPanda @7;
     redPandaV2 @8;
     tres @9;
+    cuatro @10;
   }
 
   enum HarnessStatus {
@@ -938,6 +963,7 @@ struct ModelDataV2 {
 
   # e2e lateral planner
   lateralPlannerSolution @25: LateralPlannerSolution;
+  action @26: Action;
 
   struct LeadDataV2 {
     prob @0 :Float32; # probability that car is your lead at time t
@@ -975,6 +1001,9 @@ struct ModelDataV2 {
     desireState @5 :List(Float32);
     disengagePredictions @6 :DisengagePredictions;
     hardBrakePredicted @7 :Bool;
+    laneChangeState @8 :LaneChangeState;
+    laneChangeDirection @9 :LaneChangeDirection;
+
 
     # deprecated
     brakeDisengageProbDEPRECATED @2 :Float32;
@@ -1016,6 +1045,9 @@ struct ModelDataV2 {
     yawRateStd @7 :List(Float32);
   }
 
+  struct Action {
+    desiredCurvature @0 :Float32;
+  }
 }
 
 struct EncodeIndex {
@@ -1923,11 +1955,12 @@ struct QcomGnss @0xde94674b07ae51c1 {
 }
 
 struct Clocks {
-  bootTimeNanos @0 :UInt64;
-  monotonicNanos @1 :UInt64;
-  monotonicRawNanos @2 :UInt64;
-  wallTimeNanos @3 :UInt64;
-  modemUptimeMillis @4 :UInt64;
+  wallTimeNanos @3 :UInt64;  # unix epoch time
+
+  bootTimeNanosDEPRECATED @0 :UInt64;
+  monotonicNanosDEPRECATED @1 :UInt64;
+  monotonicRawNanosDEPRECATD @2 :UInt64;
+  modemUptimeMillisDEPRECATED @4 :UInt64;
 }
 
 struct LiveMpcData {
@@ -2311,6 +2344,8 @@ struct EncodeData {
   data @1 :Data;
   header @2 :Data;
   unixTimestampNanos @3 :UInt64;
+  width @4 :UInt32;
+  height @5 :UInt32;
 }
 
 struct UserFlag {

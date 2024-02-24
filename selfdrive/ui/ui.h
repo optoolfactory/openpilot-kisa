@@ -268,6 +268,9 @@ typedef struct UIScene {
   int satelliteCount;
   float gpsAccuracy;
 
+  bool hotspot_on_boot;
+  bool hotspot_trigger = false;
+
   QString model_name;
 
   cereal::DeviceState::Reader deviceState;
@@ -423,6 +426,7 @@ signals:
   void offroadTransition(bool offroad);
   void primeChanged(bool prime);
   void primeTypeChanged(PrimeType prime_type);
+  void hotspotSignal();
 
 private slots:
   void update();

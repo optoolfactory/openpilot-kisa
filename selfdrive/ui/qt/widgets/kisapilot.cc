@@ -192,7 +192,7 @@ CPandaGroup::CPandaGroup() : CGroupWidget( tr("Panda Values") )
 }  
 
 
-CGitGroup::CGitGroup(void *p) : CGroupWidget( tr("Git Branch Change") ) 
+CGitGroup::CGitGroup(void *p) : CGroupWidget( tr("Git Repository/Branch") ) 
 {
    QVBoxLayout *pBoxLayout = CreateBoxLayout();
 
@@ -221,9 +221,98 @@ CGitGroup::CGitGroup(void *p) : CGroupWidget( tr("Git Branch Change") )
   pBoxLayout->addWidget( gitpullcanceltbtn );  
 }
 
+CResumeGroup::CResumeGroup(void *p) : CGroupWidget( tr("SCC Resume Option") ) 
+{
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
+
+  pBoxLayout->addWidget(new AutoResumeToggle());
+  pBoxLayout->addWidget(new RESCountatStandstill());
+  pBoxLayout->addWidget(new StandstillResumeAltToggle());
+  pBoxLayout->addWidget(new DepartChimeAtResume());
+  pBoxLayout->addWidget(new CruiseAutoResToggle());
+  pBoxLayout->addWidget(new RESChoice());
+  pBoxLayout->addWidget(new AutoResCondition());
+  pBoxLayout->addWidget(new AutoResLimitTime());
+  pBoxLayout->addWidget(new AutoRESDelay());
+}
+
+CCruiseGapGroup::CCruiseGapGroup(void *p) : CGroupWidget( tr("Cruise Gap Option") ) 
+{
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
+
+  pBoxLayout->addWidget(new CruiseGapAdjustToggle());
+  pBoxLayout->addWidget(new CruiseGapBySpdOn());
+  pBoxLayout->addWidget(new CruiseGapBySpd());
+  pBoxLayout->addWidget(new KISAEarlyStoppingToggle());
+}
+
+CVariableCruiseGroup::CVariableCruiseGroup(void *p) : CGroupWidget( tr("Variable Cruise Option") ) 
+{
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
+
+  pBoxLayout->addWidget(new VariableCruiseToggle());
+  pBoxLayout->addWidget(new CruiseSpammingLevel());
+  pBoxLayout->addWidget(new CruisemodeSelInit());
+  pBoxLayout->addWidget(new CruiseOverMaxSpeedToggle());
+  pBoxLayout->addWidget(new SetSpeedByFive());
+}
+
+CLaneChangeGroup::CLaneChangeGroup(void *p) : CGroupWidget( tr("Lane Change Option") ) 
+{
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
+
+  pBoxLayout->addWidget(new LaneChangeSpeed());
+  pBoxLayout->addWidget(new LaneChangeDelay());
+  pBoxLayout->addWidget(new LCTimingFactorUD());
+  pBoxLayout->addWidget(new LCTimingFactor());
+  pBoxLayout->addWidget(new LCTimingKeepFactorUD());
+  pBoxLayout->addWidget(new LCTimingKeepFactor());
+}
+
+CDrivingQuality::CDrivingQuality(void *p) : CGroupWidget( tr("Driving Quality Option") ) 
+{
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
+
+  pBoxLayout->addWidget(new LeftCurvOffset());
+  pBoxLayout->addWidget(new RightCurvOffset());
+  pBoxLayout->addWidget(new TurnSteeringDisableToggle());
+  pBoxLayout->addWidget(new LaneWidth());
+  pBoxLayout->addWidget(new SpeedLaneWidthUD());
+  pBoxLayout->addWidget(new SpeedLaneWidth());
+  pBoxLayout->addWidget(new CloseToRoadEdgeToggle());
+  pBoxLayout->addWidget(new KISAEdgeOffset());
+  pBoxLayout->addWidget(new ToAvoidLKASFaultToggle());
+  pBoxLayout->addWidget(new ToAvoidLKASFault());
+  pBoxLayout->addWidget(new AutoEnabledToggle());
+  pBoxLayout->addWidget(new AutoEnableSpeed());
+}
+
+CSafetyandMap::CSafetyandMap(void *p) : CGroupWidget( tr("Safety Speed and Map Option") ) 
+{
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
+
+  pBoxLayout->addWidget(new OSMEnabledToggle());
+  pBoxLayout->addWidget(new OSMSpeedLimitEnabledToggle());
+  pBoxLayout->addWidget(new SpeedLimitOffset());
+  pBoxLayout->addWidget(new OSMCustomSpeedLimitUD());
+  pBoxLayout->addWidget(new OSMCustomSpeedLimit());
+  pBoxLayout->addWidget(new SpeedLimitSignType());
+  pBoxLayout->addWidget(new CamDecelDistAdd());
+  pBoxLayout->addWidget(new CurvDecelSelect());
+  pBoxLayout->addWidget(new VCurvSpeedUD());
+  pBoxLayout->addWidget(new VCurvSpeed());
+  pBoxLayout->addWidget(new OCurvSpeedUD());
+  pBoxLayout->addWidget(new OCurvSpeed());
+  pBoxLayout->addWidget(new SpeedBumpDecelToggle());
+  pBoxLayout->addWidget(new CruiseSetwithRoadLimitSpeed());
+  pBoxLayout->addWidget(new CruiseSetwithRoadLimitSpeedOffset());
+  pBoxLayout->addWidget(new RoutineDriveOnToggle());
+  pBoxLayout->addWidget(new RoutineDriveOption());
+}
+
 CUtilWidget::CUtilWidget( void *p ) : CGroupWidget( tr("Util Program") ) 
 {
-   QVBoxLayout *pBoxLayout = CreateBoxLayout();
+  QVBoxLayout *pBoxLayout = CreateBoxLayout();
 
   const char* panda_flashing = "/data/openpilot/selfdrive/assets/addon/script/panda_flashing.sh";
   auto pandaflashingtbtn = new ButtonControl(tr("Panda Flashing(OLD)"), tr("RUN"));
@@ -5551,6 +5640,184 @@ void LCTimingFactorUD::refresh2() {
     font-weight: 500;
     color: #E4E4E4;
     background-color: #393939;
+    )");
+  }
+}
+
+LCTimingKeepFactor::LCTimingKeepFactor() : AbstractControl("", "", "") {
+  btn1.setStyleSheet(R"(
+    padding: -10;
+    border-radius: 35px;
+    font-size: 30px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btn2.setStyleSheet(R"(
+    padding: -10;
+    border-radius: 35px;
+    font-size: 30px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btn3.setStyleSheet(R"(
+    padding: -10;
+    border-radius: 35px;
+    font-size: 30px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btn4.setStyleSheet(R"(
+    padding: -10;
+    border-radius: 35px;
+    font-size: 30px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  label1.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
+  label1.setStyleSheet("color: #e0e879");
+  label2.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
+  label2.setStyleSheet("color: #e0e879");
+  label1a.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
+  label2a.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
+  btn1.setText("－");
+  btn2.setText("＋");
+  btn3.setText("－");
+  btn4.setText("＋");
+
+  hlayout->addWidget(&label1a);
+  btn1.setFixedSize(120, 100);
+  btn2.setFixedSize(120, 100);
+  label1a.setText("Left:");
+  hlayout->addWidget(&label1);
+  hlayout->addWidget(&btn1);
+  hlayout->addWidget(&btn2);
+
+  hlayout->addWidget(&label2a);
+  btn3.setFixedSize(120, 100);
+  btn4.setFixedSize(120, 100);
+  label2a.setText("Right:");
+  hlayout->addWidget(&label2);
+  hlayout->addWidget(&btn3);
+  hlayout->addWidget(&btn4);
+
+  QObject::connect(&btn1, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LCTimingKeepFactorLeft"));
+    int value = str.toInt();
+    value = value - 1;
+    if (value <= 1) {
+      value = 1;
+    }
+    QString values = QString::number(value);
+    params.put("LCTimingKeepFactorLeft", values.toStdString());
+    refresh1();
+  });
+  
+  QObject::connect(&btn2, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LCTimingKeepFactorLeft"));
+    int value = str.toInt();
+    value = value + 1;
+    if (value >= 50) {
+      value = 50;
+    }
+    QString values = QString::number(value);
+    params.put("LCTimingKeepFactorLeft", values.toStdString());
+    refresh1();
+  });
+  QObject::connect(&btn3, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LCTimingKeepFactorRight"));
+    int value = str.toInt();
+    value = value - 1;
+    if (value <= 1) {
+      value = 1;
+    }
+    QString values = QString::number(value);
+    params.put("LCTimingKeepFactorRight", values.toStdString());
+    refresh2();
+  });
+  
+  QObject::connect(&btn4, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("LCTimingKeepFactorRight"));
+    int value = str.toInt();
+    value = value + 1;
+    if (value >= 50) {
+      value = 50;
+    }
+    QString values = QString::number(value);
+    params.put("LCTimingKeepFactorRight", values.toStdString());
+    refresh2();
+  });
+
+  refresh1();
+  refresh2();
+}
+
+void LCTimingKeepFactor::refresh1() {
+  auto strs = QString::fromStdString(params.get("LCTimingKeepFactorLeft"));
+  int valuei = strs.toInt();
+  float valuef = valuei * 0.001;
+  QString valuefs = QString::number(valuef);
+  label1.setText(QString::fromStdString(valuefs.toStdString()));
+}
+void LCTimingKeepFactor::refresh2() {
+  auto strs = QString::fromStdString(params.get("LCTimingKeepFactorRight"));
+  int valuei = strs.toInt();
+  float valuef = valuei * 0.001;
+  QString valuefs = QString::number(valuef);
+  label2.setText(QString::fromStdString(valuefs.toStdString()));
+}
+
+
+LCTimingKeepFactorUD::LCTimingKeepFactorUD() : AbstractControl(tr("LaneChange Keeping Time"), tr("Set a time to keep lane change. Low value makes changing time more so that your car move enough to target lane. If car is over to target lane too fast, increase a value."), "../assets/offroad/icon_shell.png") {
+
+  btn.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btn.setFixedSize(150, 100);
+  hlayout->addWidget(&btn);
+
+  QObject::connect(&btn, &QPushButton::clicked, [=]() {
+    bool stat = params.getBool("LCTimingKeepFactorEnable");
+    if (stat) {
+      params.putBool("LCTimingKeepFactorEnable", false);
+    } else {
+      params.putBool("LCTimingKeepFactorEnable", true);
+    }
+    refresh();
+  });
+
+  refresh();
+}
+
+void LCTimingKeepFactorUD::refresh() {
+  bool param = params.getBool("LCTimingKeepFactorEnable");
+  if (param) {
+    btn.setText("ON");
+    btn.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A12E;
+    )");
+  } else {
+    btn.setText("OFF");
+    btn.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
   )");
   }
 }
@@ -5644,8 +5911,8 @@ VCurvSpeed::VCurvSpeed() : AbstractControl("", "", "") {
     height: 120px;
   )");
   btn.setFixedSize(150, 100);
-  edit1.setFixedSize(650, 100);
-  edit2.setFixedSize(650, 100);
+  edit1.setFixedSize(600, 100);
+  edit2.setFixedSize(600, 100);
   edit1.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
   edit2.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
 
@@ -5748,8 +6015,8 @@ OCurvSpeed::OCurvSpeed() : AbstractControl("", "", "") {
     height: 120px;
   )");
   btn.setFixedSize(150, 100);
-  edit1.setFixedSize(650, 100);
-  edit2.setFixedSize(650, 100);
+  edit1.setFixedSize(600, 100);
+  edit2.setFixedSize(600, 100);
   edit1.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
   edit2.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
 
@@ -5861,7 +6128,7 @@ void GetOffAlert::refresh() {
   }
 }
 
-KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("Select the navigation you want to use.(None/TMapE/WazeE)"), "../assets/offroad/icon_shell.png") {
+KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("Select the navigation you want to use.(None/TMap/Mappy/Waze) Refer to Readme.txt in the directory."), "../assets/offroad/icon_shell.png") {
 
   label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
   label.setStyleSheet("color: #e0e879");
@@ -5918,8 +6185,8 @@ KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("
 void KISANaviSelect::refresh() {
   QString option = QString::fromStdString(params.get("KISANaviSelect"));
   if (option == "0") {label.setText(tr("None"));
-  } else if (option == "1") {label.setText(tr("TMapE"));
-  } else if (option == "2") {label.setText(tr("WazeE"));
+  } else if (option == "1") {label.setText(tr("TMap/Mappy"));
+  } else if (option == "2") {label.setText(tr("Waze"));
   }
 }
 
@@ -6662,8 +6929,8 @@ OSMCustomSpeedLimit::OSMCustomSpeedLimit() : AbstractControl("", "", "") {
   btn.setFixedSize(150, 100);
   edit1.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
   edit2.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
-  edit1.setFixedSize(650, 100);
-  edit2.setFixedSize(650, 100);
+  edit1.setFixedSize(600, 100);
+  edit2.setFixedSize(600, 100);
 
   hlayout->addWidget(&edit1);
   hlayout->addWidget(&edit2);
@@ -6963,8 +7230,8 @@ SpeedLaneWidth::SpeedLaneWidth() : AbstractControl("", "", "") {
     height: 120px;
   )");
   btn.setFixedSize(150, 100);
-  edit1.setFixedSize(650, 100);
-  edit2.setFixedSize(650, 100);
+  edit1.setFixedSize(600, 100);
+  edit2.setFixedSize(600, 100);
   edit1.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
   edit2.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
 
@@ -8195,6 +8462,14 @@ void VariableCruiseLevel::refresh() {
 }
 
 ExternalDeviceIP::ExternalDeviceIP() : AbstractControl(tr("ExternalDevIP"), tr("Set Your External Device IP to get useful data. ex. a ip:192.168.0.1 / two or more: 192.168.0.1,192.168.0.2 put comma btw IPs / range:192.168.0.1-10  192.168.0-10.254 use dash(-)"), "") {
+  btna.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
   btn.setStyleSheet(R"(
     padding: 0;
     border-radius: 50px;
@@ -8210,14 +8485,20 @@ ExternalDeviceIP::ExternalDeviceIP() : AbstractControl(tr("ExternalDevIP"), tr("
     height: 120px;
   )");
 
-  edit.setFixedSize(1000, 100);
+  edit.setFixedSize(720, 100);
   btn.setFixedSize(150, 100);
-  btn.setText(tr("SET"));
+  btna.setFixedSize(250, 100);
   edit.setAlignment(Qt::AlignVCenter|Qt::AlignLeft);
 
+  hlayout->addWidget(&btna);
   hlayout->addWidget(&edit);
   hlayout->addWidget(&btn);
 
+  QObject::connect(&btna, &QPushButton::clicked, [=]() {
+    bool stat = params.getBool("ExternalDeviceIPAuto");
+    params.putBool("ExternalDeviceIPAuto", !stat);
+    refresh();
+  });
 
   QObject::connect(&btn, &QPushButton::clicked, [=]() {
     QString eip_address = InputDialog::getText(tr("Input Your External Dev IP"), this, tr("See description for more detail how to set up."), false, 1, QString::fromStdString(params.get("ExternalDeviceIP")));
@@ -8230,8 +8511,37 @@ ExternalDeviceIP::ExternalDeviceIP() : AbstractControl(tr("ExternalDevIP"), tr("
 }
 
 void ExternalDeviceIP::refresh() {
-  auto strs = QString::fromStdString(params.get("ExternalDeviceIP"));
-  edit.setText(QString::fromStdString(strs.toStdString()));
+  bool param = params.getBool("ExternalDeviceIPAuto");
+  if (param) {
+    btna.setText(tr("AutoDetect"));
+    btna.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A12E;
+    )");
+    edit.setText("");
+    btn.setText("");
+    btn.setEnabled(false);
+    edit.setEnabled(false);
+  } else {
+    auto strs = QString::fromStdString(params.get("ExternalDeviceIP"));
+    edit.setText(QString::fromStdString(strs.toStdString()));
+    btn.setText(tr("SET"));
+    btna.setText(tr("ManualInput"));
+    btna.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+    )");
+    btn.setEnabled(true);
+    edit.setEnabled(true);
+  }
 }
 
 DoNotDisturbMode::DoNotDisturbMode() : AbstractControl(tr("DoNotDisturb Mode"), tr("Off Event notification, Screen and Sound of Device. You can enable this touching Left-Top Box like a button on onroad screen."), "../assets/offroad/icon_shell.png") {
@@ -9147,5 +9457,71 @@ void KISACruiseGapSet::refresh() {
     label.setText(QString::fromStdString("■■■"));
   } else {
     label.setText(QString::fromStdString("■■■■"));
+  }
+}
+
+UseLegacyLaneModel::UseLegacyLaneModel() : AbstractControl(tr("Lateral Plan Mode"), tr("1.Model(latest model path), 2.MPC(mpc path from post processing of model, 3.Mix(Model(high curvature), MPC(low curvature), interpolation value)"), "../assets/offroad/icon_shell.png") {
+
+  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  label.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&label);
+
+  btnminus.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btnplus.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btnminus.setFixedSize(150, 100);
+  btnplus.setFixedSize(150, 100);
+  btnminus.setText("◀");
+  btnplus.setText("▶");
+  hlayout->addWidget(&btnminus);
+  hlayout->addWidget(&btnplus);
+
+  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("UseLegacyLaneModel"));
+    int value = str.toInt();
+    value = value - 1;
+    if (value <= -1) {
+      value = 2;
+    }
+    QString values = QString::number(value);
+    params.put("UseLegacyLaneModel", values.toStdString());
+    refresh();
+  });
+  
+  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("UseLegacyLaneModel"));
+    int value = str.toInt();
+    value = value + 1;
+    if (value >= 3) {
+      value = 0;
+    }
+    QString values = QString::number(value);
+    params.put("UseLegacyLaneModel", values.toStdString());
+    refresh();
+  });
+  refresh();
+}
+
+void UseLegacyLaneModel::refresh() {
+  QString option = QString::fromStdString(params.get("UseLegacyLaneModel"));
+  if (option == "0") {
+    label.setText(tr("Model"));
+  } else if (option == "1") {
+    label.setText(tr("MPC"));
+  } else {
+    label.setText(tr("Mix"));
   }
 }

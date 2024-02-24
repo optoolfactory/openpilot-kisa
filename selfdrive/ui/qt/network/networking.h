@@ -62,12 +62,15 @@ private:
   ToggleControl* tetheringToggle;
   ToggleControl* roamingToggle;
   ButtonControl* editApnButton;
+  ButtonControl* hiddenNetworkButton;
   ToggleControl* meteredToggle;
+  ToggleControl* hotspotToggle;
   WifiManager* wifi = nullptr;
   Params params;
 
 signals:
   void backPress();
+  void requestWifiScreen();
 
 public slots:
   void toggleTethering(bool enabled);
@@ -92,6 +95,7 @@ private:
 
 public slots:
   void refresh();
+  void hotspoton();
 
 private slots:
   void connectToNetwork(const Network n);

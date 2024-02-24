@@ -27,6 +27,10 @@
         <translation>테더링 사용</translation>
     </message>
     <message>
+        <source>Hotspot Autorun</source>
+        <translation>핫스팟 자동실행</translation>
+    </message>
+    <message>
         <source>Tethering Password</source>
         <translation>테더링 비밀번호</translation>
     </message>
@@ -65,6 +69,26 @@
     <message>
         <source>Prevent large data uploads when on a metered connection</source>
         <translation>데이터 요금제 연결 시 대용량 데이터 업로드를 방지합니다</translation>
+    </message>
+    <message>
+        <source>Hidden Network</source>
+        <translation>숨겨진 네트워크</translation>
+    </message>
+    <message>
+        <source>CONNECT</source>
+        <translation>연결됨</translation>
+    </message>
+    <message>
+        <source>Enter SSID</source>
+        <translation>SSID 입력</translation>
+    </message>
+    <message>
+        <source>Enter password</source>
+        <translation>비밀번호를 입력하세요</translation>
+    </message>
+    <message>
+        <source>for &quot;%1&quot;</source>
+        <translation>&quot;%1&quot;에 접속하려면 비밀번호가 필요합니다</translation>
     </message>
 </context>
 <context>
@@ -550,10 +574,6 @@
         <translation>종료</translation>
     </message>
     <message>
-        <source>dashcam</source>
-        <translation>블랙박스</translation>
-    </message>
-    <message>
         <source>openpilot</source>
         <translation>openpilot</translation>
     </message>
@@ -635,14 +655,14 @@
         <translation>데이터 파티션을 마운트할 수 없습니다. 파티션이 손상되었을 수 있습니다. 모든 설정을 삭제하고 장치를 초기화하려면 확인을 누르세요.</translation>
     </message>
     <message>
-        <source>Press confirm to erase all content and settings. Press cancel to resume boot.</source>
-        <translation>모든 콘텐츠와 설정을 삭제하려면 확인을 누르세요. 계속 부팅하려면 취소를 누르세요.</translation>
-    </message>
-    <message>
         <source>Resetting device...
 This may take up to a minute.</source>
         <translation>장치를 초기화하는 중...
 최대 1분이 소요될 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>System reset triggered. Press confirm to erase all content and settings. Press cancel to resume boot.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -969,8 +989,8 @@ This may take up to a minute.</source>
         <translation>업데이트 지금 확인</translation>
     </message>
     <message>
-        <source>LOCAL: %1  REMOTE: %2%3%4 </source>
-        <translation>로컬: %1  원격: %2%3%4 </translation>
+        <source>LOCAL: %1(%2)  /  REMOTE: %3(%4)</source>
+        <translation>로컬: %1(%2)  /  원격: %3(%4)</translation>
     </message>
     <message>
         <source>Network connection is missing or unstable. Check the connection.</source>
@@ -1437,7 +1457,7 @@ This may take up to a minute.</source>
 <context>
     <name>CGitGroup</name>
     <message>
-        <source>Git Branch Change</source>
+        <source>Git Repository/Branch</source>
         <translation>Git 리포지토리/브랜치</translation>
     </message>
     <message>
@@ -1455,6 +1475,48 @@ This may take up to a minute.</source>
     <message>
         <source>GitPull Restore</source>
         <translation>GitPull 복구</translation>
+    </message>
+</context>
+<context>
+    <name>CResumeGroup</name>
+    <message>
+        <source>SCC Resume Option</source>
+        <translation>SCC 재시작 옵션</translation>
+    </message>
+</context>
+<context>
+    <name>CCruiseGapGroup</name>
+    <message>
+        <source>Cruise Gap Option</source>
+        <translation>크루즈 갭 옵션</translation>
+    </message>
+</context>
+<context>
+    <name>CVariableCruiseGroup</name>
+    <message>
+        <source>Variable Cruise Option</source>
+        <translation>가변크루즈 옵션</translation>
+    </message>
+</context>
+<context>
+    <name>CLaneChangeGroup</name>
+    <message>
+        <source>Lane Change Option</source>
+        <translation>차선변경 옵션</translation>
+    </message>
+</context>
+<context>
+    <name>CDrivingQuality</name>
+    <message>
+        <source>Driving Quality Option</source>
+        <translation>주행품질 옵션</translation>
+    </message>
+</context>
+<context>
+    <name>CSafetyandMap</name>
+    <message>
+        <source>Safety Speed and Map Option</source>
+        <translation>안전속도 및 맵 옵션</translation>
     </message>
 </context>
 <context>
@@ -2649,6 +2711,17 @@ This may take up to a minute.</source>
     </message>
 </context>
 <context>
+    <name>LCTimingKeepFactorUD</name>
+    <message>
+        <source>LaneChange Keeping Time</source>
+        <translation>차선변경 유지 시간</translation>
+    </message>
+    <message>
+        <source>Set a time to keep lane change. Low value makes changing time more so that your car move enough to target lane. If car is over to target lane too fast, increase a value.</source>
+        <translation>차선 변경 시 유지시간을 설정합니다. 낮은 값은 차선변경할 수 있는 충분한 시간을 확보하여 천천히 이동하도록 만듭니다. 만약 너무 빨리 목표차선으로 넘어간다면 값을 높이십시오.</translation>
+    </message>
+</context>
+<context>
     <name>LiveSRPercent</name>
     <message>
         <source>LiveSR Adjust(%)</source>
@@ -2761,20 +2834,20 @@ This may take up to a minute.</source>
         <translation>네비게이션 선택</translation>
     </message>
     <message>
-        <source>Select the navigation you want to use.(None/Mappy/iNavi/Waze/TMapE/WazeE)</source>
-        <translation>사용할 네비게이션을 선택합니다.(없음/맵피/아이나비/웨이즈/외부티맵/외부웨이즈), 외부 티맵이나 외부 웨이즈의 경우 KISA Connect 어플과 함께 별도 단말기로 실행해야 합니다.</translation>
+        <source>Select the navigation you want to use.(None/TMap/Mappy/Waze) Refer to Readme.txt in the directory.</source>
+        <translation>사용할 네비게이션을 선택합니다.(없음/티맵/맵피/웨이즈), KISA Connect 어플과 함께 별도 단말기로 실행해야 합니다. 폴더 내 Readme.txt 파일 참조</translation>
     </message>
     <message>
         <source>None</source>
         <translation>없음</translation>
     </message>
     <message>
-        <source>TMapE</source>
-        <translation>E티맵</translation>
+        <source>TMap/Mappy</source>
+        <translation>티맵/맵피</translation>
     </message>
     <message>
-        <source>WazeE</source>
-        <translation>E웨이즈</translation>
+        <source>Waze</source>
+        <translation>웨이즈</translation>
     </message>
 </context>
 <context>
@@ -3998,6 +4071,14 @@ This may take up to a minute.</source>
         <source>See description for more detail how to set up.</source>
         <translation>IP입력 방법은 메뉴의 설명을 참고하세요.</translation>
     </message>
+    <message>
+        <source>AutoDetect</source>
+        <translation>자동감지</translation>
+    </message>
+    <message>
+        <source>ManualInput</source>
+        <translation>수동입력</translation>
+    </message>
 </context>
 <context>
     <name>DoNotDisturbMode</name>
@@ -4128,12 +4209,12 @@ This may take up to a minute.</source>
 <context>
     <name>UseLegacyLaneModel</name>
     <message>
-        <source>Use Legacy Lane Model</source>
-        <translation>기존 Lateral MPC 경로 사용</translation>
+        <source>Lateral Plan Mode</source>
+        <translation>레터럴 플랜 모드</translation>
     </message>
     <message>
-        <source>Use MPC lateral plan instead of model path if you feel bad the new laterl plan from model.</source>
-        <translation>모델 경로가 아닌 기존 MPC경로를 사용합니다. 새로운 모델 경로가 불편하거나 기존 레인모델 선호시 기능을 켭니다.</translation>
+        <source>1.Model(latest model path), 2.MPC(mpc path from post processing of model, 3.Mix(Model(high curvature), MPC(low curvature), interpolation value)</source>
+        <translation>1.기본 모델 경로(콤마 최신), 2.MPC 모델(기존), 3.Mix(높은커브곡률에서는 모델 경로를 사용하고, 낮은 곡률(직선로)에서는 MPC경로를 사용합니다. 직선로 주행시 차선을 좀더 추종하여 직진성을 향상시키고, 커브에서는 모델경로를 사용하여 주행에 도움을 줄 수 있습니다.)</translation>
     </message>
 </context>
 </TS>

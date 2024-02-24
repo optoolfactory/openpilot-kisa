@@ -22,6 +22,7 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
   wifi = new WifiManager(this);
   connect(wifi, &WifiManager::refreshSignal, this, &Networking::refresh);
   connect(wifi, &WifiManager::wrongPassword, this, &Networking::wrongPassword);
+  connect(uiState(), &UIState::hotspotSignal, this, &Networking::hotspoton);
 
   wifiScreen = new QWidget(this);
   QVBoxLayout* vlayout = new QVBoxLayout(wifiScreen);
@@ -48,6 +49,7 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
 
   an = new AdvancedNetworking(this, wifi);
   connect(an, &AdvancedNetworking::backPress, [=]() { main_layout->setCurrentWidget(wifiScreen); });
+  connect(an, &AdvancedNetworking::requestWifiScreen, [=]() { main_layout->setCurrentWidget(wifiScreen); });
   main_layout->addWidget(an);
 
   QPalette pal = palette();
@@ -74,6 +76,12 @@ Networking::Networking(QWidget* parent, bool show_advanced) : QFrame(parent) {
 
 void Networking::refresh() {
   wifiWidget->refresh();
+  an->refresh();
+}
+
+void Networking::hotspoton() {
+  wifiWidget->refresh();
+  an->toggleTethering(true);
   an->refresh();
 }
 
@@ -125,10 +133,20 @@ AdvancedNetworking::AdvancedNetworking(QWidget* parent, WifiManager* wifi): QWid
   main_layout->addWidget(back, 0, Qt::AlignLeft);
 
   ListWidget *list = new ListWidget(this);
+
   // Enable tethering layout
-  tetheringToggle = new ToggleControl(tr("Enable Tethering"), "", "", wifi->isTetheringEnabled());
+  const bool hotspotEnabled = params.getBool("KisaHotspotOnBoot");
+  tetheringToggle = new ToggleControl(tr("Enable Tethering"), "", "", wifi->isTetheringEnabled() || hotspotEnabled);
   list->addItem(tetheringToggle);
   QObject::connect(tetheringToggle, &ToggleControl::toggleFlipped, this, &AdvancedNetworking::toggleTethering);
+
+  // Hotspot Autorun toggle
+  hotspotToggle = new ToggleControl(tr("Hotspot Autorun"), "", "", hotspotEnabled);
+  QObject::connect(hotspotToggle, &ToggleControl::toggleFlipped, [=](bool state) {
+    params.putBool("KisaHotspotOnBoot", state);
+    if (state) toggleTethering(state);
+  });
+  list->addItem(hotspotToggle);
 
   // Change tethering password
   ButtonControl *editPasswordButton = new ButtonControl(tr("Tethering Password"), tr("EDIT"));
@@ -181,6 +199,25 @@ AdvancedNetworking::AdvancedNetworking(QWidget* parent, WifiManager* wifi): QWid
     wifi->updateGsmSettings(params.getBool("GsmRoaming"), QString::fromStdString(params.get("GsmApn")), state);
   });
   list->addItem(meteredToggle);
+
+  // Hidden Network
+  hiddenNetworkButton = new ButtonControl(tr("Hidden Network"), tr("CONNECT"));
+  connect(hiddenNetworkButton, &ButtonControl::clicked, [=]() {
+    QString ssid = InputDialog::getText(tr("Enter SSID"), this, "", false, 1);
+    if (!ssid.isEmpty()) {
+      QString pass = InputDialog::getText(tr("Enter password"), this, tr("for \"%1\"").arg(ssid), true, -1);
+      Network hidden_network;
+      hidden_network.ssid = ssid.toUtf8();
+      if (!pass.isEmpty()) {
+        hidden_network.security_type = SecurityType::WPA;
+        wifi->connect(hidden_network, pass);
+      } else {
+        wifi->connect(hidden_network);
+      }
+      emit requestWifiScreen();
+    }
+  });
+  list->addItem(hiddenNetworkButton);
 
   // Set initial config
   wifi->updateGsmSettings(roamingEnabled, QString::fromStdString(params.get("GsmApn")), metered);
