@@ -24,7 +24,7 @@ elif Params().get_bool("IsMetric"):
   LANE_CHANGE_SPEED_MIN = float(int(Params().get("KisaLaneChangeSpeed", encoding="utf8")) * CV.KPH_TO_MS)
 else:
   LANE_CHANGE_SPEED_MIN = float(int(Params().get("KisaLaneChangeSpeed", encoding="utf8")) * CV.MPH_TO_MS)
-LANE_CHANGE_TIME_MAX = 15.
+LANE_CHANGE_TIME_MAX = 10.
 
 if USE_LEGACY_LANE_MODEL:
   DESIRES = {
@@ -192,7 +192,7 @@ class DesireHelper:
       # LaneChangeState.laneChangeFinishing
       elif self.lane_change_state == LaneChangeState.laneChangeFinishing:
         # fade in laneline over 1s
-        if USE_LEGACY_LANE_MODEL and self.lane_change_keep_enable:
+        if USE_LEGACY_LANE_MODEL and self.lane_change_keep_enable and False:
           if self.lane_change_direction == LaneChangeDirection.left:
             prob_adj_val = interp(v_ego, [16.6, 30.5], [0.05, self.lane_change_keep_time_left])
             self.lane_change_ll_prob = min(self.lane_change_ll_prob + prob_adj_val, 1.0)

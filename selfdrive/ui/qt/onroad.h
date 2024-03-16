@@ -69,11 +69,14 @@ class MapSettingsButton : public QPushButton {
 
 public:
   explicit MapSettingsButton(QWidget *parent = 0);
+  void updateState(const UIState &s);
 
 private:
   void paintEvent(QPaintEvent *event) override;
 
   QPixmap settings_img;
+  QPixmap settings_img_g;
+  bool navi_is_alive = false;
 };
 
 // container window for the NVG UI
@@ -103,6 +106,8 @@ private:
   QPixmap gear_img_n;
   QPixmap gear_img_d;
   QPixmap kisapilot_img;
+  QPixmap waze_police_img;
+  QPixmap waze_cam_img;
 
   float speed;
   QString speedUnit;

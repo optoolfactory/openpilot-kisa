@@ -338,23 +338,35 @@ void ExperimentalButton::paintEvent(QPaintEvent *event) {
 MapSettingsButton::MapSettingsButton(QWidget *parent) : QPushButton(parent) {
   setFixedSize(btn_size, btn_size);
   settings_img = loadPixmap("../assets/navigation/icon_directions_outlined.svg", {img_size, img_size});
+  settings_img_g = loadPixmap("../assets/addon/img/icon_directions_outlined_green.svg", {img_size, img_size});
 
   // hidden by default, made visible if map is created (has prime or mapbox token)
   setVisible(false);
   setEnabled(false);
 }
 
+void MapSettingsButton::updateState(const UIState &s) {
+  if (s.scene.liveENaviData.ekisaconalive && !navi_is_alive) {
+    navi_is_alive = true;
+    update();
+  } else if (!s.scene.liveENaviData.ekisaconalive && navi_is_alive) {
+    navi_is_alive = false;
+    update();
+  }
+}
+
 void MapSettingsButton::paintEvent(QPaintEvent *event) {
   QPainter p(this);
 
   QPoint center(btn_size / 2, btn_size / 2);
+  QPixmap img = navi_is_alive ? settings_img_g : settings_img;
 
   p.setOpacity(1.0);
   p.setPen(Qt::NoPen);
   p.setBrush(QColor(0, 0, 0, 166));
   p.drawEllipse(center, btn_size / 2, btn_size / 2);
   p.setOpacity(isDown() ? 0.6 : 1.0);
-  p.drawPixmap((btn_size - img_size) / 2, (btn_size - img_size) / 2, settings_img);
+  p.drawPixmap((btn_size - img_size) / 2, (btn_size - img_size) / 2, img);
 }
 
 
@@ -382,6 +394,8 @@ AnnotatedCameraWidget::AnnotatedCameraWidget(VisionStreamType type, QWidget* par
   gear_img_n = loadPixmap("../assets/addon/img/circle_blue_letter-n.svg", {img_size+45, img_size+45});
   gear_img_d = loadPixmap("../assets/addon/img/circle_green_letter-d.svg", {img_size+45, img_size+45});
   kisapilot_img = loadPixmap("../assets/addon/img/kisapilot.png", {img_size-35, img_size-35});
+  waze_police_img = loadPixmap("../assets/addon/img/img_police_car.png", {img_size+45, img_size+45});
+  waze_cam_img = loadPixmap("../assets/addon/img/img_speed_cam.png", {img_size+45, img_size+45});
 
   // neokii screen recorder, thx for sharing:)
   record_timer = std::make_shared<QTimer>();
@@ -434,6 +448,9 @@ void AnnotatedCameraWidget::updateState(const UIState &s) {
 
   // update engageability/experimental mode button
   experimental_btn->updateState(s);
+
+  // enavi connection update
+  map_settings_btn->updateState(s);
 
   // update DM icon
   auto dm_state = sm["driverMonitoringState"].getDriverMonitoringState();
@@ -1152,7 +1169,7 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
     p.setPen(Qt::NoPen);
     p.drawEllipse(m_x-15, m_y-15, m_btn_size+30, m_btn_size+30);
     if (s->scene.liveENaviData.ekisaconalive) {
-      p.setPen(QPen(QColor(0, 255, 0, 150), 6));
+      p.setPen(QPen(QColor(0, 255, 0, 180), 7));
     } else {
       p.setPen(QPen(QColor(255, 255, 255, 80), 6));
     }
@@ -1338,6 +1355,13 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
         p.drawEllipse(rect_s);
         p.setPen(blackColor(255/sl_opacity));
         debugText(p, rect_si.center().x(), rect_si.center().y()+UI_BORDER_SIZE+(s->scene.limitSpeedCamera<100?25:15), QString::number(s->scene.limitSpeedCamera), 255/sl_opacity, s->scene.limitSpeedCamera<100?110:90, true);
+      }
+
+      // waze safety type img
+      if (s->scene.liveENaviData.ewazealertid == 1) {
+        drawIcon(p, s_center_x + 212, s_center_y, waze_cam_img, QColor(0, 0, 0, 0), 1.0);
+      } else if (s->scene.liveENaviData.ewazealertid == 2) {
+        drawIcon(p, s_center_x + 212, s_center_y, waze_police_img, QColor(0, 0, 0, 0), 1.0);
       }
 
       if (s->scene.limitSpeedCameraDist != 0) {
@@ -1562,6 +1586,7 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
 
     if (rpm > 1) {
       p.setFont(InterFont(40, QFont::Normal));
+      p.setPen(whiteColor(200));
       p.drawText(QRect(s->fb_w/2-arpm_width/2, UI_BORDER_SIZE+30, arpm_width, arpm_height/4), Qt::AlignCenter, QString::number(rpm, 'f', 0));
       p.setPen(QPen(QBrush(QColor(25, 127, 54, 200)),50,Qt::SolidLine,Qt::FlatCap));
       if (count > 0) p.drawArc(rectangle, 225*16, -14*16);
@@ -1771,6 +1796,17 @@ void AnnotatedCameraWidget::drawLaneLines(QPainter &painter, const UIState *s) {
     for (int i = 0; i < std::size(scene.road_edge_vertices); ++i) {
       painter.setBrush(QColor::fromRgbF(1.0, 0, 0, std::clamp<float>(1.0 - scene.road_edge_stds[i], 0.0, 1.0)));
       painter.drawPolygon(scene.road_edge_vertices[i]);
+    }
+  }
+
+  // bsm alert
+  for (int i = 0; i < std::size(scene.bsm_vertices); ++i) {
+    painter.setBrush(QColor::fromRgbF(1.0, 0.25, 0, 0.6));
+    if (scene.leftblindspot && i == 0) {
+      painter.drawPolygon(scene.bsm_vertices[i]);
+    }
+    if (scene.rightblindspot && i == 1) {
+      painter.drawPolygon(scene.bsm_vertices[i]);
     }
   }
 
