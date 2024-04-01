@@ -709,7 +709,19 @@ class CAR(Platforms):
     HyundaiCarInfo("Genesis EQ900", "All", car_parts=CarParts.common([CarHarness.hyundai_c])),
     CarSpecs(mass=2130, wheelbase=3.16, steerRatio=12.069),
   )
-
+  K7_YG_2020 = HyundaiPlatformConfig(
+    "KIA K7 2020(YG)",
+    HyundaiCarInfo("Kia K7 202020-", "Advanced Smart Cruise Control",
+                   car_parts=CarParts.common([CarHarness.hyundai_b])),
+    CarSpecs(mass=1555, wheelbase=2.855, steerRatio=14.4),
+    flags=HyundaiFlags.LEGACY | HyundaiFlags.TCU_GEARS,
+  )
+  K7_HEV_YG_2020 = HyundaiPlatformConfig(
+    "KIA K7 HYBRID 2020(YG)",
+    HyundaiCarInfo("Kia K7 Hybrid 2020-", "Advanced Smart Cruise Control", car_parts=CarParts.common([CarHarness.hyundai_c])),
+    CarSpecs(mass=1680, wheelbase=2.855, steerRatio=14.4),
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.LEGACY,
+  )
 class Buttons:
   NONE = 0
   RES_ACCEL = 1
