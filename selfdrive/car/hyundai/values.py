@@ -634,13 +634,13 @@ class CAR(Platforms):
     flags=HyundaiFlags.HYBRID,
   )
   GRANDEUR_FL_IG = HyundaiPlatformConfig(
-    "HYUNDAI GRANDEUR (IG)",
+    "HYUNDAI GRANDEUR FL (IG)"",
     HyundaiCarInfo("Hyundai Grandeur IG FL", "All", car_parts=CarParts.common([CarHarness.hyundai_k])),
     CarSpecs(mass=1625, wheelbase=2.885, steerRatio=14.5),
     flags=HyundaiFlags.CLUSTER_GEARS,
   )
   GRANDEUR_HEV_FL_IG = HyundaiPlatformConfig(
-    "HYUNDAI GRANDEUR HYBRID (IG)",
+    "HYUNDAI GRANDEUR HYBRID FL (IG)",
     HyundaiCarInfo("Hyundai Grandeur IG FL Hybrid", "All", car_parts=CarParts.common([CarHarness.hyundai_k])),
     CarSpecs(mass=1675, wheelbase=2.885, steerRatio=14.5),
     flags=HyundaiFlags.HYBRID,
