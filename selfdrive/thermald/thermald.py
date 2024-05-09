@@ -18,7 +18,7 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import DT_TRML
 from openpilot.selfdrive.controls.lib.alertmanager import set_offroad_alert
 from openpilot.system.hardware import HARDWARE, TICI, AGNOS
-from openpilot.system.loggerd.config import get_available_percent
+from openpilot.system.loggerd.config import get_available_percenta
 from openpilot.selfdrive.statsd import statlog
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.thermald.power_monitoring import PowerMonitoring
@@ -220,15 +220,9 @@ def thermald_thread(end_event, hw_queue) -> None:
   while not end_event.is_set():
     sm.update(PANDA_STATES_TIMEOUT)
 
-    # Run at 2Hz
-    if sm.frame % round(SERVICE_LIST['pandaStates'].frequency * DT_TRML) != 0:
-      continue
-
     pandaStates = sm['pandaStates']
     peripheralState = sm['peripheralState']
     peripheral_panda_present = peripheralState.pandaType != log.PandaState.PandaType.unknown
-
-    msg = read_thermal(thermal_config)
 
     if sm.updated['pandaStates'] and len(pandaStates) > 0:
 
@@ -255,12 +249,20 @@ def thermald_thread(end_event, hw_queue) -> None:
           onroad_conditions["ignition"] = False
           cloudlog.error("panda timed out onroad")
 
+    # Run at 2Hz, plus rising edge of ignition
+    ign_edge = started_ts is None and onroad_conditions["ignition"]
+    if (sm.frame % round(SERVICE_LIST['pandaStates'].frequency * DT_TRML) != 0) and not ign_edge:
+      continue
+
+    msg = read_thermal(thermal_config)
+    msg.deviceState.deviceType = HARDWARE.get_device_type()
+
     try:
       last_hw_state = hw_queue.get_nowait()
     except queue.Empty:
       pass
 
-    msg.deviceState.freeSpacePercent = get_available_percent(default=100.0)
+    msg.deviceState.freeSpacePercent = get_available_percenta(default=100.0)
     msg.deviceState.memoryUsagePercent = int(round(psutil.virtual_memory().percent))
     msg.deviceState.gpuUsagePercent = int(round(HARDWARE.get_gpu_usage_percent()))
     online_cpu_usage = [int(round(n)) for n in psutil.cpu_percent(percpu=True)]

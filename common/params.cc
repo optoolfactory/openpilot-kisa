@@ -188,6 +188,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"RecordFront", PERSISTENT},
     {"RecordFrontLock", PERSISTENT},  // for the internal fleet
     {"ReplayControlsState", CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION},
+    {"RouteCount", PERSISTENT},
     {"SnoozeUpdate", CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION},
     {"SshEnabled", PERSISTENT},
     {"TermsVersion", PERSISTENT},
@@ -206,8 +207,6 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"UpdaterTargetBranch", CLEAR_ON_MANAGER_START},
     {"UpdaterLastFetchTime", PERSISTENT},
     {"Version", PERSISTENT},
-    {"VisionRadarToggle", PERSISTENT},
-    {"WheeledBody", PERSISTENT},
 
     {"IsOpenpilotViewEnabled", CLEAR_ON_MANAGER_START},
     {"KisaAutoShutdown", PERSISTENT},
@@ -420,6 +419,8 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"RunCustomCommand", CLEAR_ON_MANAGER_START},
     {"CruiseSpammingSpd", PERSISTENT},
     {"CruiseSpammingLevel", PERSISTENT},
+    {"KISACruiseSpammingInterval", PERSISTENT},
+    {"KISACruiseSpammingBtnCount", PERSISTENT},
     {"KisaCruiseGapSet", PERSISTENT},
     {"KisaPilotCurrentDescription", PERSISTENT},
     {"UseLegacyLaneModel", PERSISTENT},
@@ -496,7 +497,9 @@ int Params::put(const char* key, const char* value, size_t value_size) {
   } while (false);
 
   close(tmp_fd);
-  ::unlink(tmp_path.c_str());
+  if (result != 0) {
+    ::unlink(tmp_path.c_str());
+  }
   return result;
 }
 

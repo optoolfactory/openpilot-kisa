@@ -249,6 +249,8 @@ class CarController(CarControllerBase):
     self.kisa_long_alt = True if int(self.c_params.get("KISALongAlt", encoding="utf8")) in (1, 2) else False
 
     self.btnsignal = 0
+    self.nt_interval = int(self.c_params.get("KISACruiseSpammingInterval", encoding="utf8"))
+    self.btn_count = int(self.c_params.get("KISACruiseSpammingBtnCount", encoding="utf8"))
     self.second2 = 0
     self.experimental_mode_temp = self.experimental_mode
     self.exp_mode_push = False
@@ -459,7 +461,7 @@ class CarController(CarControllerBase):
           can_sends.extend(hyundaicanfd.create_adrv_messages(self.packer, self.CAN, self.frame))
         if self.frame % 2 == 0:
           can_sends.append(hyundaicanfd.create_acc_control(self.packer, self.CAN, CC.enabled, self.accel_last, accel, stopping, CC.cruiseControl.override,
-                                                           set_speed_in_units))
+                                                           set_speed_in_units, hud_control))
           self.accel_last = accel
       else:
         # button presses
@@ -560,10 +562,10 @@ class CarController(CarControllerBase):
       if self.mode_change_timer > 0:
         self.mode_change_timer -= 1
 
-      can_sends.append(hyundaican.create_lkas11(self.packer, self.frame, self.car_fingerprint, apply_steer, lat_active and not self.lkas_temp_disabled,
+      can_sends.append(hyundaican.create_lkas11(self.packer, self.frame, self.CP, apply_steer, lat_active and not self.lkas_temp_disabled,
                                                 torque_fault, CS.lkas11, sys_warning, sys_state, CC.enabled,
                                                 hud_control.leftLaneVisible, hud_control.rightLaneVisible,
-                                                left_lane_warning, right_lane_warning, 0, self.ldws_fix, self.CP))
+                                                left_lane_warning, right_lane_warning, 0, self.ldws_fix))
 
       if CS.out.cruiseState.standstill:
         self.standstill_status = 1
@@ -665,7 +667,7 @@ class CarController(CarControllerBase):
                 self.switch_timer -= 1
               else:
                 btn_count = 1
-                btn_count = int(interp(self.NC.t_interval, [10,70],[1,2])) if CS.is_set_speed_in_mph else int(interp(self.NC.t_interval, [7,40],[1,2]))
+                btn_count = int(interp(self.NC.t_interval, [self.nt_interval+3,70],[1,self.btn_count])) if CS.is_set_speed_in_mph else int(interp(self.NC.t_interval, [self.nt_interval,40],[1,self.btn_count]))
                 can_sends.extend([hyundaican.create_clu11(self.packer, self.resume_cnt, CS.clu11, btn_signal)] * btn_count) if not self.longcontrol \
                 else can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, btn_signal, clu11_speed, self.CP.sccBus)] * btn_count)
                 self.resume_cnt += 1
@@ -763,7 +765,7 @@ class CarController(CarControllerBase):
                 self.switch_timer -= 1
               else:
                 btn_count = 1
-                btn_count = int(interp(self.NC.t_interval, [10,70],[1,2])) if CS.is_set_speed_in_mph else int(interp(self.NC.t_interval, [7,40],[1,2]))
+                btn_count = int(interp(self.NC.t_interval, [self.nt_interval+3,70],[1,self.btn_count])) if CS.is_set_speed_in_mph else int(interp(self.NC.t_interval, [self.nt_interval,40],[1,self.btn_count]))
                 can_sends.extend([hyundaican.create_clu11(self.packer, self.resume_cnt, CS.clu11, btn_signal)] * btn_count) if not self.longcontrol \
                 else can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, btn_signal, clu11_speed, self.CP.sccBus)] * btn_count)
                 self.resume_cnt += 1
@@ -1000,8 +1002,8 @@ class CarController(CarControllerBase):
         jerk = 3.0 if actuators.longControlState == LongCtrlState.pid else 1.0
         use_fca = self.CP.flags & HyundaiFlags.USE_FCA.value
         can_sends.extend(hyundaican.create_acc_commands(self.packer, CC.enabled, accel, jerk, int(self.frame / 2),
-                                                      hud_control.leadVisible, set_speed_in_units, stopping,
-                                                      CC.cruiseControl.override, use_fca, self.gapsettingdance))
+                                                        hud_control, set_speed_in_units, stopping,
+                                                        CC.cruiseControl.override, use_fca, self.gapsettingdance))
       # 20 Hz LFA MFA message
       if self.frame % 5 == 0 and self.CP.flags & HyundaiFlags.SEND_LFA.value:
         can_sends.append(hyundaican.create_lfahda_mfc(self.packer, CC.enabled))
@@ -1314,6 +1316,8 @@ class CarController(CarControllerBase):
     new_actuators.steerOutputCan = apply_steer
     new_actuators.accel = self.accel if self.CP.sccBus == 2 else accel
 
+    new_actuators.aqValue = self.aq_value
+    new_actuators.aqValueRaw = self.aq_value_raw
     new_actuators.safetySpeed = self.NC.safetycam_speed
     new_actuators.lkasTemporaryOff = self.lkas_temp_disabled
     new_actuators.gapBySpdOnTemp = (self.gap_by_spd_on_sw_trg and self.gap_by_spd_on)
@@ -1327,12 +1331,12 @@ class CarController(CarControllerBase):
     can_sends = []
     if use_clu11:
       if CC.cruiseControl.cancel:
-        can_sends.append(hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.CANCEL, self.CP.carFingerprint))
+        can_sends.append(hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.CANCEL, self.CP))
       elif CC.cruiseControl.resume:
         # send resume at a max freq of 10Hz
         if (self.frame - self.last_button_frame) * DT_CTRL > 0.1:
           # send 25 messages at a time to increases the likelihood of resume being accepted
-          can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.RES_ACCEL, self.CP.carFingerprint)] * 25)
+          can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.RES_ACCEL, self.CP)] * 25)
           if (self.frame - self.last_button_frame) * DT_CTRL >= 0.15:
             self.last_button_frame = self.frame
     else:
