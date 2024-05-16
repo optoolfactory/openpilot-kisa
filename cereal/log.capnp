@@ -251,7 +251,7 @@ struct SensorEventData {
 
 # android struct GpsLocation
 struct GpsLocationData {
-  # Contains GpsLocationFlags bits.
+  # Contains module-specific flags.
   flags @0 :UInt16;
 
   # Represents latitude in degrees.
@@ -288,6 +288,8 @@ struct GpsLocationData {
   # Represents velocity accuracy in m/s. (presumably 1 sigma?)
   speedAccuracy @12 :Float32;
 
+  hasFix @13 :Bool;
+
   enum SensorSource {
     android @0;
     iOS @1;
@@ -298,6 +300,7 @@ struct GpsLocationData {
     ublox @6;
     trimble @7;
     qcomdiag @8;
+    unicore @9;
   }
 }
 
@@ -332,6 +335,8 @@ struct CanData {
 }
 
 struct DeviceState @0xa4d8b5af2aa492eb {
+  deviceType @45 :InitData.DeviceType;
+
   networkType @22 :NetworkType;
   networkInfo @31 :NetworkInfo;
   networkStrength @24 :NetworkStrength;
@@ -369,7 +374,7 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   fanSpeedPercentDesired @10 :UInt16;
   screenBrightnessPercent @37 :Int8;
 
-  ipAddress @45 :Text;
+  ipAddress @46 :Text;
 
   struct ThermalZone {
     name @0 :Text;
@@ -439,7 +444,6 @@ struct PandaState @0xa7649e2575e4591e {
   ignitionLine @2 :Bool;
   rxBufferOverflow @7 :UInt32;
   txBufferOverflow @8 :UInt32;
-  gmlanSendErrs @9 :UInt32;
   pandaType @10 :PandaType;
   ignitionCan @13 :Bool;
   faultStatus @15 :FaultStatus;
@@ -487,7 +491,7 @@ struct PandaState @0xa7649e2575e4591e {
     interruptRateCan2 @3;
     interruptRateCan3 @4;
     interruptRateTach @5;
-    interruptRateGmlan @6;
+    interruptRateGmlanDEPRECATED @6;
     interruptRateInterrupts @7;
     interruptRateSpiDma @8;
     interruptRateSpiCs @9;
@@ -573,6 +577,7 @@ struct PandaState @0xa7649e2575e4591e {
   gasInterceptorDetectedDEPRECATED @4 :Bool;
   startedSignalDetectedDEPRECATED @5 :Bool;
   hasGpsDEPRECATED @6 :Bool;
+  gmlanSendErrsDEPRECATED @9 :UInt32;
   fanSpeedRpmDEPRECATED @11 :UInt16;
   usbPowerModeDEPRECATED @12 :PeripheralState.UsbPowerModeDEPRECATED;
   safetyParamDEPRECATED @20 :Int16;
@@ -684,6 +689,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   active @36 :Bool;
 
   experimentalMode @64 :Bool;
+  personality @66 :LongitudinalPersonality;
 
   longControlState @30 :Car.CarControl.Actuators.LongControlState;
   vPid @2 :Float32;
@@ -713,31 +719,32 @@ struct ControlsState @0x97ff69c53601abf1 {
   canErrorCounter @57 :UInt32;
 
   # atom
-  alertTextMsg1  @66 :Text;
-  alertTextMsg2  @67 :Text;
-  alertTextMsg3  @68 :Text;
+  alertTextMsg1  @67 :Text;
+  alertTextMsg2  @68 :Text;
+  alertTextMsg3  @69 :Text;
 
-  lateralControlMethod  @69 :UInt8;
-  limitSpeedCamera @70 :Float32 = 0;
-  limitSpeedCameraDist @71 :Float32 = 0;
-  steerRatio @72 :Float32;
-  mapSign @73 :Float32;
-  mapSignCam @74 :Float32;
-  dynamicTRMode @75 :UInt8;
-  dynamicTRValue @76 :Float32;
-  pauseSpdLimit @77 :Bool;
-  accel @78 :Float32;
-  safetySpeed @79 :Float32;
-  steeringAngleDesiredDeg @80 :Float32;
-  gapBySpeedOn @81 :Bool;
+  lateralControlMethod  @70 :UInt8;
+  limitSpeedCamera @71 :Float32 = 0;
+  limitSpeedCameraDist @72 :Float32 = 0;
+  steerRatio @73 :Float32;
+  mapSign @74 :Float32;
+  mapSignCam @75 :Float32;
+  dynamicTRMode @76 :UInt8;
+  dynamicTRValue @77 :Float32;
+  pauseSpdLimit @78 :Bool;
+  accel @79 :Float32;
+  safetySpeed @80 :Float32;
+  steeringAngleDesiredDeg @81 :Float32;
+  gapBySpeedOn @82 :Bool;
 
-  pandaSafetyModel @83 :Text;
-  interfaceSafetyModel @84 :Text;
-  rxChecks @85 :Bool;
-  mismatchCounter @86 :Bool;
-  expModeTemp @87 :Bool;
-  btnPressing @88 :UInt8;
-
+  pandaSafetyModel @84 :Text;
+  interfaceSafetyModel @85 :Text;
+  rxChecks @86 :Bool;
+  mismatchCounter @87 :Bool;
+  expModeTemp @88 :Bool;
+  btnPressing @89 :UInt8;
+  autoResvCruisekph @90 :Float32;
+  resSpeed @91 :Float32;
 
   lateralControlState :union {
     indiState @52 :LateralINDIState;
@@ -746,7 +753,7 @@ struct ControlsState @0x97ff69c53601abf1 {
     angleState @58 :LateralAngleState;
     debugState @59 :LateralDebugState;
     torqueState @60 :LateralTorqueState;
-    atomState @82  :LateralATOMState;
+    atomState @83  :LateralATOMState;
     curvatureState @65 :LateralCurvatureState;
   }
 
@@ -959,8 +966,8 @@ struct ModelDataV2 {
   # Model perceived motion
   temporalPose @21 :Pose;
 
-  navEnabled @22 :Bool;
-  locationMonoTime @24 :UInt64;
+  navEnabledDEPRECATED @22 :Bool;
+  locationMonoTimeDEPRECATED @24 :UInt64;
 
   # e2e lateral planner
   lateralPlannerSolution @25: LateralPlannerSolution;
@@ -1108,7 +1115,6 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   jerks @34 :List(Float32);
 
   solverExecutionTime @35 :Float32;
-  personality @36 :LongitudinalPersonality;
 
   dynamicTRMode @37 :UInt8;
   dynamicTRValue @38 :Float32;
@@ -1155,6 +1161,7 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   eventsDEPRECATED @13 :List(Car.CarEvent);
   gpsTrajectoryDEPRECATED @12 :GpsTrajectory;
   gpsPlannerActiveDEPRECATED @19 :Bool;
+  personalityDEPRECATED @36 :LongitudinalPersonality;
 
   struct GpsTrajectory {
     x @0 :List(Float32);
@@ -2393,6 +2400,7 @@ struct Event {
     liveCalibration @19 :LiveCalibrationData;
     carState @22 :Car.CarState;
     carControl @23 :Car.CarControl;
+    carOutput @127 :Car.CarOutput;
     longitudinalPlan @24 :LongitudinalPlan;
     lateralPlan @64 :LateralPlan;
     uiPlan @106 :UiPlan;
@@ -2412,7 +2420,6 @@ struct Event {
     liveLocationKalman @72 :LiveLocationKalman;
     modelV2 @75 :ModelDataV2;
     driverStateV2 @92 :DriverStateV2;
-    navModel @104 :NavModelData;
 
     # camera stuff, each camera state has a matching encode idx
     roadCameraState @2 :FrameData;
@@ -2465,8 +2472,8 @@ struct Event {
     customReservedRawData1 @125 :Data;
     customReservedRawData2 @126 :Data;
 
-    liveENaviData @127: LiveENaviData;
-    liveMapData @128: LiveMapData;
+    liveENaviData @128: LiveENaviData;
+    liveMapData @129: LiveMapData;
 
     # *********** Custom: reserved for forks ***********
     customReserved0 @107 :Custom.CustomReserved0;
@@ -2518,5 +2525,6 @@ struct Event {
     pandaStateDEPRECATED @12 :PandaState;
     driverStateDEPRECATED @59 :DriverStateDEPRECATED;
     sensorEventsDEPRECATED @11 :List(SensorEventData);
+    navModelDEPRECATED @104 :NavModelData;
   }
 }

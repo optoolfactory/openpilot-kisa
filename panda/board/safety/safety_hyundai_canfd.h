@@ -196,6 +196,7 @@ static void hyundai_canfd_rx_hook(const CANPacket_t *to_push) {
     if (addr == 0x175) {
       brake_pressed = GET_BIT(to_push, 81U);
     }
+    gas_pressed = brake_pressed = false;
 
     // vehicle moving
     if (addr == 0xa0) {
@@ -210,7 +211,7 @@ static void hyundai_canfd_rx_hook(const CANPacket_t *to_push) {
     if ((addr == 0x1a0) && !hyundai_longitudinal) {
       // 1=enabled, 2=driver override
       int cruise_status = ((GET_BYTE(to_push, 8) >> 4) & 0x7U);
-      bool cruise_engaged = (cruise_status == 1) || (cruise_status == 2);
+      bool cruise_engaged = (cruise_status == 1) || (cruise_status == 2) || (cruise_status == 4);
       hyundai_common_cruise_state_check(cruise_engaged);
     }
   }
@@ -236,6 +237,11 @@ static bool hyundai_canfd_tx_hook(const CANPacket_t *to_send) {
   if (addr == steer_addr) {
     int desired_torque = (((GET_BYTE(to_send, 6) & 0xFU) << 7U) | (GET_BYTE(to_send, 5) >> 1U)) - 1024U;
     bool steer_req = GET_BIT(to_send, 52U);
+    int max_torque = GET_BYTE(to_send, 12U);
+
+    if (!controls_allowed && (max_torque != 0)) {
+      tx = false;
+    }
 
     if (steer_torque_cmd_checks(desired_torque, steer_req, HYUNDAI_CANFD_STEERING_LIMITS)) {
       tx = false;
@@ -247,8 +253,10 @@ static bool hyundai_canfd_tx_hook(const CANPacket_t *to_send) {
     int button = GET_BYTE(to_send, 2) & 0x7U;
     bool is_cancel = (button == HYUNDAI_BTN_CANCEL);
     bool is_resume = (button == HYUNDAI_BTN_RESUME);
+    bool is_set = (button == HYUNDAI_BTN_SET);
+    bool is_gap = (button == HYUNDAI_BTN_GAP);
 
-    bool allowed = (is_cancel && cruise_engaged_prev) || (is_resume && controls_allowed);
+    bool allowed = (is_cancel && cruise_engaged_prev)|| (is_resume && controls_allowed) || (is_set && controls_allowed) || (is_gap && controls_allowed);
     if (!allowed) {
       tx = false;
     }

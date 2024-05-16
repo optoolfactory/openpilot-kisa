@@ -252,6 +252,8 @@ CVariableCruiseGroup::CVariableCruiseGroup(void *p) : CGroupWidget( tr("Variable
 
   pBoxLayout->addWidget(new VariableCruiseToggle());
   pBoxLayout->addWidget(new CruiseSpammingLevel());
+  pBoxLayout->addWidget(new KISACruiseSpammingInterval());
+  pBoxLayout->addWidget(new KISACruiseSpammingBtnCount());
   pBoxLayout->addWidget(new CruisemodeSelInit());
   pBoxLayout->addWidget(new CruiseOverMaxSpeedToggle());
   pBoxLayout->addWidget(new SetSpeedByFive());
@@ -8495,8 +8497,14 @@ ExternalDeviceIP::ExternalDeviceIP() : AbstractControl(tr("ExternalDevIP"), tr("
   hlayout->addWidget(&btn);
 
   QObject::connect(&btna, &QPushButton::clicked, [=]() {
-    bool stat = params.getBool("ExternalDeviceIPAuto");
-    params.putBool("ExternalDeviceIPAuto", !stat);
+    auto str = QString::fromStdString(params.get("ExternalDeviceIPAuto"));
+    int value = str.toInt();
+    value = value + 1;
+    if (value >= 3) {
+      value = 0;
+    }
+    QString values = QString::number(value);
+    params.put("ExternalDeviceIPAuto", values.toStdString());
     refresh();
   });
 
@@ -8511,22 +8519,8 @@ ExternalDeviceIP::ExternalDeviceIP() : AbstractControl(tr("ExternalDevIP"), tr("
 }
 
 void ExternalDeviceIP::refresh() {
-  bool param = params.getBool("ExternalDeviceIPAuto");
-  if (param) {
-    btna.setText(tr("AutoDetect"));
-    btna.setStyleSheet(R"(
-    padding: 0;
-    border-radius: 50px;
-    font-size: 35px;
-    font-weight: 500;
-    color: #E4E4E4;
-    background-color: #00A12E;
-    )");
-    edit.setText("");
-    btn.setText("");
-    btn.setEnabled(false);
-    edit.setEnabled(false);
-  } else {
+  QString option = QString::fromStdString(params.get("ExternalDeviceIPAuto"));
+  if (option == "0") {
     auto strs = QString::fromStdString(params.get("ExternalDeviceIP"));
     edit.setText(QString::fromStdString(strs.toStdString()));
     btn.setText(tr("SET"));
@@ -8541,6 +8535,34 @@ void ExternalDeviceIP::refresh() {
     )");
     btn.setEnabled(true);
     edit.setEnabled(true);
+  } else if (option == "1") {
+    btna.setText(tr("AutoDetect"));
+    btna.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A12E;
+    )");
+    edit.setText("");
+    btn.setText("");
+    btn.setEnabled(false);
+    edit.setEnabled(false);
+  } else {
+    btna.setText(tr("GatewayIP"));
+    btna.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A1FF;
+    )");
+    edit.setText("");
+    btn.setText("");
+    btn.setEnabled(false);
+    edit.setEnabled(false);
   }
 }
 
@@ -9524,4 +9546,122 @@ void UseLegacyLaneModel::refresh() {
   } else {
     label.setText(tr("Mix"));
   }
+}
+
+KISACruiseSpammingInterval::KISACruiseSpammingInterval() : AbstractControl(tr("Cruise Spamming Interval"), tr("Adjust Cruise Spamming Interval if SCC SetSpeed is not changed appropriately. Low values can make SetSpeed quickly, but could make cluster(CAN) error. Default Value: 7"), "../assets/offroad/icon_shell.png") {
+
+  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  label.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&label);
+
+  btnminus.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btnplus.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btnminus.setFixedSize(150, 100);
+  btnplus.setFixedSize(150, 100);
+  btnminus.setText("－");
+  btnplus.setText("＋");
+  hlayout->addWidget(&btnminus);
+  hlayout->addWidget(&btnplus);
+
+  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("KISACruiseSpammingInterval"));
+    int value = str.toInt();
+    value = value - 1;
+    if (value <= -1) {
+      value = 20;
+    }
+    QString values = QString::number(value);
+    params.put("KISACruiseSpammingInterval", values.toStdString());
+    refresh();
+  });
+  
+  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("KISACruiseSpammingInterval"));
+    int value = str.toInt();
+    value = value + 1;
+    if (value >= 21) {
+      value = 0;
+    }
+    QString values = QString::number(value);
+    params.put("KISACruiseSpammingInterval", values.toStdString());
+    refresh();
+  });
+  refresh();
+}
+
+void KISACruiseSpammingInterval::refresh() {
+  label.setText(QString::fromStdString(params.get("KISACruiseSpammingInterval")));
+}
+
+KISACruiseSpammingBtnCount::KISACruiseSpammingBtnCount() : AbstractControl(tr("Cruise Spamming Btn Count"), tr("Increase Count if SCC SetSpeed is not changed appropriately, but could make cluster(CAN) error. Default Value: 2"), "../assets/offroad/icon_shell.png") {
+
+  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
+  label.setStyleSheet("color: #e0e879");
+  hlayout->addWidget(&label);
+
+  btnminus.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btnplus.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+  btnminus.setFixedSize(150, 100);
+  btnplus.setFixedSize(150, 100);
+  btnminus.setText("－");
+  btnplus.setText("＋");
+  hlayout->addWidget(&btnminus);
+  hlayout->addWidget(&btnplus);
+
+  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("KISACruiseSpammingBtnCount"));
+    int value = str.toInt();
+    value = value - 1;
+    if (value <= 0) {
+      value = 25;
+    }
+    QString values = QString::number(value);
+    params.put("KISACruiseSpammingBtnCount", values.toStdString());
+    refresh();
+  });
+  
+  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("KISACruiseSpammingBtnCount"));
+    int value = str.toInt();
+    value = value + 1;
+    if (value >= 26) {
+      value = 1;
+    }
+    QString values = QString::number(value);
+    params.put("KISACruiseSpammingBtnCount", values.toStdString());
+    refresh();
+  });
+  refresh();
+}
+
+void KISACruiseSpammingBtnCount::refresh() {
+  label.setText(QString::fromStdString(params.get("KISACruiseSpammingBtnCount")));
 }

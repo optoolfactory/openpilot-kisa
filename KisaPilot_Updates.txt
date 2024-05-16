@@ -1,3 +1,8 @@
+2024-05-05
+- North Dakota Model
+2024-04-15
+- WD40 Model
+- Duck Amigo Model
 2024-03-01
 - Recertified Herbalist Model
 - More visible BSM alert on UI

@@ -386,13 +386,11 @@ struct CarControl {
   # Actuator commands as computed by controlsd
   actuators @6 :Actuators;
 
+  # moved to CarOutput
+  actuatorsOutputDEPRECATED @10 :Actuators;
+
   leftBlinker @15: Bool;
   rightBlinker @16: Bool;
-
-  # Any car specific rate limits or quirks applied by
-  # the CarController are reflected in actuatorsOutput
-  # and matches what is sent to the car
-  actuatorsOutput @10 :Actuators;
 
   orientationNED @13 :List(Float32);
   angularVelocity @14 :List(Float32);
@@ -423,6 +421,10 @@ struct CarControl {
     gapBySpdOnTemp @12: Bool;
     expModeTemp @13: Bool;
     btnPressing @14: Int8;
+    aqValue @15: Float32;
+    aqValueRaw @16: Float32;
+    autoResvCruisekph @17: Float32;
+    resSpeed @18: Float32;
 
     enum LongControlState @0xe40f3a917d908282{
       off @0;
@@ -451,8 +453,9 @@ struct CarControl {
     leftLaneVisible @7: Bool;
     rightLaneDepart @8: Bool;
     leftLaneDepart @9: Bool;
-    vFuture @10:Float32;
-    vFutureA @11:Float32;
+    leadDistanceBars @10: Int8;  # 1-3: 1 is closest, 3 is farthest. some ports may utilize 2-4 bars instead
+    vFuture @11:Float32;
+    vFutureA @12:Float32;
 
     enum VisualAlert {
       # these are the choices from the Honda
@@ -493,6 +496,13 @@ struct CarControl {
   pitchDEPRECATED @9 :Float32;
 }
 
+struct CarOutput {
+  # Any car specific rate limits or quirks applied by
+  # the CarController are reflected in actuatorsOutput
+  # and matches what is sent to the car
+  actuatorsOutput @0 :CarControl.Actuators;
+}
+
 # ****** car param ******
 
 struct CarParams {
@@ -502,7 +512,6 @@ struct CarParams {
 
   notCar @66 :Bool;  # flag for non-car robotics platforms
 
-  enableGasInterceptor @2 :Bool;
   pcmCruise @3 :Bool;        # is openpilot's state tied to the PCM's cruise state?
   enableDsu @5 :Bool;        # driving support unit
   enableBsm @56 :Bool;       # blind spot monitoring
@@ -593,14 +602,12 @@ struct CarParams {
   vCruisekph @88: Float32;
   resSpeed @89: Float32;
   vFuture @90: Float32;
-  aqValue @91: Float32;
-  aqValueRaw @92: Float32;
-  vFutureA @93: Float32;
-  autoHoldAvailable @94 :Bool;
-  scc13Available @95 :Bool;
-  scc14Available @96 :Bool;
-  lfaHdaAvailable @97 :Bool;
-  navAvailable @98 :Bool;
+  vFutureA @91: Float32;
+  autoHoldAvailable @92 :Bool;
+  scc13Available @93 :Bool;
+  scc14Available @94 :Bool;
+  lfaHdaAvailable @95 :Bool;
+  navAvailable @96 :Bool;
 
   struct SmoothSteerData
   {
@@ -721,6 +728,7 @@ struct CarParams {
     hyundaiCommunity1Legacy @30;
     volkswagenMqbEvo @31;
     chryslerCusw @32;
+    psa @33;
   }
 
   enum SteerControlType {
@@ -794,6 +802,7 @@ struct CarParams {
     gateway @1;    # Integration at vehicle's CAN gateway
   }
 
+  enableGasInterceptorDEPRECATED @2 :Bool;
   enableCameraDEPRECATED @4 :Bool;
   enableApgsDEPRECATED @6 :Bool;
   steerRateCostDEPRECATED @33 :Float32;

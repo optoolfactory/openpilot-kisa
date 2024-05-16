@@ -5,7 +5,7 @@ from openpilot.selfdrive.car.hyundai.tunes import LatTunes, LongTunes, set_long_
 from openpilot.selfdrive.car.hyundai.hyundaicanfd import CanBus
 from openpilot.selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD_CAR, CAMERA_SCC_CAR, CANFD_RADAR_SCC_CAR, \
                                          CANFD_UNSUPPORTED_LONGITUDINAL_CAR, EV_CAR, HYBRID_CAR, LEGACY_SAFETY_MODE_CAR, \
-                                         UNSUPPORTED_LONGITUDINAL_CAR, Buttons, LEGACY_SAFETY_MODE_CAR_ALT
+                                         UNSUPPORTED_LONGITUDINAL_CAR, Buttons, LEGACY_SAFETY_MODE_CAR_ALT, ANGLE_CONTROL_CAR
 from openpilot.selfdrive.car.hyundai.radar_interface import RADAR_START_ADDR
 from openpilot.selfdrive.car import create_button_events, get_safety_config
 from openpilot.selfdrive.car.interfaces import CarInterfaceBase
@@ -18,6 +18,7 @@ from decimal import Decimal
 Ecu = car.CarParams.Ecu
 ButtonType = car.CarState.ButtonEvent.Type
 EventName = car.CarEvent.EventName
+SteerControlType = car.CarParams.SteerControlType
 ENABLE_BUTTONS = (Buttons.RES_ACCEL, Buttons.SET_DECEL, Buttons.CANCEL)
 BUTTONS_DICT = {Buttons.RES_ACCEL: ButtonType.accelCruise, Buttons.SET_DECEL: ButtonType.decelCruise,
                 Buttons.GAP_DIST: ButtonType.gapAdjustCruise, Buttons.CANCEL: ButtonType.cancel}
@@ -95,20 +96,21 @@ class CarInterface(CarInterfaceBase):
     ret.experimentalLong = Params().get_bool("ExperimentalLongitudinalEnabled")
     ret.experimentalLongAlt = candidate in LEGACY_SAFETY_MODE_CAR_ALT
     
-
-    #set_long_tune(ret.longitudinalTuning, LongTunes.KISA)
-    lat_control_method = int(params.get("LateralControlMethod", encoding="utf8"))
-    if lat_control_method == 0:
-      set_lat_tune(ret.lateralTuning, LatTunes.PID)
-    elif lat_control_method == 1:
-      set_lat_tune(ret.lateralTuning, LatTunes.INDI)
-    elif lat_control_method == 2:
-      set_lat_tune(ret.lateralTuning, LatTunes.LQR)
-    elif lat_control_method == 3:
-      #set_lat_tune(ret.lateralTuning, LatTunes.TORQUE)
-      CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
-    elif lat_control_method == 4:
-      set_lat_tune(ret.lateralTuning, LatTunes.ATOM)    # Hybrid tune
+    if candidate in ANGLE_CONTROL_CAR:
+      ret.steerControlType = SteerControlType.angle
+    else:
+      lat_control_method = int(params.get("LateralControlMethod", encoding="utf8"))
+      if lat_control_method == 0:
+        set_lat_tune(ret.lateralTuning, LatTunes.PID)
+      elif lat_control_method == 1:
+        set_lat_tune(ret.lateralTuning, LatTunes.INDI)
+      elif lat_control_method == 2:
+        set_lat_tune(ret.lateralTuning, LatTunes.LQR)
+      elif lat_control_method == 3:
+        #set_lat_tune(ret.lateralTuning, LatTunes.TORQUE)
+        CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
+      elif lat_control_method == 4:
+        set_lat_tune(ret.lateralTuning, LatTunes.ATOM)    # Hybrid tune
 
     # *** longitudinal control ***
     if candidate in CANFD_CAR:
@@ -132,10 +134,7 @@ class CarInterface(CarInterfaceBase):
     # *** feature detection ***
     if candidate in CANFD_CAR:
       ret.enableBsm = 0x1e5 in fingerprint[CAN.ECAN]
-      ret.mdpsBus = 0
-      ret.sasBus = 0
       ret.sccBus = 0
-      ret.fcaBus = 0
       ret.bsmAvailable = False
       ret.lfaAvailable = False
       ret.lvrAvailable = False
@@ -146,11 +145,7 @@ class CarInterface(CarInterfaceBase):
       ret.navAvailable = False
     else:
       ret.enableBsm = 0x58b in fingerprint[0]
-      ret.mdpsBus = 0
-      ret.sasBus = 1 if 688 in fingerprint[1] and 1296 not in fingerprint[1] else 0
       ret.sccBus = 2 if int(Params().get("KISALongAlt", encoding="utf8")) in (1, 2) and not Params().get_bool("ExperimentalLongitudinalEnabled") else 0
-      #ret.sccBus = 0 if 1056 in fingerprint[0] else 1 if 1056 in fingerprint[1] and 1296 not in fingerprint[1] else 2 if 1056 in fingerprint[2] else -1
-      ret.fcaBus = 0 if 909 in fingerprint[0] else 2 if 909 in fingerprint[2] else -1
       ret.bsmAvailable = True if 1419 in fingerprint[0] else False
       ret.lfaAvailable = True if 1157 in fingerprint[2] else False
       ret.lvrAvailable = True if 871 in fingerprint[0] else False
@@ -216,7 +211,7 @@ class CarInterface(CarInterfaceBase):
     elif ret.flags & HyundaiFlags.EV:
       ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_EV_GAS
 
-    if candidate in (CAR.KONA, CAR.KONA_EV, CAR.KONA_HEV, CAR.KONA_EV_2022):
+    if candidate in (CAR.HYUNDAI_KONA, CAR.HYUNDAI_KONA_EV, CAR.HYUNDAI_KONA_HEV, CAR.HYUNDAI_KONA_EV_2022):
       ret.flags |= HyundaiFlags.ALT_LIMITS.value
       ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_ALT_LIMITS
 
@@ -238,7 +233,7 @@ class CarInterface(CarInterfaceBase):
       disable_ecu(logcan, sendcan, bus=CanBus(CP).ECAN, addr=0x7B1, com_cont_req=b'\x28\x83\x01')
 
   def _update(self, c):
-    ret = self.CS.update(self.cp, self.cp2, self.cp_cam)
+    ret = self.CS.update(self.cp, self.cp_cam)
 
     # most HKG cars has no long control, it is safer and easier to engage by main on
     if self.CC.ufc_mode_enabled and not self.CS.CP.experimentalLong:
@@ -294,14 +289,6 @@ class CarInterface(CarInterfaceBase):
       self.CP.standStill = True
     else:
       self.CP.standStill = False
-    if self.CC.v_cruise_kph_auto_res > (20 if self.CS.is_set_speed_in_mph else 30):
-      self.CP.vCruisekph = self.CC.v_cruise_kph_auto_res
-    else:
-      self.CP.vCruisekph = 0
-    if self.CC.res_speed != 0:
-      self.CP.resSpeed = self.CC.res_speed
-    else:
-      self.CP.resSpeed = 0
     if self.CC.vFuture >= 1:
       self.CP.vFuture = self.CC.vFuture
     else:
@@ -310,8 +297,6 @@ class CarInterface(CarInterfaceBase):
       self.CP.vFutureA = self.CC.vFutureA
     else:
       self.CP.vFutureA = 0
-    self.CP.aqValue = self.CC.aq_value
-    self.CP.aqValueRaw = self.CC.aq_value_raw
 
     if self.CC.mode_change_timer and self.CS.out.cruiseState.modeSel == 0:
       events.add(EventName.modeChangeOpenpilot)
