@@ -35,21 +35,39 @@ class CanBus(CanBusBase):
     return self._cam
 
 
-def create_steering_messages(packer, CP, CAN, enabled, lat_active, apply_steer):
+def create_steering_messages(packer, CP, CAN, enabled, lat_active, steering_pressed, apply_steer, apply_angle, max_torque, angle_control):
 
   ret = []
 
-  values = {
-    "LKA_MODE": 2,
-    "LKA_ICON": 2 if enabled else 1,
-    "TORQUE_REQUEST": apply_steer,
-    "LKA_ASSIST": 0,
-    "STEER_REQ": 1 if lat_active else 0,
-    "STEER_MODE": 0,
-    "HAS_LANE_SAFETY": 0,  # hide LKAS settings
-    "NEW_SIGNAL_1": 0,
-    "NEW_SIGNAL_2": 0,
-  }
+  if angle_control:
+    values = {
+      "LKA_MODE": 0,
+      "LKA_ICON": 2 if enabled else 1,
+      "TORQUE_REQUEST": 0, #apply_steer,
+      "LKA_ASSIST": 0,
+      "STEER_REQ": 0,  # 1 if lat_active else 0,
+      "STEER_MODE": 0,
+      "HAS_LANE_SAFETY": 0,  # hide LKAS settings
+      "NEW_SIGNAL_1": 3 if lat_active else 0,  # this changes sometimes, 3 seems to indicate engaged
+      "NEW_SIGNAL_2": 0,
+      "LKAS_ANGLE_CMD": -apply_angle,
+      "LKAS_ANGLE_ACTIVE": 2 if lat_active else 1,
+      # a torque scale value? ramps up when steering, highest seen is 234
+      # "UNKNOWN": 50 if lat_active and not steering_pressed else 0,
+      "UNKNOWN": max_torque if lat_active else 0,
+    }
+  else:
+    values = {
+      "LKA_MODE": 2,
+      "LKA_ICON": 2 if enabled else 1,
+      "TORQUE_REQUEST": apply_steer,
+      "LKA_ASSIST": 0,
+      "STEER_REQ": 1 if lat_active else 0,
+      "STEER_MODE": 0,
+      "HAS_LANE_SAFETY": 0,  # hide LKAS settings
+      "NEW_SIGNAL_1": 0,
+      "NEW_SIGNAL_2": 0,
+    }
 
   if CP.flags & HyundaiFlags.CANFD_HDA2:
     hda2_lkas_msg = "LKAS_ALT" if CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING else "LKAS"
@@ -61,7 +79,7 @@ def create_steering_messages(packer, CP, CAN, enabled, lat_active, apply_steer):
 
   return ret
 
-def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering):
+def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering, enabled):
   suppress_msg = "CAM_0x362" if hda2_alt_steering else "CAM_0x2a4"
   msg_bytes = 32 if hda2_alt_steering else 24
 
@@ -69,16 +87,28 @@ def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering):
   values["COUNTER"] = hda2_lfa_block_msg["COUNTER"]
   values["SET_ME_0"] = 0
   values["SET_ME_0_2"] = 0
-  values["LEFT_LANE_LINE"] = 0
-  values["RIGHT_LANE_LINE"] = 0
+  values["LEFT_LANE_LINE"] = 0 if enabled else 3
+  values["RIGHT_LANE_LINE"] = 0 if enabled else 3
   return packer.make_can_msg(suppress_msg, CAN.ACAN, values)
 
-def create_buttons(packer, CP, CAN, cnt, btn):
-  values = {
+def create_buttons(packer, CP, CAN, cnt, btn, cruise_btn_info_copy):
+  values = {s: cruise_btn_info_copy[s] for s in [
+    "_CHECKSUM",
+    "COUNTER",
+    "CRUISE_BUTTONS",
+    "ADAPTIVE_CRUISE_MAIN_BTN",
+    "NORMAL_CRUISE_MAIN_BTN",
+    "LKAS_BTN",
+    "RIGHT_PADDLE",
+    "LEFT_PADDLE",
+    "SET_ME_1",
+  ]}
+
+  values.update({
     "COUNTER": cnt,
-    "SET_ME_1": 1,
     "CRUISE_BUTTONS": btn,
-  }
+    "SET_ME_1": 1,
+  })
 
   bus = CAN.ECAN if CP.flags & HyundaiFlags.CANFD_HDA2 else CAN.CAM
   return packer.make_can_msg("CRUISE_BUTTONS", bus, values)
@@ -146,7 +176,7 @@ def create_acc_control(packer, CAN, enabled, accel_last, accel, stopping, gas_ov
     "SET_ME_2": 0x4,
     "SET_ME_3": 0x3,
     "SET_ME_TMP_64": 0x64,
-    "DISTANCE_SETTING": hud_control.leadDistanceBars + 1,
+    "DISTANCE_SETTING": hud_control.leadDistanceBars,
   }
 
   return packer.make_can_msg("SCC_CONTROL", CAN.ECAN, values)

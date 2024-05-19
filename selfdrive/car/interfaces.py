@@ -90,7 +90,6 @@ class CarInterfaceBase(ABC):
 
     self.CS = CarState(CP)
     self.cp = self.CS.get_can_parser(CP)
-    self.cp2 = self.CS.get_can2_parser(CP)
     self.cp_cam = self.CS.get_cam_can_parser(CP)
     self.cp_adas = self.CS.get_adas_can_parser(CP)
     self.cp_body = self.CS.get_body_can_parser(CP)
@@ -105,6 +104,9 @@ class CarInterfaceBase(ABC):
     self.user_specific_feature = int(Params().get("UserSpecificFeature", encoding="utf8"))
     self.long_alt = int(Params().get("KISALongAlt", encoding="utf8"))
     self.exp_long = self.CP.sccBus <= 0 and self.CP.openpilotLongitudinalControl and self.long_alt not in (1, 2)
+
+  def apply(self, c: car.CarControl, now_nanos: int) -> tuple[car.CarControl.Actuators, list[tuple[int, int, bytes, int]]]:
+    return self.CC.update(c, self.CS, now_nanos)
 
   @staticmethod
   def get_pid_accel_limits(CP, current_speed, cruise_speed):
@@ -298,11 +300,10 @@ class CarInterfaceBase(ABC):
       ret.cruiseState.speedCluster = ret.cruiseState.speed
 
     # copy back for next iteration
-    reader = ret.as_reader()
     if self.CS is not None:
-      self.CS.out = reader
+      self.CS.out = ret.as_reader()
 
-    return reader
+    return ret
 
 
   def create_common_events(self, cs_out, extra_gears=None, pcm_enable=True, allow_enable=True,
@@ -345,6 +346,10 @@ class CarInterfaceBase(ABC):
       events.add(EventName.accFaulted)
     if cs_out.steeringPressed:
       events.add(EventName.steerOverride)
+    if cs_out.brakePressed and cs_out.standstill and not self.ufc_mode:
+      events.add(EventName.preEnableStandstill)
+    if cs_out.gasPressed and not self.ufc_mode:
+      events.add(EventName.gasPressedOverride)
 
     # Handle button presses
     for b in cs_out.buttonEvents:

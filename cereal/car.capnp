@@ -97,7 +97,6 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     fanMalfunction @91;
     cameraMalfunction @92;
     cameraFrameRate @110;
-    gpsMalfunction @94;
     processNotRunning @95;
     dashcamMode @96;
     controlsInitializing @98;
@@ -142,6 +141,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     startupFuzzyFingerprintDEPRECATED @97;
     noTargetDEPRECATED @25;
     brakeUnavailableDEPRECATED @2;
+    gpsMalfunctionDEPRECATED @94;
 
     laneChangeManual @120;
     emgButtonManual @121;
@@ -421,9 +421,10 @@ struct CarControl {
     gapBySpdOnTemp @12: Bool;
     expModeTemp @13: Bool;
     btnPressing @14: Int8;
-
     aqValue @15: Float32;
     aqValueRaw @16: Float32;
+    autoResvCruisekph @17: Float32;
+    resSpeed @18: Float32;
 
     enum LongControlState @0xe40f3a917d908282{
       off @0;
