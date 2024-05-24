@@ -661,9 +661,9 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
     sp_yr = sp_yr + j_num;
     p.setPen(whiteColor(200));
     debugText(p, sp_xr, sp_yr, QString("GPS PREC"), 150, 27);
-    if (s->scene.gpsAccuracy > 1.3) {
+    if (s->scene.gpsAccuracy > 3) {
       p.setPen(redColor(200));
-    } else if (s->scene.gpsAccuracy > 0.85) {
+    } else if (s->scene.gpsAccuracy > 1.5) {
       p.setPen(orangeColor(200));
     }
     if (s->scene.gpsAccuracy > 99 || s->scene.gpsAccuracy == 0) {
@@ -1327,10 +1327,10 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
 
   // rec_stat and toggle
   if (s->scene.driving_record) {
-    if (!s->scene.rec_stat && s->scene.car_state.getVEgo() > 0.3) {
+    if (!s->scene.rec_stat && s->scene.car_state.getVEgo() > 0.3 && s->scene.lateralPlan.standstillElapsedTime == 0) {
       s->scene.rec_stat = !s->scene.rec_stat;
       if (recorder) recorder->toggle();
-    } else if (s->scene.rec_stat && s->scene.standStill) {
+    } else if (s->scene.rec_stat && s->scene.standStill && s->scene.lateralPlan.standstillElapsedTime > 9) {
       if (recorder) recorder->toggle();
       s->scene.rec_stat = !s->scene.rec_stat;
     }
