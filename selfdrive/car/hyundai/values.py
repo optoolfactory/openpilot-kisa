@@ -562,6 +562,12 @@ class CAR(Platforms):
     CarSpecs(mass=2258, wheelbase=2.95, steerRatio=14.14),
     flags=HyundaiFlags.RADAR_SCC,
   )
+  GENESIS_GV80_2024 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Genesis GV80 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=2258, wheelbase=2.95, steerRatio=14.14),
+    flags=HyundaiFlags.ANGLE_CONTROL,
+  )
+
 
   # Kisa
   HYUNDAI_AVANTE_AD = HyundaiPlatformConfig(
