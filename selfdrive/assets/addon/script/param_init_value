@@ -23,7 +23,7 @@ LqrKi:16
 DcGain:265
 IgnoreZone:0
 PidKp:25
-PidKi:4
+PidKi:40
 PidKd:150
 PidKf:7
 TorqueKp:10
@@ -117,7 +117,6 @@ StockNaviSpeedEnabled:0
 E2ELong:0
 OSMEnable:0
 OSMSpeedLimitEnable:0
-KISAMapboxStyleSelect:0
 RESCountatStandstill:18
 KisaSpeedLimitOffsetOption:0
 StockLKASEnabled:0

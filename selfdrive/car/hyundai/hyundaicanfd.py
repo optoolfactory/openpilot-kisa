@@ -48,13 +48,19 @@ def create_steering_messages(packer, CP, CAN, enabled, lat_active, steering_pres
       "STEER_REQ": 0,  # 1 if lat_active else 0,
       "STEER_MODE": 0,
       "HAS_LANE_SAFETY": 0,  # hide LKAS settings
-      "NEW_SIGNAL_1": 3 if lat_active else 0,  # this changes sometimes, 3 seems to indicate engaged
+      "LKA_ACTIVE": 3 if lat_active else 0,  # this changes sometimes, 3 seems to indicate engaged
       "NEW_SIGNAL_2": 0,
       "LKAS_ANGLE_CMD": -apply_angle,
       "LKAS_ANGLE_ACTIVE": 2 if lat_active else 1,
       # a torque scale value? ramps up when steering, highest seen is 234
       # "UNKNOWN": 50 if lat_active and not steering_pressed else 0,
       "UNKNOWN": max_torque if lat_active else 0,
+      "NEW_SIGNAL_1": 10,
+      "NEW_SIGNAL_3": 9,
+      "NEW_SIGNAL_4": 1,
+      "NEW_SIGNAL_5": 1,
+      "NEW_SIGNAL_6": 1,
+      "NEW_SIGNAL_7": 1,
     }
   else:
     values = {
@@ -79,14 +85,14 @@ def create_steering_messages(packer, CP, CAN, enabled, lat_active, steering_pres
 
   return ret
 
-def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering, enabled):
+def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering, enabled, lfa_cnt):
   suppress_msg = "CAM_0x362" if hda2_alt_steering else "CAM_0x2a4"
   msg_bytes = 32 if hda2_alt_steering else 24
 
   values = {f"BYTE{i}": hda2_lfa_block_msg[f"BYTE{i}"] for i in range(3, msg_bytes) if i != 7}
   values["COUNTER"] = hda2_lfa_block_msg["COUNTER"]
-  values["SET_ME_0"] = 0
-  values["SET_ME_0_2"] = 0
+  values["SET_ME_0"] = 2
+  values["SET_ME_0_2"] = 2
   values["LEFT_LANE_LINE"] = 0 if enabled else 3
   values["RIGHT_LANE_LINE"] = 0 if enabled else 3
   return packer.make_can_msg(suppress_msg, CAN.ACAN, values)

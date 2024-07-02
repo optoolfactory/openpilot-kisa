@@ -102,6 +102,8 @@ class CarState(CarStateBase):
     self.exp_long_alt = CP.sccBus <= 0 and CP.carFingerprint in LEGACY_SAFETY_MODE_CAR_ALT and self.CP.openpilotLongitudinalControl
     self.exp_long = (CP.sccBus <= 0 and self.CP.openpilotLongitudinalControl and self.long_alt not in (1, 2)) or self.exp_long_alt
     self.lead_distance = 0
+    self.DistSet = 0
+    self.obj_valid = 0
 
     self.sm = messaging.SubMaster(['controlsState'])
 
@@ -111,6 +113,7 @@ class CarState(CarStateBase):
     set_speed_kph = self.cruise_set_speed_kph
     if 1 < round(self.sm['controlsState'].vCruise) < 255:
       set_speed_kph = round(self.sm['controlsState'].vCruise)
+      self.cruise_set_speed_kph = set_speed_kph
 
     if self.cruise_buttons[-1]:
       self.cruise_buttons_time += 1
@@ -472,9 +475,12 @@ class CarState(CarStateBase):
       self.VSetDis = cp_scc.vl["SCC11"]["VSetDis"]
       ret.vSetDis = self.VSetDis
       lead_objspd = cp_scc.vl["SCC11"]["ACC_ObjRelSpd"]
+      ret.radarVRel = lead_objspd
       self.lead_objspd = lead_objspd * CV.MS_TO_KPH
 
       ret.accFaulted = cp.vl["TCS13"]["ACCEnable"] != 0  # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
+      ret.espDisabled = cp.vl["TCS11"]["TCS_PAS"] == 1
+      ret.espActive = cp.vl["TCS11"]["ABS_ACT"] == 1
 
     ret.cruiseState.accActive = self.acc_active
     ret.cruiseState.cruiseSwState = self.cruise_buttons[-1]
@@ -569,7 +575,7 @@ class CarState(CarStateBase):
       ret.aReqValue = cp_scc.vl["SCC12"]["aReqValue"]
       self.highway_cam = cp_scc.vl["SCC11"]["Navi_SCC_Camera_Act"]
       self.lead_distance = cp_scc.vl["SCC11"]["ACC_ObjDist"]
-      ret.radarDistance = self.lead_distance
+      ret.radarDRel = self.lead_distance
       self.scc11 = copy.copy(cp_scc.vl["SCC11"])
       self.scc12 = copy.copy(cp_scc.vl["SCC12"])
       if self.CP.scc13Available:
@@ -711,17 +717,21 @@ class CarState(CarStateBase):
       ret.brakeHoldActive = cp.vl["ESP_STATUS"]["AUTO_HOLD"] == 1 and cp_cruise_info.vl["SCC_CONTROL"]["ACCMode"] not in (1, 2)
       ret.autoHold = ret.brakeHoldActive
 
-      ret.cruiseState.gapSet = cp.vl["ADRV_0x200"]["TauGapSet"]
+      if self.CP.adrvAvailable:
+        ret.cruiseState.gapSet = cp.vl["ADRV_0x200"]["TauGapSet"]
       self.cruiseGapSet = ret.cruiseState.gapSet
       ret.cruiseGapSet = self.cruiseGapSet
+      self.DistSet = cp_cruise_info.vl["SCC_CONTROL"]["DISTANCE_SETTING"] - 5 if cp_cruise_info.vl["SCC_CONTROL"]["DISTANCE_SETTING"] > 5 else cp_cruise_info.vl["SCC_CONTROL"]["DISTANCE_SETTING"]
       ret.cruiseState.modeSel = self.cruise_set_mode
 
     if not self.exp_long:
       self.lead_distance = cp_cruise_info.vl["SCC_CONTROL"]["ACC_ObjDist"]
-      ret.radarDistance = self.lead_distance
+      ret.radarDRel = self.lead_distance
       ret.aReqValue = cp_cruise_info.vl["SCC_CONTROL"]["aReqValue"]
       lead_objspd = cp_cruise_info.vl["SCC_CONTROL"]["ACC_ObjRelSpd"]
+      ret.radarVRel = lead_objspd
       self.lead_objspd = lead_objspd * CV.MS_TO_KPH
+      self.obj_valid = cp_cruise_info.vl["SCC_CONTROL"]["ObjValid"]
       self.scc_control = copy.copy(cp_cruise_info.vl["SCC_CONTROL"])
       self.driverOverride = cp.vl["TCS"]["DriverOverride"]
       if self.driverOverride:
@@ -759,8 +769,8 @@ class CarState(CarStateBase):
 
     messages = [
       # address, frequency
-      ("MDPS12", 50)
-      ("SAS11", 100)
+      ("MDPS12", 50),
+      ("TCS11", 100),
       ("TCS13", 50),
       ("TCS15", 10),
       ("CLU11", 50),
@@ -770,6 +780,7 @@ class CarState(CarStateBase):
       ("CGW2", 5),
       ("CGW4", 5),
       ("WHL_SPD11", 50),
+      ("SAS11", 100),
       ("TPMS11", 0),
     ]
 
@@ -855,7 +866,6 @@ class CarState(CarStateBase):
       ("ESP_STATUS", 100),
       ("TCS", 50),
       ("CRUISE_BUTTONS_ALT", 50),
-      ("ADRV_0x200", 20),
       ("TPMS", 5),
       ("BLINKERS", 4),
       ("DOORS_SEATBELTS", 4),
@@ -879,6 +889,11 @@ class CarState(CarStateBase):
     if not (CP.flags & HyundaiFlags.CANFD_CAMERA_SCC.value) and not CP.openpilotLongitudinalControl:
       messages += [
         ("SCC_CONTROL", 50),
+      ]
+
+    if CP.adrvAvailable:
+      messages += [
+        ("ADRV_0x200", 20),
       ]
 
     return CANParser(DBC[CP.carFingerprint]["pt"], messages, CanBus(CP).ECAN)

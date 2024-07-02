@@ -1,7 +1,7 @@
 from cereal import car
 from panda import Panda
 from openpilot.common.conversions import Conversions as CV
-from openpilot.selfdrive.car.hyundai.tunes import LatTunes, LongTunes, set_long_tune, set_lat_tune
+from openpilot.selfdrive.car.hyundai.tunes import LatTunes, set_lat_tune
 from openpilot.selfdrive.car.hyundai.hyundaicanfd import CanBus
 from openpilot.selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD_CAR, CAMERA_SCC_CAR, CANFD_RADAR_SCC_CAR, \
                                          CANFD_UNSUPPORTED_LONGITUDINAL_CAR, EV_CAR, HYBRID_CAR, LEGACY_SAFETY_MODE_CAR, \
@@ -39,6 +39,7 @@ class CarInterface(CarInterfaceBase):
     CAN = CanBus(None, hda2, fingerprint)
 
     if candidate in CANFD_CAR:
+      ret.isCanFD = True
       # detect if car is hybrid
       if 0x105 in fingerprint[CAN.ECAN]:
         ret.flags |= HyundaiFlags.HYBRID.value
@@ -63,6 +64,7 @@ class CarInterface(CarInterfaceBase):
         if candidate not in CANFD_RADAR_SCC_CAR:
           ret.flags |= HyundaiFlags.CANFD_CAMERA_SCC.value
     else:
+      ret.isCanFD = False
       # TODO: detect EV and hybrid
       if candidate in HYBRID_CAR:
         ret.flags |= HyundaiFlags.HYBRID.value
@@ -114,12 +116,8 @@ class CarInterface(CarInterfaceBase):
 
     # *** longitudinal control ***
     if candidate in CANFD_CAR:
-      ret.longitudinalTuning.kpV = [0.1]
-      ret.longitudinalTuning.kiV = [0.0]
       ret.experimentalLongitudinalAvailable = candidate not in (CANFD_UNSUPPORTED_LONGITUDINAL_CAR | CANFD_RADAR_SCC_CAR)
     else:
-      ret.longitudinalTuning.kpV = [0.5]
-      ret.longitudinalTuning.kiV = [0.0]
       ret.experimentalLongitudinalAvailable = True #candidate not in (UNSUPPORTED_LONGITUDINAL_CAR | CAMERA_SCC_CAR)
     ret.openpilotLongitudinalControl = experimental_long and ret.experimentalLongitudinalAvailable #experimental_long is LongControl toggle, not Experiment Mode
     ret.pcmCruise = not ret.openpilotLongitudinalControl
@@ -128,8 +126,7 @@ class CarInterface(CarInterfaceBase):
     ret.startingState = True
     ret.vEgoStarting = 0.1
     ret.startAccel = 1.0
-    ret.longitudinalActuatorDelayLowerBound = 0.5
-    ret.longitudinalActuatorDelayUpperBound = 0.5
+    ret.longitudinalActuatorDelay = 0.5
 
     # *** feature detection ***
     if candidate in CANFD_CAR:
@@ -143,6 +140,7 @@ class CarInterface(CarInterfaceBase):
       ret.autoHoldAvailable = False
       ret.lfaHdaAvailable = False
       ret.navAvailable = False
+      ret.adrvAvailable = 0x200 in fingerprint[CAN.ECAN]
     else:
       ret.enableBsm = 0x58b in fingerprint[0]
       ret.sccBus = 2 if int(Params().get("KISALongAlt", encoding="utf8")) in (1, 2) and not Params().get_bool("ExperimentalLongitudinalEnabled") else 0
@@ -154,6 +152,7 @@ class CarInterface(CarInterfaceBase):
       ret.autoHoldAvailable = 1151 in fingerprint[0]
       ret.lfaHdaAvailable = 1157 in fingerprint[0]
       ret.navAvailable = 1348 in fingerprint[0]
+      ret.adrvAvailable = False
 
     # *** panda safety config ***
     if candidate in CANFD_CAR:
@@ -319,6 +318,3 @@ class CarInterface(CarInterfaceBase):
     ret.events = events.to_msg()
 
     return ret
-
-  def apply(self, c, now_nanos):
-    return self.CC.update(c, self.CS, now_nanos)

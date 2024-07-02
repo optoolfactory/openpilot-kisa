@@ -8,14 +8,15 @@
 
 #include <QTimer>
 #include "selfdrive/ui/qt/screenrecorder/screenrecorder.h"
+
+#include "common/params.h"
+
 class AnnotatedCameraWidget : public CameraWidget {
   Q_OBJECT
 
 public:
   explicit AnnotatedCameraWidget(VisionStreamType type, QWidget* parent = 0);
   void updateState(const UIState &s);
-
-  MapSettingsButton *map_settings_btn;
 
 private:
   void drawIcon(QPainter &p, int x, int y, QPixmap &img, QBrush bg = QColor(0,0,0,0), float opacity = 1.0, bool rotation = false, float angle = 0);
@@ -39,15 +40,12 @@ private:
   float speed;
   QString speedUnit;
   float setSpeed;
-  float speedLimit;
   bool is_cruise_set = false;
   bool is_metric = false;
   bool dmActive = false;
   bool hideBottomIcons = false;
   bool rightHandDM = false;
   float dm_fade_state = 1.0;
-  bool has_us_speed_limit = false;
-  bool has_eu_speed_limit = false;
   bool v_ego_cluster_seen = false;
   int status = STATUS_DISENGAGED;
   std::unique_ptr<PubMaster> pm;
@@ -63,6 +61,8 @@ private:
   // neokii screen recorder. thx for sharing your source. 
   ScreenRecoder* recorder;
   std::shared_ptr<QTimer> record_timer;
+
+  Params params;
 
 protected:
   void paintGL() override;
