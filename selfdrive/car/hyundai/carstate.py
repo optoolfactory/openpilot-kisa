@@ -741,7 +741,7 @@ class CarState(CarStateBase):
         self.driverAcc_time -= 1
       ret.driverAcc = bool(self.driverOverride)
       if self.CP.carFingerprint in ANGLE_CONTROL_CAR:
-        self.stock_str_angle = cp_cam.vl["LKAS_ALT"]["LKAS_ANGLE_CMD"] if self.CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING else 0
+        self.stock_str_angle = cp_cam.vl["LKAS_ALT"]["LKAS_ANGLE_CMD"] * -1 if self.CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING else 0
 
     # Manual Speed Limit Assist is a feature that replaces non-adaptive cruise control on EV CAN FD platforms.
     # It limits the vehicle speed, overridable by pressing the accelerator past a certain point.
