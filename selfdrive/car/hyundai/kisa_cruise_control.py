@@ -86,7 +86,7 @@ class KisaCruiseControl():
     self.faststart = False
     self.safetycam_speed = 0
 
-    self.user_specific_feature = int(self.params.get("UserSpecificFeature", encoding="utf8"))
+    self.use_radar_value = self.params.get_bool("UseRadarValue")
 
     self.e2e_x = 0
 
@@ -446,8 +446,8 @@ class KisaCruiseControl():
         # dRel = CS.lead_distance if 0 < CS.lead_distance < 149 and not self.cut_in_run_timer else int(self.lead_0.dRel)
         # vRel = CS.lead_objspd * (CV.KPH_TO_MPH if CS.is_set_speed_in_mph else 1) if 0 < CS.lead_distance < 149 and \
         #  not self.cut_in_run_timer else int(self.lead_0.vRel * (CV.MS_TO_MPH if CS.is_set_speed_in_mph else CV.MS_TO_KPH))
-        dRel = CS.lead_distance if self.user_specific_feature == 12 and CS.lead_distance < 149 else self.lead_0.dRel
-        vRel = int(CS.lead_objspd * (CV.MS_TO_MPH if CS.is_set_speed_in_mph else CV.MS_TO_KPH)) if self.user_specific_feature == 12 and CS.lead_distance < 149 else int(self.lead_0.vRel * (CV.MS_TO_MPH if CS.is_set_speed_in_mph else CV.MS_TO_KPH))
+        dRel = CS.lead_distance if self.use_radar_value and CS.lead_distance < 149 else self.lead_0.dRel
+        vRel = int(CS.lead_objspd * (CV.MS_TO_MPH if CS.is_set_speed_in_mph else CV.MS_TO_KPH)) if self.use_radar_value and CS.lead_distance < 149 else int(self.lead_0.vRel * (CV.MS_TO_MPH if CS.is_set_speed_in_mph else CV.MS_TO_KPH))
         if self.cut_in_run_timer > 0:
           self.cut_in_run_timer -= 1
         elif self.cut_in:
@@ -528,7 +528,7 @@ class KisaCruiseControl():
     return round(min(var_speed, v_curv_speed, o_curv_speed))
 
   def get_live_gap(self, sm, CS):
-    self.t_interval = randint(15, 25)
+    self.t_interval = randint(self.t_interval2+3, self.t_interval2+5) if CS.is_set_speed_in_mph else randint(self.t_interval2, self.t_interval2+2)
     gap_to_set = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
     now_gap = gap_to_set
     if 0 < CS.lead_distance <= 149 and CS.lead_objspd < -4 and CS.clu_Vanz > 30 and 0 < self.e2e_x < 120 and self.try_early_stop:

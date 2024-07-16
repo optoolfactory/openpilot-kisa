@@ -1,4 +1,6 @@
 """Install exception handler for process crash."""
+import os
+import traceback
 import sentry_sdk
 from enum import Enum
 from sentry_sdk.integrations.threading import ThreadingIntegration
@@ -12,9 +14,9 @@ from openpilot.system.version import get_build_metadata, get_version
 
 class SentryProject(Enum):
   # python project
-  SELFDRIVE = "https://d7357e56d4a6422c50e35caf41e989e5@o1001267.ingest.us.sentry.io/4507356059205632"
+  SELFDRIVE = "https://6f3c7076c1e14b2aa10f5dde6dda0cc4@o33823.ingest.sentry.io/77924"
   # native project
-  SELFDRIVE_NATIVE = "https://d7357e56d4a6422c50e35caf41e989e5@o1001267.ingest.us.sentry.io/4507356059205632"
+  SELFDRIVE_NATIVE = "https://3e4b586ed21a4479ad5d85083b639bc6@o33823.ingest.sentry.io/157615"
 
 
 def report_tombstone(fn: str, message: str, contents: str) -> None:
@@ -28,6 +30,7 @@ def report_tombstone(fn: str, message: str, contents: str) -> None:
 
 
 def capture_exception(*args, **kwargs) -> None:
+  save_exception(traceback.format_exc())
   cloudlog.error("crash", exc_info=kwargs.get('exc_info', 1))
 
   try:
@@ -40,6 +43,14 @@ def capture_exception(*args, **kwargs) -> None:
 def set_tag(key: str, value: str) -> None:
   sentry_sdk.set_tag(key, value)
 
+def save_exception(exc_text):
+  if not "mapd.py" in exc_text: # ignore mapd.py error
+    if not os.path.exists('/data/log'):
+      os.makedirs('/data/log')
+    log_file = '/data/log/error.txt'
+    with open(log_file, 'w') as f:
+      f.write(exc_text)
+      f.close()
 
 def init(project: SentryProject) -> bool:
   build_metadata = get_build_metadata()
