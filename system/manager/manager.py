@@ -44,7 +44,6 @@ def manager_init() -> None:
     ("OpenpilotEnabledToggle", "1"),
     ("LongitudinalPersonality", str(log.LongitudinalPersonality.standard)),
     ("IsMetric", "1"),
-    ("IsOpenpilotViewEnabled", "0"),
     ("KisaAutoShutdown", "12"),
     ("KisaForceShutdown", "5"),
     ("KisaAutoScreenOff", "-2"),
@@ -248,6 +247,7 @@ def manager_init() -> None:
     ("LCTimingKeepFactorEnable", "1"),
     ("KISACruiseSpammingInterval", "7"),
     ("KISACruiseSpammingBtnCount", "2"),
+    ("UseRadarValue", "1"),
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.now(datetime.UTC).replace(tzinfo=None).isoformat().encode('utf8')))

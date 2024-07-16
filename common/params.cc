@@ -422,6 +422,8 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"LCTimingKeepFactorLeft", PERSISTENT},
     {"LCTimingKeepFactorRight", PERSISTENT},
     {"LCTimingKeepFactorEnable", PERSISTENT},
+    {"UseRadarValue", PERSISTENT},
+    {"ErrorOccurred", CLEAR_ON_MANAGER_START},
 };
 
 } // namespace

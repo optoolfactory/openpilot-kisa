@@ -211,6 +211,8 @@ typedef struct UIScene {
   bool hotspot_trigger = false;
 
   int user_specific_feature = 0;
+  bool use_radar_value;
+  bool error_occurred = false;
 
   QString model_name;
 

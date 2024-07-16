@@ -373,7 +373,8 @@ static void update_state(UIState *s) {
   }
 
   if (s->sm->frame % (8*UI_FREQ) == 0) {
-  	s->is_OpenpilotViewEnabled = Params().getBool("IsOpenpilotViewEnabled");
+    s->is_OpenpilotViewEnabled = Params().getBool("IsOpenpilotViewEnabled");
+    scene.error_occurred = Params().getBool("ErrorOccurred");
   }
 
   if (!s->is_OpenpilotViewEnabled) {
@@ -574,6 +575,7 @@ void UIState::updateStatus() {
     scene.model_name = QString::fromStdString(params.get("DrivingModel"));
     scene.hotspot_on_boot = params.getBool("KisaHotspotOnBoot");
     scene.user_specific_feature = std::stoi(params.get("UserSpecificFeature"));
+    scene.use_radar_value = params.getBool("UseRadarValue");
 
     if (scene.autoScreenOff > 0) {
       scene.nTime = scene.autoScreenOff * 60 * UI_FREQ;
@@ -738,7 +740,7 @@ void Device::updateWakefulness(const UIState &s) {
 
   if (ignition_just_turned_off) {
     resetInteractiveTimeout();
-  } else if (interactive_timeout > 0 && --interactive_timeout == 0) {
+  } else if (interactive_timeout > 0 && --interactive_timeout == 0 && !s.scene.error_occurred) {
     emit interactiveTimeout();
   }
 
