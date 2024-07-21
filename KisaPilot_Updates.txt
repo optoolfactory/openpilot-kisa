@@ -7,7 +7,7 @@
 - Support CanFD cars overally with UFC
 - Variable Cruise(button spamming) for CanFD cars
 - More reliable resume spamming
-- Support angle controlled cars(EV9, IONIQ5 PE 2024)
+- Support angle controlled cars(EV9, IONIQ5 PE 2025)
 2024-05-05
 - North Dakota Model
 2024-04-15
