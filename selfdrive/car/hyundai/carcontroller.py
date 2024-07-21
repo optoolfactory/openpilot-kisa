@@ -256,6 +256,12 @@ class CarController(CarControllerBase):
     self.nt_interval = int(self.c_params.get("KISACruiseSpammingInterval", encoding="utf8"))
     self.btn_count = int(self.c_params.get("KISACruiseSpammingBtnCount", encoding="utf8"))
     self.second2 = 0
+    self.pause_time = 0
+    self.gap_now = 0
+    self.gap_prev = 0
+    self.cruise_set_now = 0
+    self.cruise_set_prev = 0
+
     self.experimental_mode_temp = self.experimental_mode
     self.exp_mode_push = False
     self.exp_mode_push_cnt = 0
@@ -1427,16 +1433,37 @@ class CarController(CarControllerBase):
           self.driver_scc_set_control = self.KCC.driverSccSetControl
           if btn_signal is not None:
             if btn_signal == 3 and self.KCC.ctrl_gap != (CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet):
-              for _ in range(self.btn_count):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter, btn_signal, CS.cruise_btn_info))
-              self.last_button_frame = self.frame
-              self.cruise_gap_adjusting = True
+              self.gap_now = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
+              self.pause_time += 1 if self.gap_now == self.gap_prev else 0
+              self.gap_prev = self.gap_now
+              pause_time = interp(self.KCC.t_interval, [10, 80], [100, 300])
+              if self.pause_time > pause_time:
+                self.last_button_frame = self.frame
+                self.cruise_gap_adjusting = False
+                self.refresh_time = 10
+                self.pause_time = 0
+              else:
+                for _ in range(self.btn_count):
+                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter, btn_signal, CS.cruise_btn_info))
+                self.last_button_frame = self.frame
+                self.cruise_gap_adjusting = True
+                self.refresh_time = 0
             elif btn_signal in (1,2) and self.KCC.ctrl_speed != round(CS.VSetDis):
-              for _ in range(self.btn_count):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter, btn_signal, CS.cruise_btn_info))
-              self.last_button_frame = self.frame
-              self.cruise_speed_adjusting = True
-            self.refresh_time = 0
+              self.cruise_set_now = round(CS.VSetDis)
+              self.pause_time += 1 if self.cruise_set_now == self.cruise_set_prev else 0
+              self.cruise_set_prev = self.cruise_set_now
+              pause_time = interp(self.KCC.t_interval, [10, 80], [100, 300])
+              if self.pause_time > pause_time:
+                self.last_button_frame = self.frame
+                self.cruise_speed_adjusting = False
+                self.refresh_time = 10
+                self.pause_time = 0
+              else:
+                for _ in range(self.btn_count):
+                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter, btn_signal, CS.cruise_btn_info))
+                self.last_button_frame = self.frame
+                self.cruise_speed_adjusting = True
+                self.refresh_time = 0
           elif (self.KCC.ctrl_gap == (CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet)) or (self.KCC.ctrl_speed == round(CS.VSetDis)):
             if self.KCC.ctrl_gap == (CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet) and self.cruise_gap_adjusting:
               self.cruise_gap_adjusting = False
@@ -1446,6 +1473,7 @@ class CarController(CarControllerBase):
               self.cruise_speed_adjusting = False
               self.last_button_frame = self.frame
               self.refresh_time = 1
+            self.pause_time = 0
         else:
           self.cruise_gap_set_init = False
           self.on_speed_control = False
@@ -1458,6 +1486,7 @@ class CarController(CarControllerBase):
           self.standstill_res_button = False
           self.auto_res_starting = False
           self.btnsignal = 0
+          self.pause_time = 0
       elif (self.frame - self.last_button_frame) * DT_CTRL > 1.0 and not CS.acc_active:
         self.last_button_frame = self.frame
         self.on_speed_control = False
