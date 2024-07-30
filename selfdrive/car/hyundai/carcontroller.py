@@ -1415,7 +1415,7 @@ class CarController(CarControllerBase):
           if self.cruise_gap_prev == 0 and (CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet) != 1.0 and not self.cruise_gap_set_init:
             self.cruise_gap_prev = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
             self.cruise_gap_set_init = True
-            self.refresh_time = 0
+            self.refresh_time = 0.25
           elif 1.0 not in (CS.cruiseGapSet, CS.DistSet) and self.cruise_gap_set_init:
             for _ in range(self.btn_count):
               can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter, Buttons.GAP_DIST, CS.cruise_btn_info))
@@ -1451,7 +1451,6 @@ class CarController(CarControllerBase):
                 self.last_button_frame = self.frame
                 self.cruise_gap_adjusting = True
                 self.refresh_time = 0
-                self.refresh_count = 0
             elif btn_signal in (1,2) and self.KCC.ctrl_speed != round(CS.VSetDis):
               self.cruise_set_now = round(CS.VSetDis)
               self.pause_time += 1 if self.cruise_set_now == self.cruise_set_prev else 0
@@ -1469,17 +1468,19 @@ class CarController(CarControllerBase):
                 self.last_button_frame = self.frame
                 self.cruise_speed_adjusting = True
                 self.refresh_time = 0
-                self.refresh_count = 0
           elif (self.KCC.ctrl_gap == (CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet)) or (self.KCC.ctrl_speed == round(CS.VSetDis)):
             if self.KCC.ctrl_gap == (CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet) and self.cruise_gap_adjusting:
               self.cruise_gap_adjusting = False
               self.last_button_frame = self.frame
               self.refresh_time = randint(10,30) * 0.01
+              self.pause_time = 0
+              self.refresh_count = 0
             if self.KCC.ctrl_speed == round(CS.VSetDis) and self.cruise_speed_adjusting:
               self.cruise_speed_adjusting = False
               self.last_button_frame = self.frame
               self.refresh_time = randint(10,30) * 0.01
-            self.pause_time = 0
+              self.pause_time = 0
+              self.refresh_count = 0
         else:
           self.cruise_gap_set_init = False
           self.on_speed_control = False
@@ -1493,6 +1494,7 @@ class CarController(CarControllerBase):
           self.auto_res_starting = False
           self.btnsignal = 0
           self.pause_time = 0
+          self.refresh_count = 0
       elif (self.frame - self.last_button_frame) * DT_CTRL > 1.0 and not CS.acc_active:
         self.last_button_frame = self.frame
         self.on_speed_control = False
@@ -1505,5 +1507,7 @@ class CarController(CarControllerBase):
         self.standstill_res_button = False
         self.auto_res_starting = False
         self.btnsignal = 0
+        self.refresh_time = 0.25
+        self.refresh_count = 0
 
     return can_sends
