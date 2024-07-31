@@ -1398,7 +1398,7 @@ class CarController(CarControllerBase):
           self.standstill_status_canfd = True
           self.refresh_time = 0.25
         elif resume_on:
-          self.refresh_time = randint(1,9) * 0.1
+          self.refresh_time = randint(25,90) * 0.01
           if self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
             # TODO: resume for alt button cars
             pass
