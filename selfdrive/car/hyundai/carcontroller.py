@@ -1398,13 +1398,13 @@ class CarController(CarControllerBase):
           self.standstill_status_canfd = True
           self.refresh_time = 0.25
         elif resume_on:
-          self.refresh_time = randint(25,90) * 0.01
+          self.refresh_time = randint(3,9) * 0.1
           if self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
             # TODO: resume for alt button cars
             pass
           else:
             for _ in range(self.standstill_res_count):
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+1, Buttons.RES_ACCEL, CS.cruise_btn_info))
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+randint(0,1), Buttons.RES_ACCEL, CS.cruise_btn_info))
             self.last_button_frame = self.frame
             self.standstill_res_button = True
             self.cruise_gap_adjusting = False
