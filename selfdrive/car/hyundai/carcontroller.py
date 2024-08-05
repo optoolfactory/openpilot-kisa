@@ -1496,4 +1496,8 @@ class CarController(CarControllerBase):
         self.refresh_time = 0.25
         self.refresh_count = 0
 
+        if self.regen_stop or self.regen_dist or self.regen_e2e: #Todo
+          if not self.regen_level_auto:
+            pass
+
     return can_sends

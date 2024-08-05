@@ -1084,6 +1084,18 @@ public:
   }
 };
 
+class RegenBrakeFeatureToggle : public ToggleControl {
+  Q_OBJECT
+
+public:
+  RegenBrakeFeatureToggle() : ToggleControl(tr("Use RegenBrake Feature"), tr("Advanced regeneration brake features. ST: full stop, AT: deceleration level adjustment with distance, EE: E2E longitudinal assist"), "../assets/offroad/icon_shell.png", Params().getBool("RegenBrakeFeatureOn")) {
+    QObject::connect(this, &RegenBrakeFeatureToggle::toggleFlipped, [=](int state) {
+      bool status = state ? true : false;
+      Params().putBool("RegenBrakeFeatureOn", status);
+    });
+  }
+};
+
 // openpilot preview
 class OpenpilotView : public AbstractControl {
   Q_OBJECT
@@ -2643,8 +2655,9 @@ public:
   RoutineDriveOption();
 
 private:
-  QPushButton btn0;
   QPushButton btn1;
+  QPushButton btn2;
+  QPushButton btn3;
   Params params;
   
   void refresh();
@@ -2978,6 +2991,20 @@ private:
   QPushButton btnplus;
   QPushButton btnminus;
   QLabel label;
+  Params params;
+  
+  void refresh();
+};
+
+class RegenBrakeFeature : public AbstractControl {
+  Q_OBJECT
+
+public:
+  RegenBrakeFeature();
+
+private:
+  QPushButton btn0;
+  QPushButton btn1;
   Params params;
   
   void refresh();

@@ -4189,4 +4189,15 @@ This may take up to a minute.</source>
         <translation>가변 크루즈 속도 변화가 없을 시 값을 높여보세요. 너무 높은 값은 클러스터(캔) 오류를 발생시킬 수 있습니다. 기본값: 2</translation>
     </message>
 </context>
+<context>
+    <name>RegenBrakeFeatureToggle</name>
+    <message>
+        <source>Use RegenBrake Feature</source>
+        <translation>회생제동 브레이크 기능 사용</translation>
+    </message>
+    <message>
+        <source>Advanced regeneration brake features. ST: full stop, AT: deceleration level adjustment with distance, EE: E2E longitudinal assist</source>
+        <translation>회생제동 기능을 확장하여 사용합니다. ST: 완전정지, AT: 거리에따른 감속 레벨 조정, EE: E2E롱 어시스트</translation>
+    </message>
+</context>
 </TS>
