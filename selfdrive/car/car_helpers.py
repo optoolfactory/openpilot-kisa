@@ -22,7 +22,7 @@ CAR_NAME = Params().get("CarModel", encoding="utf8")
 
 def get_startup_event(car_recognized, controller_available, fw_seen):
   #build_metadata = get_build_metadata()
-  #if build_metadata.openpilot.comma_remote and build_metadata.tested_channel:
+  #if build_metadata.openpilot.kisapilot_remote and build_metadata.tested_channel:
   #  event = EventName.startup
   #else:
   event = EventName.startup
