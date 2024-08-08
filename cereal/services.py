@@ -51,7 +51,6 @@ _services: dict[str, tuple] = {
   "liveLocationKalman": (True, 20.),
   "liveParameters": (True, 20., 5),
   "cameraOdometry": (True, 20., 10),
-  "lateralPlan": (True, 20., 5),
   "thumbnail": (True, 0.2, 1),
   "onroadEvents": (True, 1., 1),
   "carParams": (True, 0.02, 1),
@@ -90,6 +89,7 @@ _services: dict[str, tuple] = {
   "customReservedRawData1": (True, 0.),
   "customReservedRawData2": (True, 0.),
 
+  "lateralPlan": (False, 20.),
   "liveENaviData": (False, 0.),
   "liveMapData": (False, 0.),
 }
