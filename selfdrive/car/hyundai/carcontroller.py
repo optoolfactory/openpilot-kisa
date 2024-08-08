@@ -279,7 +279,7 @@ class CarController(CarControllerBase):
     self.regen_dist = True if '2' in rgn_option_list and self.regenbrake else False
     self.regen_e2e = True if '3' in rgn_option_list and self.regenbrake else False
 
-    self.weights = [0.1, 0.9]
+    self.weights = [0.5, 0.5]
 
     # self.usf = 0
     self.stock_lfa_counter = 0
