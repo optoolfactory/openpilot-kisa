@@ -2655,9 +2655,8 @@ public:
   RoutineDriveOption();
 
 private:
+  QPushButton btn0;
   QPushButton btn1;
-  QPushButton btn2;
-  QPushButton btn3;
   Params params;
   
   void refresh();
@@ -3003,8 +3002,9 @@ public:
   RegenBrakeFeature();
 
 private:
-  QPushButton btn0;
   QPushButton btn1;
+  QPushButton btn2;
+  QPushButton btn3;
   Params params;
   
   void refresh();
