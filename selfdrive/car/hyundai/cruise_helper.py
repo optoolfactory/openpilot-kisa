@@ -1,7 +1,7 @@
 from openpilot.common.numpy_fast import clip, interp
 from cereal import car
 from openpilot.selfdrive.car import DT_CTRL
-from openpilot.common.conversions import Conversions as CV
+from openpilot.selfdrive.car.conversions import Conversions as CV
 from openpilot.common.params import Params
 from openpilot.selfdrive.controls.lib.lateral_planner import TRAJECTORY_SIZE
 from openpilot.selfdrive.car.hyundai.values import Buttons, CAR, DBC

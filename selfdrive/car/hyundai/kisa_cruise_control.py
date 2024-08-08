@@ -2,7 +2,7 @@
 import math
 import numpy as np
 
-from openpilot.common.conversions import Conversions as CV
+from openpilot.selfdrive.car.conversions import Conversions as CV
 from openpilot.selfdrive.car.hyundai.values import Buttons, CANFD_CAR
 from openpilot.common.numpy_fast import clip, interp
 from cereal import log
