@@ -279,7 +279,7 @@ class CarController(CarControllerBase):
     self.regen_dist = True if '2' in rgn_option_list and self.regenbrake else False
     self.regen_e2e = True if '3' in rgn_option_list and self.regenbrake else False
 
-    self.weights = [0.3, 0.7]
+    self.weights = [0.1, 0.9]
 
     # self.usf = 0
     self.stock_lfa_counter = 0
@@ -1389,8 +1389,9 @@ class CarController(CarControllerBase):
             # TODO: resume for alt button cars
             pass
           else:
-            for _ in range(self.standstill_res_count):
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.RES_ACCEL, CS.cruise_btn_info))
+            for i in range(self.standstill_res_count):
+              btn_num = Buttons.RES_ACCEL if i%10 != 0 else Buttons.NONE
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], btn_num, CS.cruise_btn_info))
             self.last_button_frame = self.frame
             self.standstill_res_button = True
             self.cruise_gap_adjusting = False
