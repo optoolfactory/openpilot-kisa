@@ -1,4 +1,4 @@
-from openpilot.common.numpy_fast import clip, interp
+from openpilot.selfdrive.car.helpers import clip, interp
 from cereal import car
 from openpilot.selfdrive.car import DT_CTRL
 from openpilot.selfdrive.car.conversions import Conversions as CV
