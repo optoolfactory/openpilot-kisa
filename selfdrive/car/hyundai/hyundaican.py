@@ -86,7 +86,7 @@ def create_lkas11(packer, frame, CP, apply_steer, steer_req,
   if ldws:
   	values["CF_Lkas_LdwsOpt_USM"] = 3
 
-  dat = packer.make_can_msg("LKAS11", 0, values)[2]
+  dat = packer.make_can_msg("LKAS11", 0, values)[1]
 
   if CP.flags & HyundaiFlags.CHECKSUM_CRC8:
     # CRC Checksum as seen on 2019 Hyundai Santa Fe
