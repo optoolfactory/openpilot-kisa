@@ -4,9 +4,9 @@ import math
 
 from cereal import car
 import cereal.messaging as messaging
-from openpilot.common.conversions import Conversions as CV
 from opendbc.can.parser import CANParser
 from opendbc.can.can_define import CANDefine
+from openpilot.selfdrive.car.conversions import Conversions as CV
 from openpilot.selfdrive.car.hyundai.hyundaicanfd import CanBus
 from openpilot.selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CAN_GEARS, CAMERA_SCC_CAR, \
                                                    CANFD_CAR, Buttons, CarControllerParams, LEGACY_SAFETY_MODE_CAR_ALT, ANGLE_CONTROL_CAR
@@ -105,6 +105,11 @@ class CarState(CarStateBase):
     self.DistSet = 0
     self.obj_valid = 0
     self.stock_str_angle = 0
+
+    self.regen_level = 0
+    self.regen_level_auto = False
+    self.i_pedal_max = False
+    self.i_pedel_stop = False
 
     self.sm = messaging.SubMaster(['controlsState'])
 
@@ -749,6 +754,10 @@ class CarState(CarStateBase):
     # TODO: find this message on ICE & HYBRID cars + cruise control signals (if exists)
     if self.CP.flags & HyundaiFlags.EV:
       ret.cruiseState.nonAdaptive = cp.vl["MANUAL_SPEED_LIMIT_ASSIST"]["MSLA_ENABLED"] == 1
+      self.regen_level = cp.vl["MANUAL_SPEED_LIMIT_ASSIST"]["REGEN_LEVEL"]
+      self.regen_level_auto = cp.vl["MANUAL_SPEED_LIMIT_ASSIST"]["REGEN_LEVEL_AUTO"] == 1
+      self.i_pedal_max = cp.vl["MANUAL_SPEED_LIMIT_ASSIST"]["I_PEDAL_MAX"] == 1
+      self.i_pedel_stop = cp.vl["MANUAL_SPEED_LIMIT_ASSIST"]["I_PEDAL_STOP"] == 1
 
     self.prev_cruise_buttons = self.cruise_buttons[-1]
     self.cruise_buttons.extend(cp.vl_all[self.cruise_btns_msg_canfd]["CRUISE_BUTTONS"])

@@ -1,6 +1,5 @@
 from cereal import car
 from panda import Panda
-from openpilot.common.conversions import Conversions as CV
 from openpilot.selfdrive.car.hyundai.tunes import LatTunes, set_lat_tune
 from openpilot.selfdrive.car.hyundai.hyundaicanfd import CanBus
 from openpilot.selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD_CAR, CAMERA_SCC_CAR, CANFD_RADAR_SCC_CAR, \

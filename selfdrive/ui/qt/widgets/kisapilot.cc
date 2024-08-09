@@ -288,6 +288,8 @@ CDrivingQuality::CDrivingQuality(void *p) : CGroupWidget( tr("Driving Quality Op
   pBoxLayout->addWidget(new ToAvoidLKASFault());
   pBoxLayout->addWidget(new AutoEnabledToggle());
   pBoxLayout->addWidget(new AutoEnableSpeed());
+  pBoxLayout->addWidget(new RegenBrakeFeatureToggle());
+  pBoxLayout->addWidget(new RegenBrakeFeature());
 }
 
 CSafetyandMap::CSafetyandMap(void *p) : CGroupWidget( tr("Safety Speed and Map Option") ) 
@@ -9665,4 +9667,116 @@ KISACruiseSpammingBtnCount::KISACruiseSpammingBtnCount() : AbstractControl(tr("C
 
 void KISACruiseSpammingBtnCount::refresh() {
   label.setText(QString::fromStdString(params.get("KISACruiseSpammingBtnCount")));
+}
+
+RegenBrakeFeature::RegenBrakeFeature() : AbstractControl("", "", "") {
+
+  btn1.setFixedSize(150, 100);
+  btn2.setFixedSize(150, 100);
+  btn3.setFixedSize(150, 100);
+  btn1.setText("ST");
+  btn2.setText("AT");
+  btn3.setText("EE");
+  hlayout->addWidget(&btn1);
+  hlayout->addWidget(&btn2);
+  hlayout->addWidget(&btn3);
+
+  QObject::connect(&btn1, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("RegenBrakeFeature"));
+    bool is_value = str.contains("1");
+    if (is_value) {
+      QString values = str.replace("1", "");
+      params.put("RegenBrakeFeature", values.toStdString());
+    } else {
+      QString values = str + "1";
+      params.put("RegenBrakeFeature", values.toStdString());
+    }
+    refresh();
+  });
+  QObject::connect(&btn2, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("RegenBrakeFeature"));
+    bool is_value = str.contains("2");
+    if (is_value) {
+      QString values = str.replace("2", "");
+      params.put("RegenBrakeFeature", values.toStdString());
+    } else {
+      QString values = str + "2";
+      params.put("RegenBrakeFeature", values.toStdString());
+    }
+    refresh();
+  });
+  QObject::connect(&btn3, &QPushButton::clicked, [=]() {
+    auto str = QString::fromStdString(params.get("RegenBrakeFeature"));
+    bool is_value = str.contains("3");
+    if (is_value) {
+      QString values = str.replace("3", "");
+      params.put("RegenBrakeFeature", values.toStdString());
+    } else {
+      QString values = str + "3";
+      params.put("RegenBrakeFeature", values.toStdString());
+    }
+    refresh();
+  });
+  refresh();
+}
+
+void RegenBrakeFeature::refresh() {
+  QString option = QString::fromStdString(params.get("RegenBrakeFeature"));
+  if (option.contains("1")) {
+    btn1.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A12E;
+    )");
+  } else {
+    btn1.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+    )");
+  }
+  if (option.contains("2")) {
+    btn2.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A12E;
+    )");
+  } else {
+    btn2.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+    )");
+  }
+  if (option.contains("3")) {
+    btn3.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #00A12E;
+    )");
+  } else {
+    btn3.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+    )");
+  }
 }

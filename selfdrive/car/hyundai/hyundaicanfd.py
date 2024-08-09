@@ -1,5 +1,5 @@
-from openpilot.common.numpy_fast import clip
 from openpilot.selfdrive.car import CanBusBase
+from openpilot.selfdrive.car.helpers import clip
 from openpilot.selfdrive.car.hyundai.values import HyundaiFlags
 
 
@@ -97,7 +97,7 @@ def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering, enab
   values["RIGHT_LANE_LINE"] = 0 if enabled else 3
   return packer.make_can_msg(suppress_msg, CAN.ACAN, values)
 
-def create_buttons(packer, CP, CAN, cnt, btn, cruise_btn_info_copy):
+def create_buttons(packer, CP, CAN, cnt, btn, cruise_btn_info_copy, regen = None, r_pad = None, l_pad = None):
   values = {s: cruise_btn_info_copy[s] for s in [
     "_CHECKSUM",
     "COUNTER",
@@ -115,6 +115,16 @@ def create_buttons(packer, CP, CAN, cnt, btn, cruise_btn_info_copy):
     "CRUISE_BUTTONS": btn,
     "SET_ME_1": 1,
   })
+
+  if regen:
+    if r_pad:
+      values.update({
+        "RIGHT_PADDLE": r_pad,
+      })
+    if l_pad:
+      values.update({
+        "LEFT_PADDLE": l_pad,
+      })
 
   bus = CAN.ECAN if CP.flags & HyundaiFlags.CANFD_HDA2 else CAN.CAM
   return packer.make_can_msg("CRUISE_BUTTONS", bus, values)
