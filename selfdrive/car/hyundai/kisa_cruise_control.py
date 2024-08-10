@@ -110,7 +110,6 @@ class KisaCruiseControl():
     self.gap_by_spd_gap3 = False
     self.gap_by_spd_gap4 = False
     self.gap_by_spd_on_sw = False
-    self.gap_by_spd_on_sw_trg = True
 
 
   def button_status(self, CS):
@@ -527,7 +526,7 @@ class KisaCruiseControl():
 
     return round(min(var_speed, v_curv_speed, o_curv_speed))
 
-  def get_live_gap(self, sm, CS):
+  def get_live_gap(self, CS, spd_gap_on):
     self.t_interval = randint(self.t_interval2+3, self.t_interval2+5) if CS.is_set_speed_in_mph else randint(self.t_interval2, self.t_interval2+2)
     gap_to_set = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
     now_gap = gap_to_set
@@ -550,7 +549,7 @@ class KisaCruiseControl():
       self.cruise_gap_adjusting = False
       gap_to_set = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
       return gap_to_set
-    elif self.gap_by_spd_on and self.gap_by_spd_on_sw_trg and ((CS.clu_Vanz < self.gap_by_spd_spd[0]+self.gap_by_spd_on_buffer1) or self.gap_by_spd_gap1) and \
+    elif self.gap_by_spd_on and spd_gap_on and ((CS.clu_Vanz < self.gap_by_spd_spd[0]+self.gap_by_spd_on_buffer1) or self.gap_by_spd_gap1) and \
        not self.try_early_stop_retrieve and (not CS.lead_objspd < 0 or not CS.obj_valid) and self.gap_by_spd_gap[0] != now_gap:
       self.gap_by_spd_gap1 = True
       self.gap_by_spd_gap2 = False
@@ -561,7 +560,7 @@ class KisaCruiseControl():
       self.cruise_gap_adjusting = True
       gap_to_set = self.gap_by_spd_gap[0]
       return gap_to_set
-    elif self.gap_by_spd_on and self.gap_by_spd_on_sw_trg and ((self.gap_by_spd_spd[0] <= CS.clu_Vanz < self.gap_by_spd_spd[1]+self.gap_by_spd_on_buffer2) or self.gap_by_spd_gap2) and \
+    elif self.gap_by_spd_on and spd_gap_on and ((self.gap_by_spd_spd[0] <= CS.clu_Vanz < self.gap_by_spd_spd[1]+self.gap_by_spd_on_buffer2) or self.gap_by_spd_gap2) and \
        not self.try_early_stop_retrieve and (not CS.lead_objspd < 0 or not CS.obj_valid) and self.gap_by_spd_gap[1] != now_gap:
       self.gap_by_spd_gap1 = False
       self.gap_by_spd_gap2 = True
@@ -572,7 +571,7 @@ class KisaCruiseControl():
       self.cruise_gap_adjusting = True
       gap_to_set = self.gap_by_spd_gap[1]
       return gap_to_set
-    elif self.gap_by_spd_on and self.gap_by_spd_on_sw_trg and ((self.gap_by_spd_spd[1] <= CS.clu_Vanz < self.gap_by_spd_spd[2]+self.gap_by_spd_on_buffer3) or self.gap_by_spd_gap3) and \
+    elif self.gap_by_spd_on and spd_gap_on and ((self.gap_by_spd_spd[1] <= CS.clu_Vanz < self.gap_by_spd_spd[2]+self.gap_by_spd_on_buffer3) or self.gap_by_spd_gap3) and \
        not self.try_early_stop_retrieve and (not CS.lead_objspd < 0 or not CS.obj_valid) and self.gap_by_spd_gap[2] != now_gap:
       self.gap_by_spd_gap1 = False
       self.gap_by_spd_gap2 = False
@@ -582,7 +581,7 @@ class KisaCruiseControl():
       self.cruise_gap_adjusting = True
       gap_to_set = self.gap_by_spd_gap[2]
       return gap_to_set
-    elif self.gap_by_spd_on and self.gap_by_spd_on_sw_trg and ((self.gap_by_spd_spd[2] <= CS.clu_Vanz) or self.gap_by_spd_gap4) and \
+    elif self.gap_by_spd_on and spd_gap_on and ((self.gap_by_spd_spd[2] <= CS.clu_Vanz) or self.gap_by_spd_gap4) and \
        not self.try_early_stop_retrieve and (not CS.lead_objspd < 0 or not CS.obj_valid) and self.gap_by_spd_gap[3] != now_gap:
       self.gap_by_spd_gap1 = False
       self.gap_by_spd_gap2 = False
@@ -601,7 +600,7 @@ class KisaCruiseControl():
 
     return gap_to_set
 
-  def update(self, CS):
+  def update(self, CS, spd_gap_on):
     self.na_timer += 1
     if self.na_timer > 100:
       self.na_timer = 0
@@ -612,7 +611,7 @@ class KisaCruiseControl():
     elif CS.cruise_active:
       cruiseState_speed = round(self.sm['controlsState'].vCruise)
       if CS.CP.carFingerprint in CANFD_CAR:
-        self.ctrl_gap = self.get_live_gap(self.sm, CS) # gap
+        self.ctrl_gap = self.get_live_gap(CS, spd_gap_on) # gap
       kph_set_vEgo = self.get_navi_speed(self.sm, CS, cruiseState_speed) # camspeed
       if self.osm_speedlimit_enabled and self.map_spdlimit_offset_option == 2:
         navi_speed = kph_set_vEgo

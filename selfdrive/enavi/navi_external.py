@@ -134,7 +134,7 @@ class ENavi:
   def update(self):
     self.count += 1
     if not self.ip_bind:
-      if self.Auto_IP and self.count in (30, 90, 150, 210, 270, 330, 390, 450, 510, 570):
+      if self.Auto_IP and self.count in (30, 90, 150, 210, 270, 330, 390, 450, 510, 570, 630, 690, 750, 810, 870, 930, 990):
         try:
           out = subprocess.check_output("ip route", shell=True)
           ip_via = str(out.strip().decode()).split('via ')[1].split(' ')[0]

@@ -279,7 +279,7 @@ class CarController(CarControllerBase):
     self.regen_dist = True if '2' in rgn_option_list and self.regenbrake else False
     self.regen_e2e = True if '3' in rgn_option_list and self.regenbrake else False
 
-    self.weights = [0.5, 0.5]
+    self.weights = [0.51, 0.49]
 
     # self.usf = 0
     self.stock_lfa_counter = 0
@@ -773,7 +773,7 @@ class CarController(CarControllerBase):
         self.last_lead_distance = 0
         self.standstill_res_button = False
       elif self.kisa_variablecruise and CS.acc_active:
-        btn_signal = self.KCC.update(CS)
+        btn_signal = self.KCC.update(CS, self.gap_by_spd_on_sw_trg)
         self.btnsignal = btn_signal
         self.on_speed_control = self.KCC.onSpeedControl
         self.on_speed_bump_control = self.KCC.onSpeedBumpControl
@@ -1413,7 +1413,7 @@ class CarController(CarControllerBase):
           self.cruise_gap_adjusting = False
           self.cruise_gap_set_init = False
           self.standstill_res_button = False
-          btn_signal = self.KCC.update(CS)
+          btn_signal = self.KCC.update(CS, self.gap_by_spd_on_sw_trg)
           self.btnsignal = btn_signal
           self.on_speed_control = self.KCC.onSpeedControl
           self.on_speed_bump_control = self.KCC.onSpeedBumpControl
