@@ -1393,7 +1393,7 @@ class CarController(CarControllerBase):
             pass
           else:
             for i in range(self.standstill_res_count):
-              btn_num = Buttons.RES_ACCEL if i%10 != 0 else Buttons.NONE
+              btn_num = Buttons.RES_ACCEL if i%9 != 0 else Buttons.NONE
               can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], btn_num, CS.cruise_btn_info))
             self.last_button_frame = self.frame
             self.standstill_res_button = True
@@ -1428,7 +1428,7 @@ class CarController(CarControllerBase):
               self.gap_now = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
               self.pause_time += 1 if self.gap_now == self.gap_prev else 0
               self.gap_prev = self.gap_now
-              pause_time = interp(self.KCC.t_interval, [10, 80], [100, 300])
+              pause_time = interp(self.KCC.t_interval, [7, 80], [90, 250])
               if self.pause_time > pause_time:
                 self.last_button_frame = self.frame
                 self.cruise_gap_adjusting = False
@@ -1445,7 +1445,7 @@ class CarController(CarControllerBase):
               self.cruise_set_now = round(CS.VSetDis)
               self.pause_time += 1 if self.cruise_set_now == self.cruise_set_prev else 0
               self.cruise_set_prev = self.cruise_set_now
-              pause_time = interp(self.KCC.t_interval, [10, 80], [100, 300])
+              pause_time = interp(self.KCC.t_interval, [7, 80], [90, 250])
               if self.pause_time > pause_time:
                 self.last_button_frame = self.frame
                 self.cruise_speed_adjusting = False
