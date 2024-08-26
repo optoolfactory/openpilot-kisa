@@ -469,11 +469,21 @@ class CAR(Platforms):
     CarSpecs(mass=3957 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
     flags=HyundaiFlags.RADAR_SCC,
   )
+  KIA_SORENTO_4TH_GEN_2024 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Kia Sorento 2024-", car_parts=CarParts.common([CarHarness.hyundai_k]))],
+    CarSpecs(mass=3957 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
+    flags=HyundaiFlags.RADAR_SCC,
+  )
   KIA_SORENTO_HEV_4TH_GEN = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia Sorento Hybrid 2021-23", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),
       HyundaiCarDocs("Kia Sorento Plug-in Hybrid 2022-23", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),
     ],
+    CarSpecs(mass=4395 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
+    flags=HyundaiFlags.RADAR_SCC,
+  )
+  KIA_SORENTO_HEV_4TH_GEN_2024 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Kia Sorento Hybrid 2024-", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),],
     CarSpecs(mass=4395 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
     flags=HyundaiFlags.RADAR_SCC,
   )
