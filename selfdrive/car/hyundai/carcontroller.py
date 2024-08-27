@@ -1381,20 +1381,19 @@ class CarController(CarControllerBase):
       if (self.frame - self.last_button_frame) * DT_CTRL > self.refresh_time and CS.acc_active: # 0.25
         self.acc_activated = True
         resume_on = CS.out.cruiseState.standstill and abs(CS.lead_distance - self.last_lead_distance) >= 0.1 and self.standstill_status_canfd
-        standstill = CS.out.cruiseState.standstill and 6 > CS.lead_distance > 0
+        standstill = CS.out.cruiseState.standstill and 10.0 > CS.lead_distance > 0
         if standstill and self.last_lead_distance == 0:
           self.last_lead_distance = CS.lead_distance
           self.standstill_status_canfd = True
           self.refresh_time = 0.25
         elif resume_on:
-          self.refresh_time = randint(3,9) * 0.1
+          self.refresh_time = 0.25
           if self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
             # TODO: resume for alt button cars
             pass
           else:
-            for i in range(self.standstill_res_count):
-              btn_num = Buttons.RES_ACCEL if i%9 != 0 else Buttons.NONE
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], btn_num, CS.cruise_btn_info))
+            for _ in range(self.standstill_res_count):
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+1, Buttons.RES_ACCEL, CS.cruise_btn_info))
             self.last_button_frame = self.frame
             self.standstill_res_button = True
             self.cruise_gap_adjusting = False
