@@ -225,6 +225,7 @@ struct CarState {
   accFaulted @42 :Bool;
   carFaultedNonCritical @47 :Bool;  # some ECU is faulted, but car remains controllable
   espActive @51 :Bool;
+  vehicleSensorsInvalid @52 :Bool;  # invalid steering angle readings, etc.
 
   # cruise state
   cruiseState @10 :CruiseState;
@@ -255,24 +256,24 @@ struct CarState {
   # process meta
   cumLagMs @50 :Float32;
 
-  tpms @52 :TPMS;
-  radarDRel @53 :Float32;
-  radarVRel @54 :Float32;
-  standStill @55 :Bool;
-  vSetDis @56 :Float32;
-  cruiseButtons @57 :Float32;
-  cruiseAccStatus @58 :Bool;
-  driverAcc @59 :Bool;
-  autoHold @60 :Bool;    # AutoHold
-  cruiseGapSet @61 :UInt8;
-  safetyDist @62 :Float32;
-  safetySign @63 :Float32;
-  vEgoOP @64 :Float32;  # openpilot speed
-  gearStep @65 :Int8;
-  isMph @66 :Bool;
-  aReqValue @67 :Float32;
-  chargeMeter @68 :Float32;
-  brakeLights @69 :Bool;
+  tpms @53 :TPMS;
+  radarDRel @54 :Float32;
+  radarVRel @55 :Float32;
+  standStill @56 :Bool;
+  vSetDis @57 :Float32;
+  cruiseButtons @58 :Float32;
+  cruiseAccStatus @59 :Bool;
+  driverAcc @60 :Bool;
+  autoHold @61 :Bool;    # AutoHold
+  cruiseGapSet @62 :UInt8;
+  safetyDist @63 :Float32;
+  safetySign @64 :Float32;
+  vEgoOP @65 :Float32;  # openpilot speed
+  gearStep @66 :Int8;
+  isMph @67 :Bool;
+  aReqValue @68 :Float32;
+  chargeMeter @69 :Float32;
+  brakeLights @70 :Bool;
 
   struct TPMS {
     unit @0 :Int8;
