@@ -1,13 +1,11 @@
-import numpy as np
 from cereal import log
 from openpilot.common.conversions import Conversions as CV
 from openpilot.common.realtime import DT_MDL
 
+import numpy as np
 from openpilot.common.numpy_fast import interp
 from openpilot.common.params import Params
 from decimal import Decimal
-
-from openpilot.common.params import Params
 
 USE_LEGACY_LANE_MODEL = int(Params().get("UseLegacyLaneModel", encoding="utf8")) if Params().get("UseLegacyLaneModel", encoding="utf8") is not None else 0
 

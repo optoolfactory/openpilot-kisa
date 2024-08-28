@@ -11,7 +11,7 @@ from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper
 import cereal.messaging as messaging
 from cereal import log
 
-from openpilot.selfdrive.car.conversions import Conversions as CV
+from openpilot.common.conversions import Conversions as CV
 from openpilot.common.params import Params
 from decimal import Decimal
 

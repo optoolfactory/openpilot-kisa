@@ -1090,7 +1090,6 @@ void ForceShutdown::refresh() {
 
 VolumeControl::VolumeControl() : AbstractControl(tr("Device Volume Control(%)"), tr("Adjust the volume of Device. Android Default/Manual Settings"), "../assets/offroad/icon_shell.png") {
 
-  effect.setSource(QUrl::fromLocalFile("/data/openpilot/selfdrive/assets/addon/sound/ding.wav"));
   label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
   label.setStyleSheet("color: #e0e879");
   hlayout->addWidget(&label);
@@ -1128,7 +1127,6 @@ VolumeControl::VolumeControl() : AbstractControl(tr("Device Volume Control(%)"),
     QString values = QString::number(value);
     uiState()->scene.nVolumeBoost = value;
     params.put("KisaUIVolumeBoost", values.toStdString());
-    playsound();
     refresh();
   });
   
@@ -1142,7 +1140,6 @@ VolumeControl::VolumeControl() : AbstractControl(tr("Device Volume Control(%)"),
     QString values = QString::number(value);
     uiState()->scene.nVolumeBoost = value;
     params.put("KisaUIVolumeBoost", values.toStdString());
-    playsound();
     refresh();
   });
   refresh();
@@ -1156,17 +1153,6 @@ void VolumeControl::refresh() {
     label.setText(tr("Mute"));
   } else {
     label.setText(QString::fromStdString(params.get("KisaUIVolumeBoost")));
-  }
-}
-
-void VolumeControl::playsound() {
-  float value = uiState()->scene.nVolumeBoost;
-  if (value > 1) {
-    effect.setVolume(value * 0.01);
-    effect.play();
-  } else if (value >= 0) {
-    effect.setVolume(0.5);
-    effect.play();
   }
 }
 
