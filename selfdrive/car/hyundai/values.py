@@ -706,6 +706,17 @@ class CAR(Platforms):
     CarSpecs(mass=1750, wheelbase=2.68, steerRatio=14.14),
     flags=HyundaiFlags.ANGLE_CONTROL,
   )
+  GRANDEUR_GN7 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Hyundai GRANDEUR_GN7 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=1620, wheelbase=2.895, steerRatio=14.2),
+    flags=HyundaiFlags.RADAR_SCC,
+  )
+  GRANDEUR_GN7_HEV = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Hyundai GRANDEUR_GN7 HEV 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=1700, wheelbase=2.895, steerRatio=14.2),
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.RADAR_SCC,
+  )
+
 
 
 class Buttons:
