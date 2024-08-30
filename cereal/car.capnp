@@ -597,37 +597,27 @@ struct CarParams {
 
   experimentalLong @75 :Bool;
   experimentalLongAlt @76 :Bool;
-  smoothSteer @77 :SmoothSteerData;
-  mdpsBus @78: Int8;
-  sasBus @79: Int8;
-  sccBus @80: Int8;
-  fcaBus @81: Int8;
-  bsmAvailable @82: Bool;
-  lfaAvailable @83: Bool;
-  lvrAvailable @84: Bool;
-  evgearAvailable @85: Bool;
-  emsAvailable @86: Bool;
-  standStill @87: Bool;
-  vCruisekph @88: Float32;
-  resSpeed @89: Float32;
-  vFuture @90: Float32;
-  vFutureA @91: Float32;
-  autoHoldAvailable @92 :Bool;
-  scc13Available @93 :Bool;
-  scc14Available @94 :Bool;
-  lfaHdaAvailable @95 :Bool;
-  navAvailable @96 :Bool;
-  isCanFD @97 :Bool;
-  adrvAvailable @98 :Bool;
-
-  struct SmoothSteerData
-  {
-    method @0: Int8;
-    maxSteeringAngle @1 :Float32;
-    maxDriverAngleWait @2 :Float32;
-    maxSteerAngleWait @3 :Float32;
-    driverAngleWait @4 :Float32;
-  }
+  mdpsBus @77: Int8;
+  sasBus @78: Int8;
+  sccBus @79: Int8;
+  fcaBus @80: Int8;
+  bsmAvailable @81: Bool;
+  lfaAvailable @82: Bool;
+  lvrAvailable @83: Bool;
+  evgearAvailable @84: Bool;
+  emsAvailable @85: Bool;
+  standStill @86: Bool;
+  vCruisekph @87: Float32;
+  resSpeed @88: Float32;
+  vFuture @89: Float32;
+  vFutureA @90: Float32;
+  autoHoldAvailable @91 :Bool;
+  scc13Available @92 :Bool;
+  scc14Available @93 :Bool;
+  lfaHdaAvailable @94 :Bool;
+  navAvailable @95 :Bool;
+  isCanFD @96 :Bool;
+  adrvAvailable @97 :Bool;
 
   struct LateralParams {
     torqueBP @0 :List(Int32);
