@@ -8,8 +8,8 @@ from opendbc.car.hyundai.radar_interface import RADAR_START_ADDR
 from opendbc.car.interfaces import CarInterfaceBase
 from opendbc.car.disable_ecu import disable_ecu
 
-from openpilot.selfdrive.car.hyundai.cruise_helper import enable_radar_tracks #ajouatom
-from openpilot.selfdrive.car.hyundai.tunes import LatTunes, set_lat_tune
+from opendbc.car.hyundai.cruise_helper import enable_radar_tracks #ajouatom
+from opendbc.car.hyundai.tunes import LatTunes, set_lat_tune
 from openpilot.common.params import Params
 from decimal import Decimal
 
