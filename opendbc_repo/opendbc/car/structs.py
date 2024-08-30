@@ -224,6 +224,21 @@ class CarControl:
 
     speed: float = auto_field()  # m/s
     accel: float = auto_field()  # m/s^2
+
+    oaccel: float = auto_field()
+    safetySpeed: float = auto_field()
+    lkasTemporaryOff: bool = auto_field()
+    gapBySpdOnTemp: bool = auto_field()
+    expModeTemp: bool = auto_field()
+    btnPressing: int = auto_field()
+    aqValue: float = auto_field()
+    aqValueRaw: float = auto_field()
+    autoResvCruisekph: float = auto_field()
+    resSpeed: float = auto_field()
+    kisaLog1: str = auto_field()
+    kisaLog2: str = auto_field()
+    kisaLog3: str = auto_field()
+
     longControlState: 'CarControl.Actuators.LongControlState' = field(default_factory=lambda: CarControl.Actuators.LongControlState.off)
 
     class LongControlState(StrEnum):
