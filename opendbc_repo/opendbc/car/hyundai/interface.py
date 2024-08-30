@@ -14,8 +14,6 @@ from openpilot.common.params import Params
 from decimal import Decimal
 
 Ecu = structs.CarParams.Ecu
-ButtonType = structs.CarState.ButtonEvent.Type
-EventName = structs.CarEvent.EventName
 SteerControlType = structs.CarParams.SteerControlType
 ENABLE_BUTTONS = (Buttons.RES_ACCEL, Buttons.SET_DECEL, Buttons.CANCEL)
 
