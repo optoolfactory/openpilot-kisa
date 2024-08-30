@@ -216,7 +216,6 @@ class CarController(CarControllerBase):
     self.fca11supcnt = self.fca11inc = self.fca11alivecnt = self.fca11cnt13 = 0
     self.fca11maxcnt = 0xD
 
-    self.steer_timer_apply_torque = 1.0
     self.DT_STEER = 0.005             # 0.01 1sec, 0.005  2sec
 
     self.lkas_onoff_counter = 0
