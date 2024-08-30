@@ -2,7 +2,6 @@
 
 #include <QPushButton>
 #include <QLineEdit>
-#include <QSoundEffect>
 
 
 #include <QComboBox>
@@ -1232,10 +1231,8 @@ private:
   QPushButton btnminus;
   QLabel label;
   Params params;
-  QSoundEffect effect;
   
   void refresh();
-  void playsound();
 };
 
 class BrightnessControl : public AbstractControl {
