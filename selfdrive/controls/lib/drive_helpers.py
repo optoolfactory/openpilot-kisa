@@ -10,7 +10,7 @@ from openpilot.system.version import get_build_metadata
 EventName = car.CarEvent.EventName
 
 from openpilot.selfdrive.modeld.constants import ModelConstants
-from openpilot.selfdrive.car.hyundai.values import Buttons
+from opendbc.car.hyundai.values import Buttons
 from openpilot.common.params import Params
 
 IS_METRIC = Params().get_bool("IsMetric") if Params().get_bool("IsMetric") is not None else False
