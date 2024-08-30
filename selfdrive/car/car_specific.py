@@ -181,7 +181,7 @@ class CarSpecificEvents:
       if not CC.lkas_temp_disabled:
         if CC.lanechange_manual_timer and CS.out.vEgo > 0.3:
           events.add(EventName.laneChangeManual)
-        if self.CC.emergency_manual_timer:
+        if CC.emergency_manual_timer:
           events.add(EventName.emgButtonManual)
         #if CC.driver_steering_torque_above_timer:
         #  events.add(EventName.driverSteering)
@@ -210,11 +210,11 @@ class CarSpecificEvents:
         self.CP.standStill = True
       else:
         self.CP.standStill = False
-      if self.CC.vFuture >= 1:
+      if CC.vFuture >= 1:
         self.CP.vFuture = CC.vFuture
       else:
         self.CP.vFuture = 0
-      if self.CC.vFutureA >= 1:
+      if CC.vFutureA >= 1:
         self.CP.vFutureA = CC.vFutureA
       else:
         self.CP.vFutureA = 0
