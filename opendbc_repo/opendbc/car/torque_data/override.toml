@@ -67,6 +67,13 @@ legend = ["LAT_ACCEL_FACTOR", "MAX_LAT_ACCEL_MEASURED", "FRICTION"]
 "KIA_K5_HEV_JF" = [2.5, 2.5, 0.1]
 "HYUNDAI_IONIQ_5_PE" = [1.75, 1.75, 0.15]
 "KIA_EV9" = [1.75, 1.75, 0.15]
+"HYUNDAI STARIA 4TH GEN" = [1.8, 2.0, 0.15]
+"KIA K7 2020(YG)" = [2.5, 2.5, 0.1]
+"KIA K7 HYBRID 2020(YG)" = [2.5, 2.5, 0.1]
+"HYUNDAI_SANTA_FE_2024_MX5" = [2.5, 2.5, 0.1]
+"HYUNDAI_SANTA_FE_2024_HEV_MX5" = [2.5, 2.5, 0.1]
+"KIA_EV3" = [2.5, 2.5, 0.1]
+"KIA_CARNIVAL_4TH_GEN_HYBRID " = [2.5, 2.5, 0.1]
 
 # Dashcam or fallback configured as ideal car
 "MOCK" = [10.0, 10, 0.0]
