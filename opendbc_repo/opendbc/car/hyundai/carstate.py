@@ -709,6 +709,8 @@ class CarState(CarStateBase):
       ret.vSetDis = self.VSetDis
       self.cruiseState_standstill = ret.cruiseState.standstill
       self.cruise_info = copy.copy(cp_cruise_info.vl["SCC_CONTROL"])
+      if self.ufc_mode:
+        ret.cruiseState.enabled = ret.cruiseState.available
 
       self.acc_active = cp_cruise_info.vl["SCC_CONTROL"]["ACCMode"] in (1, 2)
       ret.cruiseState.accActive = self.acc_active

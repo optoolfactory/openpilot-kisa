@@ -112,6 +112,32 @@ class CarState:
   # process meta
   cumLagMs: float = auto_field()
 
+  tpms: 'CarState.TPMS' = field(default_factory=lambda: CarState.TPMS())
+  radarDRel: float = auto_field()
+  radarVRel: float = auto_field()
+  standStill: bool = auto_field()
+  vSetDis: float = auto_field()
+  cruiseButtons: float = auto_field()
+  cruiseAccStatus: bool = auto_field()
+  driverAcc: bool = auto_field()
+  autoHold: bool = auto_field()
+  cruiseGapSet: int = auto_field()
+  safetyDist: float = auto_field()
+  safetySign: float = auto_field()
+  vEgoOP: float = auto_field()
+  gearStep: int = auto_field()
+  isMph: bool = auto_field()
+  aReqValue: float = auto_field()
+  chargeMeter: float = auto_field()
+  brakeLights: bool = auto_field()
+
+  @auto_dataclass
+  class TPMS:
+    fl: float = auto_field()
+    fr: float = auto_field()
+    rl: float = auto_field()
+    rr: float = auto_field()
+
   @auto_dataclass
   class WheelSpeeds:
     # optional wheel speeds
@@ -129,6 +155,11 @@ class CarState:
     speedOffset: float = auto_field()
     standstill: bool = auto_field()
     nonAdaptive: bool = auto_field()
+
+    modeSel: int = auto_field()
+    cruiseSwState: int = auto_field()
+    accActive: bool = auto_field()
+    gapSet: int = auto_field()
 
   class GearShifter(StrEnum):
     unknown = auto()
@@ -267,6 +298,9 @@ class CarControl:
     leftLaneDepart: bool = auto_field()
     leadDistanceBars: int = auto_field()  # 1-3: 1 is closest, 3 is farthest. some ports may utilize 2-4 bars instead
 
+    vFuture: float = auto_field()
+    vFutureA: float = auto_field()
+
     class VisualAlert(StrEnum):
       # these are the choices from the Honda
       # map as good as you can for your car
@@ -292,6 +326,8 @@ class CarControl:
       prompt = auto()
       promptRepeat = auto()
       promptDistracted = auto()
+      warning = auto()
+      dingdong = auto()
 
 
 @auto_dataclass
@@ -338,7 +374,10 @@ class CarParams:
 
     class Which(StrEnum):
       pid = auto()
+      indi = auto()
+      lqr = auto()
       torque = auto()
+      atom = auto()
 
       def __call__(self):
         return self.value
@@ -346,17 +385,60 @@ class CarParams:
     which: 'CarParams.LateralTuning.Which' = field(default_factory=lambda: CarParams.LateralTuning.Which.pid)
 
     pid: 'CarParams.LateralPIDTuning' = field(default_factory=lambda: CarParams.LateralPIDTuning())
+    indi: 'CarParams.LateralINDITuning' = field(default_factory=lambda: CarParams.LateralINDITuning())
+    lqr: 'CarParams.LateralLQRTuning' = field(default_factory=lambda: CarParams.LateralLQRTuning())
     torque: 'CarParams.LateralTorqueTuning' = field(default_factory=lambda: CarParams.LateralTorqueTuning())
+    atom: 'CarParams.LateralATOMTuning' = field(default_factory=lambda: CarParams.LateralATOMTuning())
 
   @auto_dataclass
   class SafetyConfig:
     safetyModel: 'CarParams.SafetyModel' = field(default_factory=lambda: CarParams.SafetyModel.silent)
     safetyParam: int = auto_field()
 
+  experimentalLong: bool = auto_field()
+  experimentalLongAlt: bool = auto_field()
+  smoothSteer: 'CarParams.SmoothSteerData' = field(default_factory=lambda: CarParams.SmoothSteerData())
+  mdpsBus: int = auto_field()
+  sasBus: int = auto_field()
+  sccBus: int = auto_field()
+  fcaBus: int = auto_field()
+  bsmAvailable: bool = auto_field()
+  lfaAvailable: bool = auto_field()
+  lvrAvailable: bool = auto_field()
+  evgearAvailable: bool = auto_field()
+  emsAvailable: bool = auto_field()
+  standStill: bool = auto_field()
+  vCruisekph: float = auto_field()
+  resSpeed: float = auto_field()
+  vFuture: float = auto_field()
+  vFutureA: float = auto_field()
+  autoHoldAvailable: bool = auto_field()
+  scc13Available: bool = auto_field()
+  scc14Available: bool = auto_field()
+  lfaHdaAvailable: bool = auto_field()
+  navAvailable: bool = auto_field()
+  isCanFD: bool = auto_field()
+  adrvAvailable: bool = auto_field()
+
+  @auto_dataclass
+  class SmoothSteerData:
+    method: int = auto_field()
+    maxSteeringAngle: float = auto_field()
+    maxDriverAngleWait: float = auto_field()
+    maxSteerAngleWait: float = auto_field()
+    driverAngleWait: float = auto_field()
+
   @auto_dataclass
   class LateralParams:
     torqueBP: list[int] = auto_field()
     torqueV: list[int] = auto_field()
+
+  @auto_dataclass
+  class LateralATOMTuning:
+    lqr: 'CarParams.LateralLQRTuning' = field(default_factory=lambda: CarParams.LateralLQRTuning())
+    torque: 'CarParams.LateralTorqueTuning' = field(default_factory=lambda: CarParams.LateralTorqueTuning())
+    indi: 'CarParams.LateralINDITuning' = field(default_factory=lambda: CarParams.LateralINDITuning())
+    pid: 'CarParams.LateralPIDTuning' = field(default_factory=lambda: CarParams.LateralPIDTuning())
 
   @auto_dataclass
   class LateralPIDTuning:
@@ -414,6 +496,28 @@ class CarParams:
     kiV: list[float] = auto_field()
     kf: float = auto_field()
 
+  @auto_dataclass
+  class LateralINDITuning:
+    outerLoopGainBP: list[float] = auto_field()
+    outerLoopGainV: list[float] = auto_field()
+    innerLoopGainBP: list[float] = auto_field()
+    innerLoopGainV: list[float] = auto_field()
+    timeConstantBP: list[float] = auto_field()
+    timeConstantV: list[float] = auto_field()
+    actuatorEffectivenessBP: list[float] = auto_field()
+    actuatorEffectivenessV: list[float] = auto_field()
+
+  @auto_dataclass
+  class LateralLQRTuning:
+    scale: float = auto_field()
+    ki: float = auto_field()
+    dcGain: float = auto_field()
+    a: list[float] = auto_field()
+    b: list[float] = auto_field()
+    c: list[float] = auto_field()
+    k: list[float] = auto_field()
+    l: list[float] = auto_field()
+
   class SafetyModel(StrEnum):
     silent = auto()
     hondaNidec = auto()
@@ -439,11 +543,13 @@ class CarParams:
     volkswagenPq = auto()
     subaruPreglobal = auto()  # pre-Global platform
     hyundaiLegacy = auto()
-    hyundaiCommunity = auto()
+    hyundaiCommunity1 = auto()
     volkswagenMlb = auto()
     hongqi = auto()
     body = auto()
     hyundaiCanfd = auto()
+    hyundaiCommunity2 = auto()
+    hyundaiCommunity1Legacy = auto()
     volkswagenMqbEvo = auto()
     chryslerCusw = auto()
     psa = auto()
