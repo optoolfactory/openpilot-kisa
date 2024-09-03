@@ -464,11 +464,21 @@ class CAR(Platforms):
     CarSpecs(mass=3957 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
     flags=HyundaiFlags.RADAR_SCC,
   )
+  KIA_SORENTO_4TH_GEN_2024 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Kia Sorento 2024-", car_parts=CarParts.common([CarHarness.hyundai_k]))],
+    CarSpecs(mass=3957 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
+    flags=HyundaiFlags.RADAR_SCC,
+  )
   KIA_SORENTO_HEV_4TH_GEN = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia Sorento Hybrid 2021-23", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),
       HyundaiCarDocs("Kia Sorento Plug-in Hybrid 2022-23", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),
     ],
+    CarSpecs(mass=4395 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
+    flags=HyundaiFlags.RADAR_SCC,
+  )
+  KIA_SORENTO_HEV_4TH_GEN_2024 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Kia Sorento Hybrid 2024-", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),],
     CarSpecs(mass=4395 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
     flags=HyundaiFlags.RADAR_SCC,
   )
@@ -502,6 +512,11 @@ class CAR(Platforms):
     ],
     CarSpecs(mass=2087, wheelbase=3.09, steerRatio=14.23),
     flags=HyundaiFlags.RADAR_SCC,
+  )
+  KIA_CARNIVAL_4TH_GEN_HYBRID = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Kia Carnival HYBRID 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_a]))],
+    CarSpecs(mass=2165, wheelbase=3.09, steerRatio=14.23),
+    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.HYBRID,
   )
   KIA_EV9 = HyundaiCanFDPlatformConfig(
     [
@@ -557,6 +572,11 @@ class CAR(Platforms):
     [HyundaiCarDocs("Genesis GV80 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
     CarSpecs(mass=2258, wheelbase=2.95, steerRatio=14.14),
     flags=HyundaiFlags.RADAR_SCC,
+  )
+  GENESIS_GV80_2024 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Genesis GV80 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=2258, wheelbase=2.95, steerRatio=14.14),
+    flags=HyundaiFlags.ANGLE_CONTROL,
   )
 
   # Kisa
@@ -650,6 +670,45 @@ class CAR(Platforms):
   GENESIS_EQ900_HI = HyundaiPlatformConfig(
     [HyundaiCarDocs("Genesis EQ900", "All", car_parts=CarParts.common([CarHarness.hyundai_c]))],
     CarSpecs(mass=2130, wheelbase=3.16, steerRatio=12.069),
+  )
+  KIA_K7_YG_2020 = HyundaiPlatformConfig(
+    [HyundaiCarDocs("KIA K7 2020(YG)")],
+    CarSpecs(mass=1555, wheelbase=2.855, steerRatio=14.4),
+    flags=HyundaiFlags.LEGACY | HyundaiFlags.TCU_GEARS,
+  )
+  KIA_K7_HEV_YG_2020 = HyundaiPlatformConfig(
+    [HyundaiCarDocs("KIA K7 HYBRID 2020(YG)")],
+    CarSpecs(mass=1680, wheelbase=2.855, steerRatio=14.4),
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.LEGACY,
+  )
+  HYUNDAI_SANTA_FE_2024_MX5 = HyundaiCanFDPlatformConfig(
+    [
+      HyundaiCarDocs("Hyundai Santa Fe (with HDA II) 2024", "Highway Driving Assist II", car_parts=CarParts.common([CarHarness.hyundai_q])),
+    ],
+    CarSpecs(mass=1915, wheelbase=2.815, steerRatio=14.26, tireStiffnessFactor=0.65),
+    flags=HyundaiFlags.ANGLE_CONTROL,
+  )
+  HYUNDAI_SANTA_FE_2024_HEV_MX5 = HyundaiCanFDPlatformConfig(
+    [
+      HyundaiCarDocs("Hyundai Santa Fe Hybrid (with HDA II) 2024", "Highway Driving Assist II", car_parts=CarParts.common([CarHarness.hyundai_q])),
+    ],
+    CarSpecs(mass=1930, wheelbase=2.815, steerRatio=14.26, tireStiffnessFactor=0.65),
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.ANGLE_CONTROL,
+  )
+  KIA_EV3 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("KIA EV3 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=1750, wheelbase=2.68, steerRatio=14.14),
+    flags=HyundaiFlags.ANGLE_CONTROL,
+  )
+  GRANDEUR_GN7 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Hyundai GRANDEUR_GN7 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=1620, wheelbase=2.895, steerRatio=14.2),
+    flags=HyundaiFlags.RADAR_SCC,
+  )
+  GRANDEUR_GN7_HEV = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Hyundai GRANDEUR_GN7 HEV 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
+    CarSpecs(mass=1700, wheelbase=2.895, steerRatio=14.2),
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.RADAR_SCC,
   )
 
 class Buttons:
