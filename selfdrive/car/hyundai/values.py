@@ -583,7 +583,7 @@ class CAR(Platforms):
   HYUNDAI_GRANDEUR_IG = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Grandeur IG", "All", car_parts=CarParts.common([CarHarness.hyundai_c]))],
     CarSpecs(mass=1560, wheelbase=2.845, steerRatio=14.5),
-    flags=HyundaiFlags.CLUSTER_GEARS,
+    flags=HyundaiFlags.LEGACY | HyundaiFlags.CLUSTER_GEARS,
   )
   HYUNDAI_GRANDEUR_HEV_IG = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Grandeur IG Hybrid", "All", car_parts=CarParts.common([CarHarness.hyundai_c]))],
