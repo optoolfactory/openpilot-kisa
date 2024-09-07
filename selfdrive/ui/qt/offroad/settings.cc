@@ -539,7 +539,7 @@ DeveloperPanel::DeveloperPanel(QWidget *parent) : QFrame(parent) {
   layout->addWidget(new PrebuiltToggle());
   layout->addWidget(horizontal_line());
   layout->addWidget(new LDWSToggle());
-  layout->addWidget(new CanFdHda2());
+  layout->addWidget(new CanFdHda2Toggle());
   layout->addWidget(new GearDToggle());
   layout->addWidget(new SteerWarningFixToggle());
   layout->addWidget(new IgnoreCanErroronISGToggle());
