@@ -474,6 +474,18 @@ public:
   }
 };
 
+class HDA2Toggle : public ToggleControl {
+  Q_OBJECT
+
+public:
+  HDA2Toggle() : ToggleControl(tr("Set HDA2 Vehicles"), "", "../assets/offroad/icon_shell.png", Params().getBool("HDA2")) {
+    QObject::connect(this, &LDWSToggle::toggleFlipped, [=](int state) {
+      bool status = state ? true : false;
+      Params().putBool("HDA2", status);
+    });
+  }
+};
+
 class FPTwoToggle : public ToggleControl {
   Q_OBJECT
 
