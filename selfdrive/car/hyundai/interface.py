@@ -35,7 +35,7 @@ class CarInterface(CarInterfaceBase):
     # added to selfdrive/car/tests/routes.py, we can remove it from this list.
     ret.dashcamOnly = False
 
-    hda2 = Ecu.adas in [fw.ecu for fw in car_fw]
+    hda2 = Ecu.adas in [fw.ecu for fw in car_fw] or Params().get_bool('CanFdHda2')
     CAN = CanBus(None, hda2, fingerprint)
 
     if candidate in CANFD_CAR:
