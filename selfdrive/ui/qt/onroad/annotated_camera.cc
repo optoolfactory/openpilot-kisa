@@ -295,8 +295,7 @@ void AnnotatedCameraWidget::drawHud(QPainter &p) {
   }
   if (s->scene.KISA_Debug && s->scene.comma_stock_ui != 1) {
     p.setFont(InterFont(35, QFont::DemiBold));
-    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+200:ui_viz_ry+200, "HDA2:" + QString::fromStdString(s->scene.car_hda2));    
-    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+240:ui_viz_ry+280, "CAR:" + QString::fromStdString(s->scene.car_fingerprint));
+    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+240:ui_viz_ry+280, "CAR:" + QString::fromStdString(s->scene.car_fingerprint)) + "HDA2:" + QString::fromStdString(s->scene.car_hda2)); 
     uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+280:ui_viz_ry+320, "PSM:" + QString::fromStdString(s->scene.controls_state.getPandaSafetyModel()) +
      "/ISM:" + QString::fromStdString(s->scene.controls_state.getInterfaceSafetyModel()));
     uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+320:ui_viz_ry+360, "RXC:" + QString::number(int(s->scene.controls_state.getRxChecks())) +
