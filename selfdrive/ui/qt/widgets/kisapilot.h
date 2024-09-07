@@ -479,7 +479,7 @@ class HDA2Toggle : public ToggleControl {
 
 public:
   HDA2Toggle() : ToggleControl(tr("Set HDA2 Vehicles"), "", "../assets/offroad/icon_shell.png", Params().getBool("HDA2")) {
-    QObject::connect(this, &LDWSToggle::toggleFlipped, [=](int state) {
+    QObject::connect(this, &HDA2Toggle::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("HDA2", status);
     });
