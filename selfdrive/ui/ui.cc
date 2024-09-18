@@ -363,7 +363,7 @@ static void update_state(UIState *s) {
     scene.longitudinal_control = cp_data.getOpenpilotLongitudinalControl();
     scene.steer_actuator_delay = cp_data.getSteerActuatorDelay();
     scene.car_fingerprint = cp_data.getCarFingerprint();
-    scene.car_hda2 = Params().getBool("CanFdHda2");
+    //scene.car_hda2 = Params().getBool("CanFdHda2");
   }
   if (sm.updated("wideRoadCameraState")) {
     auto cam_state = sm["wideRoadCameraState"].getWideRoadCameraState();
