@@ -60,6 +60,7 @@ def manager_init() -> None:
     ("KisaSteerAngleCorrection", "0"),
     ("PutPrebuiltOn", "0"),
     ("LdwsCarFix", "0"),
+    ("CanFdHda2", "0"),    
     ("LateralControlMethod", "3"),
     ("CruiseStatemodeSelInit", "1"),
     ("InnerLoopGain", "35"),
