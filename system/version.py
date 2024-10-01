@@ -75,10 +75,10 @@ class OpenpilotMetadata:
     return self.version.split('-')[0]
 
   @property
-  def comma_remote(self) -> bool:
+  def kisapilot_remote(self) -> bool:
     # note to fork maintainers, this is used for release metrics. please do not
     # touch this to get rid of the orange startup alert. there's better ways to do that
-    return self.git_normalized_origin == "github.com/commaai/openpilot"
+    return self.git_normalized_origin == "github.com/kisapilot/openpilot"
 
   @property
   def git_normalized_origin(self) -> str:

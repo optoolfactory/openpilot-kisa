@@ -17,10 +17,11 @@ from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
 from openpilot.common.swaglog import cloudlog
+from openpilot.common.gps import get_gps_location_service
 
-from openpilot.selfdrive.car.car_helpers import get_car_interface, get_startup_event
+from opendbc.car.car_helpers import get_car_interface
 from openpilot.selfdrive.controls.lib.alertmanager import AlertManager, set_offroad_alert
-from openpilot.selfdrive.controls.lib.drive_helpers import VCruiseHelper, clip_curvature, get_lag_adjusted_curvature
+from openpilot.selfdrive.controls.lib.drive_helpers import VCruiseHelper, clip_curvature, get_startup_event, get_lag_adjusted_curvature
 from openpilot.selfdrive.controls.lib.events import Events, ET
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl, MIN_LATERAL_CONTROL_SPEED
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
@@ -31,11 +32,11 @@ from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.latcontrol_atom import LatControlATOM
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.controls.lib.vehicle_model import VehicleModel
+from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 
 from openpilot.system.hardware import HARDWARE
 
 from decimal import Decimal
-
 import openpilot.common.log as trace1
 
 USE_LEGACY_LANE_MODEL = int(Params().get("UseLegacyLaneModel", encoding="utf8")) if Params().get("UseLegacyLaneModel", encoding="utf8") is not None else 0
@@ -80,9 +81,7 @@ class Controls:
 
     if CI is None:
       cloudlog.info("controlsd is waiting for CarParams")
-      with car.CarParams.from_bytes(self.params.get("CarParams", block=True)) as msg:
-        # TODO: this shouldn't need to be a builder
-        self.CP = msg.as_builder()
+      self.CP = messaging.log_from_bytes(self.params.get("CarParams", block=True), car.CarParams)
       cloudlog.info("controlsd got CarParams")
 
       # Uses car interface helper functions, altering state won't be considered by card for actuation
@@ -96,6 +95,8 @@ class Controls:
     # Setup sockets
     self.pm = messaging.PubMaster(['controlsState', 'carControl', 'onroadEvents'])
 
+    self.gps_location_service = get_gps_location_service(self.params)
+    self.gps_packets = [self.gps_location_service]
     self.sensor_packets = ["accelerometer", "gyroscope"]
     self.camera_packets = ["roadCameraState", "driverCameraState", "wideRoadCameraState"]
 
@@ -104,16 +105,16 @@ class Controls:
     # TODO: de-couple controlsd with card/conflate on carState without introducing controls mismatches
     self.car_state_sock = messaging.sub_sock('carState', timeout=20)
 
-    ignore = self.sensor_packets + ['testJoystick', 'liveENaviData', 'liveMapData']
+    ignore = self.sensor_packets + self.gps_packets + ['testJoystick', 'liveENaviData', 'liveMapData']
     if SIMULATION:
       ignore += ['driverCameraState', 'managerState']
     if REPLAY:
       # no vipc in replay will make them ignored anyways
       ignore += ['roadCameraState', 'wideRoadCameraState']
     self.sm = messaging.SubMaster(['deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
-                                   'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'lateralPlan', 'liveLocationKalman',
+                                   'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'lateralPlan', 'livePose',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
-                                   'testJoystick', 'liveENaviData', 'liveMapData'] + self.camera_packets + self.sensor_packets,
+                                   'testJoystick', 'liveENaviData', 'liveMapData'] + self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore+['deviceState', 'radarState', 'testJoystick', 'liveENaviData', 'liveMapData'], ignore_valid=['testJoystick', 'liveENaviData', 'liveMapData', ],
                                   frequency=int(1/DT_CTRL))
 
@@ -151,6 +152,9 @@ class Controls:
     self.CS_prev = car.CarState.new_message()
     self.AM = AlertManager()
     self.events = Events()
+
+    self.pose_calibrator = PoseCalibrator()
+    self.calibrated_pose: Pose|None = None
 
     self.LoC = LongControl(self.CP)
     self.VM = VehicleModel(self.CP)
@@ -490,11 +494,9 @@ class Controls:
     if not (self.CP.notCar and self.joystick_mode):
       if not self.sm['lateralPlan'].mpcSolutionValid and self.legacy_lane_mode:
         self.events.add(EventName.plannerError)
-      if not self.sm['liveLocationKalman'].posenetOK:
+      if not self.sm['livePose'].posenetOK:
         self.events.add(EventName.posenetInvalid)
-      if not self.sm['liveLocationKalman'].deviceStable:
-        self.events.add(EventName.deviceFalling)
-      if not self.sm['liveLocationKalman'].inputsOK:
+      if not self.sm['livePose'].inputsOK:
         self.events.add(EventName.locationdTemporaryError)
       if not self.sm['liveParameters'].valid and not TESTING_CLOSET and (not SIMULATION or REPLAY):
         self.events.add(EventName.paramsdTemporaryError)
@@ -530,10 +532,11 @@ class Controls:
 
     # TODO: fix simulator
     if not SIMULATION or REPLAY:
-      # Not show in first 1 km to allow for driving out of garage. This event shows after 5 minutes
-      if not self.sm['liveLocationKalman'].gpsOK and self.sm['liveLocationKalman'].inputsOK and (self.distance_traveled > 1500):
+      # Not show in first 1.5 km to allow for driving out of garage. This event shows after 5 minutes
+      gps_ok = self.sm.recv_frame[self.gps_location_service] > 0 and (self.sm.frame - self.sm.recv_frame[self.gps_location_service]) * DT_CTRL < 2.0
+      if not gps_ok and self.sm['livePose'].inputsOK and (self.distance_traveled > 1500):
         self.events.add(EventName.noGps)
-      if self.sm['liveLocationKalman'].gpsOK:
+      if gps_ok:
         self.distance_traveled = 0
       self.distance_traveled += CS.vEgo * DT_CTRL
 
@@ -588,6 +591,13 @@ class Controls:
     if self.enabled and any(not ps.controlsAllowed for ps in self.sm['pandaStates']
            if ps.safetyModel not in IGNORED_SAFETY_MODES):
       self.mismatch_counter += 1
+
+    # calibrate the live pose and save it for later use
+    if self.sm.updated["liveCalibration"]:
+      self.pose_calibrator.feed_live_calib(self.sm['liveCalibration'])
+    if self.sm.updated["livePose"]:
+      device_pose = Pose.from_live_pose(self.sm['livePose'])
+      self.calibrated_pose = self.pose_calibrator.build_calibrated_pose(device_pose)
 
     return CS
 
@@ -757,7 +767,7 @@ class Controls:
         self.desired_curvature = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
       actuators.steer, actuators.steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
                                                                              self.steer_limited, self.desired_curvature,
-                                                                             self.desired_curvature_rate, self.sm['liveLocationKalman'])
+                                                                             self.desired_curvature_rate, self.calibrated_pose) # TODO what if not available
       actuators.curvature = self.desired_curvature
       self.desired_angle_deg = actuators.steeringAngleDeg
     else:
@@ -840,12 +850,9 @@ class Controls:
 
     # Orientation and angle rates can be useful for carcontroller
     # Only calibrated (car) frame is relevant for the carcontroller
-    orientation_value = list(self.sm['liveLocationKalman'].calibratedOrientationNED.value)
-    if len(orientation_value) > 2:
-      CC.orientationNED = orientation_value
-    angular_rate_value = list(self.sm['liveLocationKalman'].angularVelocityCalibrated.value)
-    if len(angular_rate_value) > 2:
-      CC.angularVelocity = angular_rate_value
+    if self.calibrated_pose is not None:
+      CC.orientationNED = self.calibrated_pose.orientation.xyz.tolist()
+      CC.angularVelocity = self.calibrated_pose.angular_velocity.xyz.tolist()
 
     CC.cruiseControl.override = self.enabled and not CC.longActive and self.CP.openpilotLongitudinalControl
     CC.cruiseControl.cancel = CS.cruiseState.enabled and (not self.enabled or not self.CP.pcmCruise)

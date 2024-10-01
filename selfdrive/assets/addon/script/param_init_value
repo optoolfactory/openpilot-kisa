@@ -170,3 +170,5 @@ LCTimingKeepFactorEnable:1
 KISACruiseSpammingInterval:7
 KISACruiseSpammingBtnCount:2
 UseRadarValue:1
+RegenBrakeFeature:0
+RegenBrakeFeatureOn:0

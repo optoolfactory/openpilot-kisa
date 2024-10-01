@@ -5,9 +5,12 @@ import cereal.messaging as messaging
 from openpilot.common.conversions import Conversions as CV
 from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.realtime import DT_CTRL, DT_MDL
-from openpilot.selfdrive.modeld.constants import ModelConstants
+from openpilot.system.version import get_build_metadata
 
-from openpilot.selfdrive.car.hyundai.values import Buttons
+EventName = car.CarEvent.EventName
+
+from openpilot.selfdrive.modeld.constants import ModelConstants
+from opendbc.car.hyundai.values import Buttons
 from openpilot.common.params import Params
 
 IS_METRIC = Params().get_bool("IsMetric") if Params().get_bool("IsMetric") is not None else False
@@ -20,7 +23,7 @@ V_CRUISE_MAX = 160
 V_CRUISE_UNSET = 255
 V_CRUISE_INITIAL = V_CRUISE_MIN = (10 if IS_METRIC else 5) if LONG_ENABLED else (30 if IS_METRIC else 20)
 V_CRUISE_INITIAL_EXPERIMENTAL_MODE = 105
-IMPERIAL_INCREMENT = 1.6  # should be CV.MPH_TO_KPH, but this causes rounding errors
+IMPERIAL_INCREMENT = round(CV.MPH_TO_KPH, 1)  # round here to avoid rounding errors incrementing set speed
 
 MIN_SPEED = 1.0
 CONTROL_N = 17
@@ -305,16 +308,6 @@ class VCruiseHelper:
     self.v_cruise_cluster_kph = self.v_cruise_kph
 
 
-def apply_center_deadzone(error, deadzone):
-  if (error > - deadzone) and (error < deadzone):
-    error = 0.
-  return error
-
-
-def rate_limit(new_value, last_value, dw_step, up_step):
-  return clip(new_value, last_value + dw_step, last_value + up_step)
-
-
 def clip_curvature(v_ego, prev_curvature, new_curvature):
   v_ego = max(MIN_SPEED, v_ego)
   max_curvature_rate = MAX_LATERAL_JERK / (v_ego**2) # inexact calculation, check https://github.com/commaai/openpilot/pull/24755
@@ -355,20 +348,27 @@ def get_lag_adjusted_curvature(CP, v_ego, psis, curvatures, curvature_rates):
   return safe_desired_curvature, safe_desired_curvature_rate
 
 
-def get_friction(lateral_accel_error: float, lateral_accel_deadzone: float, friction_threshold: float,
-                 torque_params: car.CarParams.LateralTorqueTuning, friction_compensation: bool) -> float:
-  friction_interp = interp(
-    apply_center_deadzone(lateral_accel_error, lateral_accel_deadzone),
-    [-friction_threshold, friction_threshold],
-    [-torque_params.friction, torque_params.friction]
-  )
-  friction = float(friction_interp) if friction_compensation else 0.0
-  return friction
-
-
 def get_speed_error(modelV2: log.ModelDataV2, v_ego: float) -> float:
   # ToDo: Try relative error, and absolute speed
   if len(modelV2.temporalPose.trans):
     vel_err = clip(modelV2.temporalPose.trans[0] - v_ego, -MAX_VEL_ERR, MAX_VEL_ERR)
     return float(vel_err)
   return 0.0
+
+
+def get_startup_event(car_recognized, controller_available, fw_seen):
+  event = EventName.startup
+  #build_metadata = get_build_metadata()
+  #if build_metadata.openpilot.comma_remote and build_metadata.tested_channel:
+  #  event = EventName.startup
+  #else:
+  #  event = EventName.startupMaster
+
+  if not car_recognized:
+    if fw_seen:
+      event = EventName.startupNoCar
+    else:
+      event = EventName.startupNoFw
+  elif car_recognized and not controller_available:
+    event = EventName.startupNoControl
+  return event

@@ -76,7 +76,7 @@ class LatControlINDI(LatControl):
         
       self.mpc_frame = 0
 
-  def update(self, active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, llk):
+  def update(self, active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose):
     self.speed = CS.vEgo
 
     self.li_timer += 1

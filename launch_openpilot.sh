@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 # prebuilt recreate
 if [ -f "/data/kisa_compiling" ]; then
