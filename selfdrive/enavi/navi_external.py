@@ -75,6 +75,8 @@ class ENavi:
 
     self.ip_count = 0
 
+    self.is_ip_add = False
+
     if not self.Auto_IP:
       try:
         self.ip_count = int(len(self.params.get("ExternalDeviceIP", encoding="utf8").split(',')))
@@ -134,9 +136,9 @@ class ENavi:
   def update(self):
     self.count += 1
     if not self.ip_bind:
-      if self.Auto_IP and self.count in (30, 90, 150, 210, 270, 330, 390, 450, 510, 570):
+      if self.Auto_IP and self.count in (30, 90, 150, 210, 270, 330, 390, 450, 510, 570, 630, 690, 750, 810, 870, 930, 990):
+        out = subprocess.check_output("ip route", shell=True)
         try:
-          out = subprocess.check_output("ip route", shell=True)
           ip_via = str(out.strip().decode()).split('via ')[1].split(' ')[0]
           if self.Auto_IP == 1:
             ip_src = str(out.strip().decode()).split('src ')[1].split(' ')[0]
@@ -155,26 +157,29 @@ class ENavi:
             random.shuffle(self.ip_list_out)
           elif self.Auto_IP == 2:
             self.ip_list_out.append(ip_via)
+          self.is_ip_add = True
         except:
+          self.is_ip_add = False
           pass
-      if (self.count % 60) == 0:
-        self.count2 = self.count + 10
-        self.result = []
-        for address in self.ip_list_out:
-            p = subprocess.Popen(['ping', '-c', '1', '-W', '1', '-q', address])
-            self.result.append(p)
-      elif (self.count % self.count2) == 0:
-        for ip, p in zip(self.ip_list_out, self.result):
-            if p.wait() == 0:
-                res = subprocess.call(['nc', '-vz', ip, '5555'])
-                if res == 0:
-                  self.params.put_nonblocking("ExternalDeviceIPNow", ip)
-                  self.ip_bind = True
-                  self.check_connection = True
-                  self.context = zmq.Context()
-                  self.socket = self.context.socket(zmq.SUB)
-                  self.socket.connect("tcp://" + str(ip) + ":5555")
-                  break
+      if not self.Auto_IP or (self.Auto_IP and self.is_ip_add):
+        if (self.count % 60) == 0:
+          self.count2 = self.count + 10
+          self.result = []
+          for address in self.ip_list_out:
+              p = subprocess.Popen(['ping', '-c', '1', '-W', '1', '-q', address])
+              self.result.append(p)
+        elif (self.count % self.count2) == 0:
+          for ip, p in zip(self.ip_list_out, self.result):
+              if p.wait() == 0:
+                  res = subprocess.call(['nc', '-vz', ip, '5555'])
+                  if res == 0:
+                    self.params.put_nonblocking("ExternalDeviceIPNow", ip)
+                    self.ip_bind = True
+                    self.check_connection = True
+                    self.context = zmq.Context()
+                    self.socket = self.context.socket(zmq.SUB)
+                    self.socket.connect("tcp://" + str(ip) + ":5555")
+                    break
 
     navi_msg = messaging.new_message('liveENaviData')
     if self.ip_bind:

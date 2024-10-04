@@ -14,9 +14,9 @@ from openpilot.system.version import get_build_metadata, get_version
 
 class SentryProject(Enum):
   # python project
-  SELFDRIVE = "https://6f3c7076c1e14b2aa10f5dde6dda0cc4@o33823.ingest.sentry.io/77924"
+  SELFDRIVE = "https://83e2fcd081cf484a8b0d1739d7afcbc4@o1001267.ingest.us.sentry.io/5960805"
   # native project
-  SELFDRIVE_NATIVE = "https://3e4b586ed21a4479ad5d85083b639bc6@o33823.ingest.sentry.io/157615"
+  SELFDRIVE_NATIVE = "https://83e2fcd081cf484a8b0d1739d7afcbc4@o1001267.ingest.us.sentry.io/5960805"
 
 
 def report_tombstone(fn: str, message: str, contents: str) -> None:
@@ -55,8 +55,8 @@ def save_exception(exc_text):
 def init(project: SentryProject) -> bool:
   build_metadata = get_build_metadata()
   # forks like to mess with this, so double check
-  comma_remote = build_metadata.openpilot.comma_remote and "commaai" in build_metadata.openpilot.git_origin
-  if not comma_remote or not is_registered_device() or PC:
+  kisapilot_remote = build_metadata.openpilot.kisapilot_remote and "kisapilot" in build_metadata.openpilot.git_origin
+  if not kisapilot_remote or PC:
     return False
 
   env = "release" if build_metadata.tested_channel else "master"

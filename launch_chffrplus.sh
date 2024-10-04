@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 if [ -z "$BASEDIR" ]; then
   BASEDIR="/data/openpilot"
@@ -53,7 +53,7 @@ function agnos_init {
     chmod 600 /data/params/d/GithubSshKeys
   fi
 
-  cat /data/openpilot/selfdrive/car/hyundai/values.py | grep ' = Hyundai' | awk '{print $1}' > /data/CarList
+  cat /data/openpilot/opendbc_repo/opendbc/car/hyundai/values.py | grep ' = Hyundai' | awk '{print $1}' > /data/CarList
 }
 
 function launch {
