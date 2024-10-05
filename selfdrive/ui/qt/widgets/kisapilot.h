@@ -2,7 +2,6 @@
 
 #include <QPushButton>
 #include <QLineEdit>
-#include <QSoundEffect>
 
 
 #include <QComboBox>
