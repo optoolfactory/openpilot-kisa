@@ -78,6 +78,8 @@ legend = ["LAT_ACCEL_FACTOR", "MAX_LAT_ACCEL_MEASURED", "FRICTION"]
 "HYUNDAI_CASPER_EV"= [2.5, 2.5, 0.1]
 "KIA_CARNIVAL_4TH_GEN_HYBRID" = [2.5, 2.5, 0.1]
 "GENESIS_GV80_2024" = [2.5, 2.5, 0.1]
+"GRANDEUR_GN7" = [2.8, 2.3, 0.1]
+"GRANDEUR_GN7_HEV" = [2.8, 2.3, 0.1]
 
 # Dashcam or fallback configured as ideal car
 "MOCK" = [10.0, 10, 0.0]
