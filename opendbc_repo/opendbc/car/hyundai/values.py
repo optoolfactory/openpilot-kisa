@@ -714,7 +714,7 @@ class CAR(Platforms):
   KIA_EV3 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("KIA EV3 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
     CarSpecs(mass=1750, wheelbase=2.68, steerRatio=14.14),
-    flags=HyundaiFlags.ANGLE_CONTROL,
+    flags=HyundaiFlags.ANGLE_CONTROL | HyundaiFlags.EV,
   )
   GRANDEUR_GN7 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("Hyundai GRANDEUR_GN7 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
