@@ -415,7 +415,7 @@ void SoftwarePanel::showEvent(QShowEvent *event) {
 
 void SoftwarePanel::updateLabels() {
   QString lastUpdate = "";
-  QString tm = QString::fromStdString(params.get("LastUpdateTime").substr(33));
+  QString tm = QString::fromStdString(params.get("LastUpdateTime").substr(0, 19));
   if (tm != "") {
     lastUpdate = timeAgo(QDateTime::fromString(tm, "yyyy-MM-dd HH:mm:ss"));
   }
@@ -434,7 +434,7 @@ void SoftwarePanel::updateLabels() {
   lastUpdateLbl->setText(lastUpdate);
   updateBtn->setText(tr("CHECK"));
   updateBtn->setEnabled(true);
-  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)));
+  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(33)));
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(lhash + "(" + lhash_date + ")" + " / " + rhash + "(" + rhash_date + ")");
 }
