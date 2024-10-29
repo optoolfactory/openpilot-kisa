@@ -490,11 +490,6 @@ class CAR(Platforms):
     CarSpecs(mass=4395 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
     flags=HyundaiFlags.RADAR_SCC,
   )
-  KIA_SORENTO_4TH_GEN_2024 = HyundaiCanFDPlatformConfig(
-    [HyundaiCarDocs("Kia Sorento 2024-", car_parts=CarParts.common([CarHarness.hyundai_k]))],
-    CarSpecs(mass=3957 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
-    flags=HyundaiFlags.RADAR_SCC,
-  )
   KIA_STINGER = HyundaiPlatformConfig(
     [HyundaiCarDocs("Kia Stinger 2018-20", video_link="https://www.youtube.com/watch?v=MJ94qoofYw0",
                     car_parts=CarParts.common([CarHarness.hyundai_c]))],
@@ -526,11 +521,12 @@ class CAR(Platforms):
     CarSpecs(mass=2087, wheelbase=3.09, steerRatio=14.23),
     flags=HyundaiFlags.RADAR_SCC,
   )
-  KIA_SORENTO_4TH_GEN_2024 = HyundaiCanFDPlatformConfig(
-    [HyundaiCarDocs("Kia Sorento 2024-", car_parts=CarParts.common([CarHarness.hyundai_k]))],
-    CarSpecs(mass=3957 * CV.LB_TO_KG, wheelbase=2.81, steerRatio=13.5),  # average of the platforms
-    flags=HyundaiFlags.RADAR_SCC,
+  KIA_CARNIVAL_4TH_GEN_HYBRID = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Kia Carnival HYBRID 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_a]))],
+    CarSpecs(mass=2165, wheelbase=3.09, steerRatio=14.23),
+    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.HYBRID,
   )
+
   KIA_EV9 = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia EV9 2024", car_parts=CarParts.common([CarHarness.hyundai_r, Mount.angled_mount_8_degrees]))
