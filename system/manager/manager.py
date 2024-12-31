@@ -33,7 +33,7 @@ def manager_init() -> None:
     params.clear_all(ParamKeyType.DEVELOPMENT_ONLY)
 
   default_params: list[tuple[str, str | bytes]] = [
-    ("CompletedTrainingVersion", "0"),
+    ("CompletedTrainingVersion", "1"),
     ("DisengageOnAccelerator", "0"),
     ("GsmMetered", "1"),
     ("HasAcceptedTerms", "0"),
@@ -98,12 +98,12 @@ def manager_init() -> None:
     ("KisaMaxSteerAngleWait", "0.001"),
     ("KisaDriverAngleWait", "0.001"),
     ("KisaSpeedLimitOffset", "0"),
-    ("KisaLiveSteerRatio", "1"),
+    ("KisaLiveSteerRatio", "0"),
     ("KisaDrivingRecord", "0"),
     ("KisaTurnSteeringDisable", "0"),
     ("CarModel", ""),
     ("KisaHotspotOnBoot", "0"),
-    ("KisaSSHLegacy", "1"),
+    ("KisaSSHLegacy", "0"),
     ("CruiseOverMaxSpeed", "0"),
     ("JustDoGearD", "0"),
     ("LanelessMode", "2"),
@@ -118,7 +118,7 @@ def manager_init() -> None:
     ("KisaMonitoringMode", "0"),
     ("KisaMonitorEyesThreshold", "45"),
     ("KisaMonitorBlinkThreshold", "75"),
-    ("UFCModeEnabled", "0"),
+    ("UFCModeEnabled", "1"),
     ("LFAButtonEngagement", "0"),    
     ("SteerWarningFix", "0"),
     ("CruiseGap1", "11"),
