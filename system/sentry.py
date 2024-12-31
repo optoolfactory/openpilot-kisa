@@ -44,7 +44,7 @@ def set_tag(key: str, value: str) -> None:
   sentry_sdk.set_tag(key, value)
 
 def save_exception(exc_text):
-  if not "mapd.py" in exc_text: # ignore mapd.py error
+  if not ("mapd.py" in exc_text or "creation_delay" in exc_text):
     if not os.path.exists('/data/log'):
       os.makedirs('/data/log')
     log_file = '/data/log/error.txt'
@@ -73,8 +73,6 @@ def init(project: SentryProject) -> bool:
                   traces_sample_rate=1.0,
                   max_value_length=8192,
                   environment=env)
-
-  build_metadata = get_build_metadata()
 
   sentry_sdk.set_user({"id": dongle_id})
   sentry_sdk.set_tag("dirty", build_metadata.openpilot.is_dirty)

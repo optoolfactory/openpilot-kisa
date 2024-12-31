@@ -17,6 +17,7 @@ from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.common.simple_kalman import KF1D, get_kalman_gain
 from opendbc.car.common.numpy_fast import clip
 from opendbc.car.values import PLATFORMS
+from opendbc.can.parser import CANParser
 
 from openpilot.common.params import Params
 from decimal import Decimal
@@ -48,6 +49,7 @@ GEAR_SHIFTER_MAP: dict[str, structs.CarState.GearShifter] = {
 UseLiveTorque = Params().get_bool("KisaLiveTorque") if Params().get_bool("KisaLiveTorque") is not None else False
 NoMdpsMod = Params().get_bool("NoSmartMDPS") if Params().get_bool("NoSmartMDPS") is not None else False
 TireStiffnessFactor = float(Decimal(Params().get("TireStiffnessFactorAdj", encoding="utf8")) * Decimal('0.01')) if Params().get("TireStiffnessFactorAdj") is not None else 1.0
+CAR_CANDIDATE = Params().get("CarModel", encoding="utf8")
 
 class LatControlInputs(NamedTuple):
   lateral_acceleration: float
@@ -72,6 +74,9 @@ def get_torque_params():
   for candidate in (sub.keys() | params.keys() | override.keys()) - {'legend'}:
     if sum([candidate in x for x in [sub, params, override]]) > 1:
       raise RuntimeError(f'{candidate} is defined twice in torque config')
+
+    if CAR_CANDIDATE is not None:
+      candidate = CAR_CANDIDATE.rstrip('\n')
 
     sub_candidate = sub.get(candidate, candidate)
 
@@ -98,15 +103,10 @@ class CarInterfaceBase(ABC):
     self.v_ego_cluster_seen = False
 
     self.CS: CarStateBase = CarState(CP)
-    self.cp = self.CS.get_can_parser(CP)
-    self.cp_cam = self.CS.get_cam_can_parser(CP)
-    self.cp_adas = self.CS.get_adas_can_parser(CP)
-    self.cp_body = self.CS.get_body_can_parser(CP)
-    self.cp_loopback = self.CS.get_loopback_can_parser(CP)
-    self.can_parsers = (self.cp, self.cp_cam, self.cp_adas, self.cp_body, self.cp_loopback)
+    self.can_parsers: dict[StrEnum, CANParser] = self.CS.get_can_parsers(CP)
 
-    dbc_name = "" if self.cp is None else self.cp.dbc_name
-    self.CC: CarControllerBase = CarController(dbc_name, CP)
+    dbc_names = {bus: cp.dbc_name for bus, cp in self.can_parsers.items()}
+    self.CC: CarControllerBase = CarController(dbc_names, CP)
 
   def apply(self, c: structs.CarControl, now_nanos: int | None = None) -> tuple[structs.CarControl.Actuators, list[CanData]]:
     if now_nanos is None:
@@ -276,19 +276,19 @@ class CarInterfaceBase(ABC):
       tune.torque.steeringAngleDeadzoneDeg = TorqueAngDeadZone
 
   def _update(self) -> structs.CarState:
-    return self.CS.update(*self.can_parsers)
+    return self.CS.update(self.can_parsers)
 
   def update(self, can_packets: list[tuple[int, list[CanData]]]) -> structs.CarState:
     # parse can
-    for cp in self.can_parsers:
+    for cp in self.can_parsers.values():
       if cp is not None:
         cp.update_strings(can_packets)
 
     # get CarState
     ret = self._update()
 
-    ret.canValid = all(cp.can_valid for cp in self.can_parsers if cp is not None)
-    ret.canTimeout = any(cp.bus_timeout for cp in self.can_parsers if cp is not None)
+    ret.canValid = all(cp.can_valid for cp in self.can_parsers.values())
+    ret.canTimeout = any(cp.bus_timeout for cp in self.can_parsers.values())
 
     if ret.vEgoCluster == 0.0 and not self.v_ego_cluster_seen:
       ret.vEgoCluster = ret.vEgo
@@ -314,12 +314,11 @@ class RadarInterfaceBase(ABC):
     self.CP = CP
     self.rcp = None
     self.pts: dict[int, structs.RadarData.RadarPoint] = {}
-    self.radar_ts = CP.radarTimeStep
     self.frame = 0
 
   def update(self, can_packets: list[tuple[int, list[CanData]]]) -> structs.RadarDataT | None:
     self.frame += 1
-    if (self.frame % int(100 * self.radar_ts)) == 0:
+    if (self.frame % 5) == 0:  # 20 Hz is very standard
       return structs.RadarData()
     return None
 
@@ -349,7 +348,7 @@ class CarStateBase(ABC):
     self.v_ego_kf = KF1D(x0=x0, A=A, C=C[0], K=K)
 
   @abstractmethod
-  def update(self, cp, cp_cam, cp_adas, cp_body, cp_loopback) -> structs.CarState:
+  def update(self, can_parsers) -> structs.CarState:
     pass
 
   def update_speed_kf(self, v_ego_raw):
@@ -413,28 +412,12 @@ class CarStateBase(ABC):
     return GEAR_SHIFTER_MAP.get(gear.upper(), GearShifter.unknown)
 
   @staticmethod
-  def get_can_parser(CP):
-    return None
-
-  @staticmethod
-  def get_cam_can_parser(CP):
-    return None
-
-  @staticmethod
-  def get_adas_can_parser(CP):
-    return None
-
-  @staticmethod
-  def get_body_can_parser(CP):
-    return None
-
-  @staticmethod
-  def get_loopback_can_parser(CP):
-    return None
+  def get_can_parsers(CP) -> dict[StrEnum, CANParser]:
+    return {}
 
 
 class CarControllerBase(ABC):
-  def __init__(self, dbc_name: str, CP: structs.CarParams):
+  def __init__(self, dbc_names: dict[StrEnum, str], CP: structs.CarParams):
     self.CP = CP
     self.frame = 0
     self.secoc_key: bytes = b"00" * 16

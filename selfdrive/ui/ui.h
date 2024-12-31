@@ -75,7 +75,7 @@ typedef struct UIScene {
 
   int cpuPerc;
   float cpuTemp;
-  float ambientTemp;
+  float gpuTemp;
   int fanSpeedRpm;
   int storageUsage;
   std::string ipAddress;
@@ -107,7 +107,7 @@ typedef struct UIScene {
   bool standStill;
   int limitSpeedCamera = 0;
   float limitSpeedCameraDist = 0;
-  int mapSign;
+  std::string mapSign;
   int mapSignCam;
   float vSetDis;
   bool cruiseAccStatus;
@@ -231,8 +231,8 @@ typedef struct UIScene {
   {
     int ekisaspeedlimit;
     float ekisasafetydist;
-    int ekisasafetysign;
-    int ekisaturninfo;
+    std::string ekisasafetysign;
+    std::string ekisaturninfo;
     float ekisadisttoturn;
     bool ekisaconalive;
     int ekisaroadlimitspeed;

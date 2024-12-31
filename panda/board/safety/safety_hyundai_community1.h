@@ -1,51 +1,30 @@
 #pragma once
 
+#include "safety_declarations.h"
 #include "safety_hyundai_common.h"
 
-const int HYUNDAI_MAX_STEER = 384;             // like stock
-const int HYUNDAI_MAX_RT_DELTA = 224;          // max delta torque allowed for real time checks
-const uint32_t HYUNDAI_RT_INTERVAL = 250000;   // 250ms between real time checks
-const int HYUNDAI_MAX_RATE_UP = 3;
-const int HYUNDAI_MAX_RATE_DOWN = 7;
-const int HYUNDAI_DRIVER_TORQUE_ALLOWANCE = 50;
-const int HYUNDAI_DRIVER_TORQUE_FACTOR = 2;
-uint32_t ts_last1 = 0;
-
-static bool max_limit_check1(int val, const int MAX_VAL, const int MIN_VAL) {
-  return (val > MAX_VAL) || (val < MIN_VAL);
+#define HYUNDAI_COMMUNITY1_LIMITS(steer, rate_up, rate_down) { \
+  .max_steer = (steer), \
+  .max_rate_up = (rate_up), \
+  .max_rate_down = (rate_down), \
+  .max_rt_delta = 112, \
+  .max_rt_interval = 250000, \
+  .driver_torque_allowance = 50, \
+  .driver_torque_factor = 2, \
+  .type = TorqueDriverLimited, \
+   /* the EPS faults when the steering angle is above a certain threshold for too long. to prevent this, */ \
+   /* we allow setting CF_Lkas_ActToi bit to 0 while maintaining the requested torque value for two consecutive frames */ \
+  .min_valid_request_frames = 89, \
+  .max_invalid_request_frames = 2, \
+  .min_valid_request_rt_interval = 810000,  /* 810ms; a ~10% buffer on cutting every 90 frames */ \
+  .has_steer_req_tolerance = true, \
 }
 
-static bool driver_limit_check1(int val, int val_last, const struct sample_t *val_driver,
-                        const int MAX_VAL, const int MAX_RATE_UP, const int MAX_RATE_DOWN,
-                        const int MAX_ALLOWANCE, const int DRIVER_FACTOR) {
-
-  // torque delta/rate limits
-  int highest_allowed_rl = MAX(val_last, 0) + MAX_RATE_UP;
-  int lowest_allowed_rl = MIN(val_last, 0) - MAX_RATE_UP;
-
-  // driver
-  int driver_max_limit = MAX_VAL + (MAX_ALLOWANCE + val_driver->max) * DRIVER_FACTOR;
-  int driver_min_limit = -MAX_VAL + (-MAX_ALLOWANCE + val_driver->min) * DRIVER_FACTOR;
-
-  // if we've exceeded the applied torque, we must start moving toward 0
-  int highest_allowed = MIN(highest_allowed_rl, MAX(val_last - MAX_RATE_DOWN,
-                                             MAX(driver_max_limit, 0)));
-  int lowest_allowed = MAX(lowest_allowed_rl, MIN(val_last + MAX_RATE_DOWN,
-                                           MIN(driver_min_limit, 0)));
-
-  // check for violation
-  return max_limit_check1(val, highest_allowed, lowest_allowed);
-}
-
-static bool rt_rate_limit_check1(int val, int val_last, const int MAX_RT_DELTA) {
-
-  // *** torque real time rate limit check ***
-  int highest_val = MAX(val_last, 0) + MAX_RT_DELTA;
-  int lowest_val = MIN(val_last, 0) - MAX_RT_DELTA;
-
-  // check for violation
-  return max_limit_check1(val, highest_val, lowest_val);
-}
+extern const LongitudinalLimits HYUNDAI_COMMUNITY1_LONG_LIMITS;
+const LongitudinalLimits HYUNDAI_COMMUNITY1_LONG_LIMITS = {
+  .max_accel = 250,   // 1/100 m/s2
+  .min_accel = -400,  // 1/100 m/s2
+};
 
 static const CanMsg HYUNDAI_COMMUNITY1_TX_MSGS[] = {
   {0x340, 0, 8},  // LKAS11 Bus 0
@@ -100,10 +79,11 @@ static void hyundai_community1_rx_hook(const CANPacket_t *to_push) {
     }
 
     // ACC steering wheel buttons
-    if (addr == 0x4F1) {
+    if (addr == 0x4F1 && !hyundai_community1_legacy) {
       int cruise_button = GET_BYTE(to_push, 0) & 0x7U;
       bool main_button = GET_BIT(to_push, 3U);
-      hyundai_common_cruise_buttons_check(cruise_button, main_button);
+      bool lfa_button = false;
+      hyundai_common_cruise_buttons_check(cruise_button, main_button, lfa_button);
     }
 
     // gas press, different for EV, hybrid, and ICE models
@@ -144,6 +124,10 @@ uint32_t last_ts_mdps12_from_op = 0;
 uint32_t last_ts_fca11_from_op = 0;
 
 static bool hyundai_community1_tx_hook(const CANPacket_t *to_send) {
+
+  const SteeringLimits HYUNDAI_COMMUNITY1_STEERING_LIMITS = HYUNDAI_COMMUNITY1_LIMITS(384, 3, 7);
+  const SteeringLimits HYUNDAI_COMMUNITY1_STEERING_LIMITS_ALT = HYUNDAI_COMMUNITY1_LIMITS(270, 2, 3);
+
   bool tx = true;
   int addr = GET_ADDR(to_send);
 
@@ -168,8 +152,8 @@ static bool hyundai_community1_tx_hook(const CANPacket_t *to_send) {
 
     bool violation = false;
 
-    violation |= longitudinal_accel_checks(desired_accel_raw, HYUNDAI_LONG_LIMITS);
-    violation |= longitudinal_accel_checks(desired_accel_val, HYUNDAI_LONG_LIMITS);
+    violation |= longitudinal_accel_checks(desired_accel_raw, HYUNDAI_COMMUNITY1_LONG_LIMITS);
+    violation |= longitudinal_accel_checks(desired_accel_val, HYUNDAI_COMMUNITY1_LONG_LIMITS);
     //violation |= (aeb_decel_cmd != 0);
     //violation |= aeb_req;
 
@@ -181,49 +165,10 @@ static bool hyundai_community1_tx_hook(const CANPacket_t *to_send) {
   // LKA STEER: safety check
   if (addr == 0x340) {
     int desired_torque = ((GET_BYTES(to_send, 0, 4) >> 16) & 0x7ffU) - 1024U;
-    uint32_t ts = microsecond_timer_get();
-    bool violation = false;
+    bool steer_req = GET_BIT(to_send, 27U);
 
-    if (controls_allowed) {
-
-      // *** global torque limit check ***
-      bool torque_check = 0;
-      violation |= torque_check = max_limit_check1(desired_torque, HYUNDAI_MAX_STEER, -HYUNDAI_MAX_STEER);
-
-      // *** torque rate limit check ***
-      bool torque_rate_check = 0;
-      violation |= torque_rate_check = driver_limit_check1(desired_torque, desired_torque_last, &torque_driver,
-        HYUNDAI_MAX_STEER, HYUNDAI_MAX_RATE_UP, HYUNDAI_MAX_RATE_DOWN,
-        HYUNDAI_DRIVER_TORQUE_ALLOWANCE, HYUNDAI_DRIVER_TORQUE_FACTOR);
-
-      // used next time
-      desired_torque_last = desired_torque;
-
-      // *** torque real time rate limit check ***
-      bool torque_rt_check = 0;
-      violation |= torque_rt_check = rt_rate_limit_check1(desired_torque, rt_torque_last, HYUNDAI_MAX_RT_DELTA);
-
-      // every RT_INTERVAL set the new limits
-      uint32_t ts_elapsed = get_ts_elapsed(ts, ts_last1);
-      if (ts_elapsed > HYUNDAI_RT_INTERVAL) {
-        rt_torque_last = desired_torque;
-        ts_last1 = ts;
-      }
-    }
-
-    // no torque if controls is not allowed
-    if (!controls_allowed && (desired_torque != 0)) {
-      violation = true;
-    }
-
-    // reset to 0 if either controls is not allowed or there's a violation
-    if (!controls_allowed) { // a reset worsen the issue of Panda blocking some valid LKAS messages
-      desired_torque_last = 0;
-      rt_torque_last = 0;
-      ts_last1 = ts;
-    }
-
-    if (violation) {
+    const SteeringLimits limits = hyundai_alt_limits ? HYUNDAI_COMMUNITY1_STEERING_LIMITS_ALT : HYUNDAI_COMMUNITY1_STEERING_LIMITS;
+    if (steer_torque_cmd_checks(desired_torque, steer_req, limits)) {
       tx = false;
     }
   }

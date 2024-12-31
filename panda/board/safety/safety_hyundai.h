@@ -137,7 +137,8 @@ static void hyundai_rx_hook(const CANPacket_t *to_push) {
     if (addr == 0x4F1) {
       int cruise_button = GET_BYTE(to_push, 0) & 0x7U;
       bool main_button = GET_BIT(to_push, 3U);
-      hyundai_common_cruise_buttons_check(cruise_button, main_button);
+      bool lfa_button = false;
+      hyundai_common_cruise_buttons_check(cruise_button, main_button, lfa_button);
     }
 
     // gas press, different for EV, hybrid, and ICE models
@@ -252,8 +253,17 @@ static int hyundai_fwd_hook(int bus_num, int addr) {
   if (bus_num == 0) {
     bus_fwd = 2;
   }
-  if ((bus_num == 2) && (addr != 0x340) && (addr != 0x485)) {
-    bus_fwd = 0;
+
+  if (bus_num == 2) {
+    // Stock LKAS11 messages
+    bool is_lkas_11 = (addr == 0x340);
+    // LFA and HDA cluster icons
+    bool is_lfahda_mfc = (addr == 0x485);
+
+    bool block_msg = is_lkas_11 || is_lfahda_mfc;
+    if (!block_msg) {
+      bus_fwd = 0;
+    }
   }
 
   return bus_fwd;

@@ -8,13 +8,14 @@
 #include "common/util.h"
 
 
-const int YUV_BUFFER_COUNT = 20;
+const int VIPC_BUFFER_COUNT = 18;
 
 typedef struct FrameMetadata {
   uint32_t frame_id;
   uint32_t request_id;
   uint64_t timestamp_sof;
   uint64_t timestamp_eof;
+  uint64_t timestamp_end_of_isp;
   float processing_time;
 } FrameMetadata;
 

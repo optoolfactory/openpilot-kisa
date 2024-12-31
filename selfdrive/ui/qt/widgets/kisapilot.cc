@@ -12,6 +12,7 @@
 #include <QMenu>
 #include <QDateTime>
 #include <QVBoxLayout>
+#include <QTimer>
 
 #include "common/params.h"
 
@@ -750,6 +751,78 @@ void OpenpilotView::refresh() {
     btn.setEnabled(true);
     btnc.setEnabled(true);
   }
+}
+
+LiveParameterReset::LiveParameterReset() : AbstractControl(tr("Parameter Reset"), tr("Parameter Reset(LiveParams, LiveTorqueParams, Both)"), "") {
+
+  // setup widget
+  hlayout->addStretch(1);
+
+  btna.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+
+  btnb.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+
+  btnc.setStyleSheet(R"(
+    padding: 0;
+    border-radius: 50px;
+    font-size: 35px;
+    font-weight: 500;
+    color: #E4E4E4;
+    background-color: #393939;
+  )");
+
+  btna.setFixedSize(250, 100);
+  btnb.setFixedSize(250, 100);
+  btnc.setFixedSize(250, 100);
+  hlayout->addWidget(&btna);
+  hlayout->addWidget(&btnb);
+  hlayout->addWidget(&btnc);
+  btna.setText(tr("LiveParam"));
+  btnb.setText(tr("TorqParam"));
+  btnc.setText(tr("BothParam"));
+
+  QObject::connect(&btna, &QPushButton::clicked, [=]() {
+    if (ConfirmationDialog::confirm2(tr("Do you want to reset LiveParameter?"), this)) {
+      params.remove("LiveParameters");
+      params.putBool("OnRoadRefresh", true);
+      QTimer::singleShot(3000, [this]() {
+        params.putBool("OnRoadRefresh", false);
+      });
+    }
+  });
+  QObject::connect(&btnb, &QPushButton::clicked, [=]() {
+    if (ConfirmationDialog::confirm2(tr("Do you want to reset LiveTorqueParameter?"), this)) {
+      params.remove("LiveTorqueParameters");
+      params.putBool("OnRoadRefresh", true);
+      QTimer::singleShot(3000, [this]() {
+        params.putBool("OnRoadRefresh", false);
+      });
+    }
+  });
+  QObject::connect(&btnc, &QPushButton::clicked, [=]() {
+    if (ConfirmationDialog::confirm2(tr("Do you want to reset both Live and Torq Params?"), this)) {
+      params.remove("LiveParameters");
+      params.remove("LiveTorqueParameters");
+      params.putBool("OnRoadRefresh", true);
+      QTimer::singleShot(3000, [this]() {
+        params.putBool("OnRoadRefresh", false);
+      });
+    }
+  });
 }
 
 CarSelectCombo::CarSelectCombo() : AbstractControl("", "", "") 
@@ -5485,7 +5558,7 @@ void OCurvSpeed::refresh() {
   btn.setText(tr("EDIT"));
 }
 
-KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("Select the navigation you want to use.(None/TMap/Mappy/Waze) Refer to Readme.txt in the directory."), "../assets/offroad/icon_shell.png") {
+KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("Select the navigation you want to use.(None/TMap/Mappy/Waze/NaverMap) Refer to Readme.txt in the directory."), "../assets/offroad/icon_shell.png") {
 
   label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
   label.setStyleSheet("color: #e0e879");
@@ -5542,7 +5615,7 @@ KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("
 void KISANaviSelect::refresh() {
   QString option = QString::fromStdString(params.get("KISANaviSelect"));
   if (option == "0") {label.setText(tr("None"));
-  } else if (option == "1") {label.setText(tr("TMap/Mappy"));
+  } else if (option == "1") {label.setText(tr("TMap/Mappy/NaverMap"));
   } else if (option == "2") {label.setText(tr("Waze"));
   }
 }

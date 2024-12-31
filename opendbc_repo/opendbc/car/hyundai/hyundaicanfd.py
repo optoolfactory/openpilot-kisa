@@ -38,92 +38,106 @@ def create_steering_messages(packer, CP, CAN, enabled, lat_active, steering_pres
 
   ret = []
 
-  if angle_control:
-    values = {
-      "LKA_MODE": 0,
-      "LKA_ICON": 2 if enabled else 1,
-      "TORQUE_REQUEST": 0, #apply_steer,
-      "LKA_ASSIST": 0,
-      "STEER_REQ": 0,  # 1 if lat_active else 0,
-      "STEER_MODE": 0,
-      "HAS_LANE_SAFETY": 0,  # hide LKAS settings
-      "LKA_ACTIVE": 3 if lat_active else 0,  # this changes sometimes, 3 seems to indicate engaged
-      "NEW_SIGNAL_2": 0,
-      "LKAS_ANGLE_CMD": -apply_angle,
-      "LKAS_ANGLE_ACTIVE": 2 if lat_active else 1,
-      # a torque scale value? ramps up when steering, highest seen is 234
-      # "UNKNOWN": 50 if lat_active and not steering_pressed else 0,
-      "UNKNOWN": max_torque if lat_active else 0,
-      "NEW_SIGNAL_1": 10,
-      "NEW_SIGNAL_3": 9,
-      "NEW_SIGNAL_4": 1,
-      "NEW_SIGNAL_5": 1,
-      "NEW_SIGNAL_6": 1,
-      "NEW_SIGNAL_7": 1,
-    }
+  if CP.flags & HyundaiFlags.CANFD_HDA2:
+    hda2_lkas_msg = "LKAS_ALT" if CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING else "LKAS"
+    if angle_control:
+      values = {
+        "LKA_MODE": 0,
+        "TORQUE_REQUEST": 0,
+        "LKA_ASSIST": 0,
+        "STEER_REQ": 0,
+        "STEER_MODE": 0,
+        "HAS_LANE_SAFETY": 0,
+        "NEW_SIGNAL_2": 0,
+        "LKA_ACTIVE": 3 if lat_active else 0,
+        "LKA_ICON": 2 if enabled else 1,
+        "LKAS_ANGLE_ACTIVE": 2 if lat_active else 0,
+        "LKAS_ANGLE_CMD": -apply_angle if lat_active else 0,
+        "LKAS_ANGLE_MAX_TORQUE": max_torque if lat_active else 0, # max is 250
+        "LKAS_SIGNAL_1": 10,
+        "NEW_SIGNAL_3": 9,
+        "LKAS_SIGNAL_2": 1,
+        "LKAS_SIGNAL_3": 1,
+        "LKAS_SIGNAL_4": 1,
+        "LKAS_SIGNAL_5": 1,
+      }
+    else:
+      values = {
+        "LKA_MODE": 2,
+        "LKA_ICON": 2 if enabled else 1,
+        "TORQUE_REQUEST": apply_steer,
+        "LKA_ASSIST": 0,
+        "STEER_REQ": 1 if lat_active else 0,
+        "STEER_MODE": 0,
+        "HAS_LANE_SAFETY": 0,  # hide LKAS settings
+        "NEW_SIGNAL_1": 0,
+        "NEW_SIGNAL_2": 0,
+      }
+    if CP.openpilotLongitudinalControl:
+      ret.append(packer.make_can_msg("LFA", CAN.ECAN, values))
+    ret.append(packer.make_can_msg(hda2_lkas_msg, CAN.ACAN, values))
   else:
     values = {
-      "LKA_MODE": 2,
+      "LKA_MODE": 0,
+      "LKA_ACTIVE": 3 if lat_active else 0,
       "LKA_ICON": 2 if enabled else 1,
       "TORQUE_REQUEST": apply_steer,
       "LKA_ASSIST": 0,
       "STEER_REQ": 1 if lat_active else 0,
       "STEER_MODE": 0,
       "HAS_LANE_SAFETY": 0,  # hide LKAS settings
-      "NEW_SIGNAL_1": 0,
       "NEW_SIGNAL_2": 0,
+      "NEW_SIGNAL_3": 31 if lat_active else 100,
+      "NEW_SIGNAL_4": 1,
     }
-
-  if CP.flags & HyundaiFlags.CANFD_HDA2:
-    hda2_lkas_msg = "LKAS_ALT" if CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING else "LKAS"
-    if CP.openpilotLongitudinalControl:
-      ret.append(packer.make_can_msg("LFA", CAN.ECAN, values))
-    ret.append(packer.make_can_msg(hda2_lkas_msg, CAN.ACAN, values))
-  else:
     ret.append(packer.make_can_msg("LFA", CAN.ECAN, values))
 
   return ret
 
 def create_suppress_lfa(packer, CAN, hda2_lfa_block_msg, hda2_alt_steering, enabled, lfa_cnt):
   suppress_msg = "CAM_0x362" if hda2_alt_steering else "CAM_0x2a4"
-  msg_bytes = 32 if hda2_alt_steering else 24
 
-  values = {f"BYTE{i}": hda2_lfa_block_msg[f"BYTE{i}"] for i in range(3, msg_bytes) if i != 7}
-  values["COUNTER"] = hda2_lfa_block_msg["COUNTER"]
+  # msg_bytes = 32 if hda2_alt_steering else 24
+  # values = {f"BYTE{i}": hda2_lfa_block_msg[f"BYTE{i}"] for i in range(9, msg_bytes)}
+
+  values = hda2_lfa_block_msg
+  
+  values["LEFT_LANE_LINE_PROB"] = hda2_lfa_block_msg["LEFT_LANE_LINE_PROB"] # maybe double lane above 20
+  values["RIGHT_LANE_LINE_PROB"] = hda2_lfa_block_msg["RIGHT_LANE_LINE_PROB"] # maybe double lane above 20
+  values["LEFT_LANE_TYPE"] = hda2_lfa_block_msg["LEFT_LANE_TYPE"]
+  values["RIGHT_LANE_TYPE"] = hda2_lfa_block_msg["RIGHT_LANE_TYPE"]
+  values["LEFT_LANE_COLOR"] = hda2_lfa_block_msg["LEFT_LANE_COLOR"]
+  values["RIGHT_LANE_COLOR"] = hda2_lfa_block_msg["RIGHT_LANE_COLOR"]
+  values["LEFT_GUARD"] = hda2_lfa_block_msg["LEFT_GUARD"]
+  values["RIGHT_GUARD"] = hda2_lfa_block_msg["RIGHT_GUARD"]
+  values["LEFT_BLOCKED"] = hda2_lfa_block_msg["LEFT_BLOCKED"]
+  values["RIGHT_BLOCKED"] = hda2_lfa_block_msg["RIGHT_BLOCKED"]
+  values["DISTANCE_1"] = hda2_lfa_block_msg["DISTANCE_1"]
+  values["DISTANCE_2"] = hda2_lfa_block_msg["DISTANCE_2"]
+  values["DISTANCE_3"] = hda2_lfa_block_msg["DISTANCE_3"]
+  values["DISTANCE_4"] = hda2_lfa_block_msg["DISTANCE_4"]
+  values["DISTANCE_5"] = hda2_lfa_block_msg["DISTANCE_5"]
+  values["DISTANCE_6"] = hda2_lfa_block_msg["DISTANCE_6"]
+  values["DISTANCE_7"] = hda2_lfa_block_msg["DISTANCE_7"]
+  values["DISTANCE_8"] = hda2_lfa_block_msg["DISTANCE_8"]
   values["SET_ME_0"] = 0
   values["SET_ME_0_2"] = 0
   values["LEFT_LANE_LINE"] = 0 if enabled else 3
   values["RIGHT_LANE_LINE"] = 0 if enabled else 3
   return packer.make_can_msg(suppress_msg, CAN.ACAN, values)
 
-def create_buttons(packer, CP, CAN, cnt, btn, cruise_btn_info_copy, regen = None, r_pad = None, l_pad = None):
-  values = {s: cruise_btn_info_copy[s] for s in [
-    "_CHECKSUM",
-    "COUNTER",
-    "CRUISE_BUTTONS",
-    "ADAPTIVE_CRUISE_MAIN_BTN",
-    "NORMAL_CRUISE_MAIN_BTN",
-    "LKAS_BTN",
-    "RIGHT_PADDLE",
-    "LEFT_PADDLE",
-    "SET_ME_1",
-  ]}
-
-  values.update({
+def create_buttons(packer, CP, CAN, cnt, btn, regen = None, r_pad = None, l_pad = None):
+  values = {
     "COUNTER": cnt,
-    "CRUISE_BUTTONS": btn,
     "SET_ME_1": 1,
-  })
+    "CRUISE_BUTTONS": btn,
+  }
 
   if regen:
     if r_pad:
-      values.update({
-        "RIGHT_PADDLE": r_pad,
-      })
+      values["RIGHT_PADDLE"] = r_pad
     if l_pad:
-      values.update({
-        "LEFT_PADDLE": l_pad,
-      })
+      values["LEFT_PADDLE"] = l_pad
 
   bus = CAN.ECAN if CP.flags & HyundaiFlags.CANFD_HDA2 else CAN.CAM
   return packer.make_can_msg("CRUISE_BUTTONS", bus, values)

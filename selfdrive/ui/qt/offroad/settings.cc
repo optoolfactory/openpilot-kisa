@@ -12,12 +12,13 @@
 
 #include "common/watchdog.h"
 #include "common/util.h"
+#include "selfdrive/ui/qt/offroad/driverview.h"
 #include "selfdrive/ui/qt/network/networking.h"
 #include "selfdrive/ui/qt/offroad/settings.h"
 #include "selfdrive/ui/qt/qt_window.h"
 #include "selfdrive/ui/qt/widgets/prime.h"
 #include "selfdrive/ui/qt/widgets/scrollview.h"
-#include "selfdrive/ui/qt/widgets/ssh_keys.h"
+#include "selfdrive/ui/qt/offroad/developer_panel.h"
 
 #include "selfdrive/ui/qt/widgets/kisapilot.h" // kisapilot
 #include "selfdrive/ui/qt/widgets/steerWidget.h" // kisapilot
@@ -160,7 +161,12 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
 
   auto dcamBtn = new ButtonControl(tr("Driver Camera"), tr("PREVIEW"),
                                    tr("Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)"));
-  connect(dcamBtn, &ButtonControl::clicked, [=]() { emit showDriverView(); });
+  connect(dcamBtn, &ButtonControl::clicked, [this, dcamBtn]() {
+    dcamBtn->setEnabled(false);
+    DriverViewDialog driver_view(this);
+    driver_view.exec();
+    dcamBtn->setEnabled(true);
+  });
   addItem(dcamBtn);
 
   auto resetCalibBtn = new ButtonControl(tr("Reset Calibration"), tr("RESET"), " ");
@@ -168,7 +174,6 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   connect(resetCalibBtn, &ButtonControl::clicked, [&]() {
     if (ConfirmationDialog::confirm(tr("Are you sure you want to reset calibration?"), tr("Reset"), this)) {
       params.remove("CalibrationParams");
-      //params.remove("LiveTorqueParameters");
       params.putBool("OnRoadRefresh", true);
       QTimer::singleShot(3000, [this]() {
         params.putBool("OnRoadRefresh", false);
@@ -176,6 +181,8 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     }
   });
   addItem(resetCalibBtn);
+
+  addItem(new LiveParameterReset());
 
   auto retrainingBtn = new ButtonControl(tr("Review Training Guide"), tr("REVIEW"), tr("Review the rules, features, and limitations of openpilot"));
   connect(retrainingBtn, &ButtonControl::clicked, [=]() {
@@ -193,16 +200,6 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     });
     addItem(regulatoryBtn);
   }
-
-  //const char* cal_ok = "sudo cp -f /data/openpilot/selfdrive/assets/CalibrationParams /data/params/d/";
-  auto calokbtn = new ButtonControl("캘리브레이션 강제 활성화", "실행");
-  connect(calokbtn, &ButtonControl::clicked, [&]() {
-      if (ConfirmationDialog::confirm(tr("캘리브레이션을 강제로 설정합니다. 인게이지 확인용이니 실 주행시에는 초기화 하시기 바랍니다"), tr("확인"), this)) {
-        std::system("sudo cp -f /data/openpilot/selfdrive/assets/CalibrationParams /data/params/d/");
-    }
-  }
-  );
-  addItem(calokbtn);
 
   auto translateBtn = new ButtonControl(tr("Change Language"), tr("CHANGE"), "");
   connect(translateBtn, &ButtonControl::clicked, [=]() {
@@ -434,7 +431,7 @@ void SoftwarePanel::updateLabels() {
   lastUpdateLbl->setText(lastUpdate);
   updateBtn->setText(tr("CHECK"));
   updateBtn->setEnabled(true);
-  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(33)));
+  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)));
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(lhash + "(" + lhash_date + ")" + " / " + rhash + "(" + rhash_date + ")");
 }
@@ -488,6 +485,8 @@ UIPanel::UIPanel(QWidget *parent) : QFrame(parent) {
   layout->addWidget(new RPMAnimatedMaxValue());
   layout->addWidget(new LowUIProfile());
 }
+
+
 DrivingPanel::DrivingPanel(QWidget *parent) : QFrame(parent) {
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(50, 0, 50, 0);
@@ -512,39 +511,6 @@ DrivingPanel::DrivingPanel(QWidget *parent) : QFrame(parent) {
   layout->addWidget(new UseLegacyLaneModel());
 }
 
-DeveloperPanel::DeveloperPanel(QWidget *parent) : QFrame(parent) {
-  QVBoxLayout *layout = new QVBoxLayout(this);
-  layout->setContentsMargins(50, 0, 50, 0);
-  layout->setSpacing(30);
-
-  // kisapilot
-  layout->addWidget(new DebugUiOneToggle());
-  layout->addWidget(new DebugUiTwoToggle());
-  layout->addWidget(new DebugUiThreeToggle());
-  layout->addWidget(new KISADebug());
-  layout->addWidget(new LongLogToggle());
-  layout->addWidget(horizontal_line());
-  layout->addWidget(new ShowErrorToggle());
-  layout->addWidget(new PrebuiltToggle());
-  layout->addWidget(horizontal_line());
-  layout->addWidget(new LDWSToggle());
-  layout->addWidget(new CanFdHda2Toggle());
-  layout->addWidget(new GearDToggle());
-  layout->addWidget(new SteerWarningFixToggle());
-  layout->addWidget(new IgnoreCanErroronISGToggle());
-  layout->addWidget(new NoSmartMDPSToggle());
-  layout->addWidget(horizontal_line());
-  layout->addWidget(new UFCModeEnabledToggle());
-  layout->addWidget(new StockLKASEnabledatDisenagedStatusToggle());
-  layout->addWidget(horizontal_line());
-  layout->addWidget(new UserSpecificFeature());
-  //layout->addWidget(new MapboxToken());
-
-  layout->addWidget(horizontal_line());
-  layout->addWidget(new CarSelectCombo());
-  layout->addWidget(horizontal_line());
-  layout->addWidget(new ModelSelectCombo());
-}
 
 TuningPanel::TuningPanel(QWidget *parent) : QFrame(parent) {
   QVBoxLayout *layout = new QVBoxLayout(this);
@@ -630,7 +596,6 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
   DevicePanel *device = new DevicePanel(this);
   SoftwarePanel *software = new SoftwarePanel(this);
   QObject::connect(device, &DevicePanel::reviewTrainingGuide, this, &SettingsWindow::reviewTrainingGuide);
-  QObject::connect(device, &DevicePanel::showDriverView, this, &SettingsWindow::showDriverView);
 
   TogglesPanel *toggles = new TogglesPanel(this);
   QObject::connect(this, &SettingsWindow::expandToggleDescription, toggles, &TogglesPanel::expandToggleDescription);

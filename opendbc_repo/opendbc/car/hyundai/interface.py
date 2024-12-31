@@ -1,7 +1,7 @@
 from panda import Panda
-from opendbc.car import get_safety_config, structs
+from opendbc.car import Bus, get_safety_config, structs
 from opendbc.car.hyundai.hyundaicanfd import CanBus
-from opendbc.car.hyundai.values import HyundaiFlags, CAR, DBC, CAMERA_SCC_CAR, CANFD_RADAR_SCC_CAR, \
+from opendbc.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD_RADAR_SCC_CAR, \
                                                    CANFD_UNSUPPORTED_LONGITUDINAL_CAR, \
                                                    UNSUPPORTED_LONGITUDINAL_CAR, LEGACY_SAFETY_MODE_CAR, LEGACY_SAFETY_MODE_CAR_ALT, ANGLE_CONTROL_CAR
 from opendbc.car.hyundai.radar_interface import RADAR_START_ADDR
@@ -18,7 +18,7 @@ from decimal import Decimal
 Ecu = structs.CarParams.Ecu
 SteerControlType = structs.CarParams.SteerControlType
 # Cancel button can sometimes be ACC pause/resume button, main button can also enable on some cars
-ENABLE_BUTTONS = (ButtonType.accelCruise, ButtonType.decelCruise, ButtonType.cancel, ButtonType.mainCruise)
+ENABLE_BUTTONS = (ButtonType.accelCruise, ButtonType.decelCruise, ButtonType.cancel, ButtonType.mainCruise, ButtonType.lfa)
 
 
 class CarInterface(CarInterfaceBase):
@@ -47,6 +47,8 @@ class CarInterface(CarInterfaceBase):
       ret.lfaHdaAvailable = False
       ret.navAvailable = False
       ret.adrvAvailable = 0x200 in fingerprint[CAN.ECAN]
+      ret.brakeAvailable = 0x65 in fingerprint[CAN.ECAN]
+      ret.tpmsAvailable = 0x3a0 in fingerprint[CAN.ECAN]
 
       if 0x105 in fingerprint[CAN.ECAN]:
         ret.flags |= HyundaiFlags.HYBRID.value
@@ -84,13 +86,14 @@ class CarInterface(CarInterfaceBase):
         ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CANFD_ALT_BUTTONS
       if ret.flags & HyundaiFlags.CANFD_CAMERA_SCC:
         ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CAMERA_SCC
-
+      if params.get_bool("LFAButtonEngagement"):
+        ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CANFD_LFA_ENG
     else:
       ret.isCanFD = False
       # Shared configuration for non CAN-FD cars
-      ret.experimentalLongitudinalAvailable = candidate not in (UNSUPPORTED_LONGITUDINAL_CAR | CAMERA_SCC_CAR)
+      ret.experimentalLongitudinalAvailable = candidate not in UNSUPPORTED_LONGITUDINAL_CAR
       ret.enableBsm = 0x58b in fingerprint[0]
-      ret.sccBus = 2 if int(Params().get("KISALongAlt", encoding="utf8")) in (1, 2) and not Params().get_bool("ExperimentalLongitudinalEnabled") else 0
+      ret.sccBus = 2 if int(params.get("KISALongAlt", encoding="utf8")) in (1, 2) and not params.get_bool("ExperimentalLongitudinalEnabled") else 0
       ret.bsmAvailable = True if 1419 in fingerprint[0] else False
       ret.lfaAvailable = True if 1157 in fingerprint[2] else False
       ret.lvrAvailable = True if 871 in fingerprint[0] else False
@@ -124,16 +127,16 @@ class CarInterface(CarInterfaceBase):
     ret.steerActuatorDelay = 0.1
     ret.steerLimitTimer = 0.4
 
-    ret.smoothSteer.method = int( Params().get("KisaSteerMethod", encoding="utf8") )   # 1
-    ret.smoothSteer.maxSteeringAngle = float( Params().get("KisaMaxSteeringAngle", encoding="utf8") )   # 90
-    ret.smoothSteer.maxDriverAngleWait = float( Params().get("KisaMaxDriverAngleWait", encoding="utf8") )  # 0.002
-    ret.smoothSteer.maxSteerAngleWait = float( Params().get("KisaMaxSteerAngleWait", encoding="utf8") )   # 0.001  # 10 sec
-    ret.smoothSteer.driverAngleWait = float( Params().get("KisaDriverAngleWait", encoding="utf8") )  #0.001
+    ret.smoothSteer.method = int( params.get("KisaSteerMethod", encoding="utf8") )   # 1
+    ret.smoothSteer.maxSteeringAngle = float( params.get("KisaMaxSteeringAngle", encoding="utf8") )   # 90
+    ret.smoothSteer.maxDriverAngleWait = float( params.get("KisaMaxDriverAngleWait", encoding="utf8") )  # 0.002
+    ret.smoothSteer.maxSteerAngleWait = float( params.get("KisaMaxSteerAngleWait", encoding="utf8") )   # 0.001  # 10 sec
+    ret.smoothSteer.driverAngleWait = float( params.get("KisaDriverAngleWait", encoding="utf8") )  #0.001
 
     ret.steerActuatorDelay = float(Decimal(params.get("SteerActuatorDelayAdj", encoding="utf8")) * Decimal('0.01'))
     ret.steerLimitTimer = float(Decimal(params.get("SteerLimitTimerAdj", encoding="utf8")) * Decimal('0.01'))
 
-    ret.experimentalLong = Params().get_bool("ExperimentalLongitudinalEnabled")
+    ret.experimentalLong = params.get_bool("ExperimentalLongitudinalEnabled")
     ret.experimentalLongAlt = candidate in LEGACY_SAFETY_MODE_CAR_ALT
     
     if candidate in ANGLE_CONTROL_CAR:
@@ -152,12 +155,9 @@ class CarInterface(CarInterfaceBase):
       elif lat_control_method == 4:
         set_lat_tune(ret.lateralTuning, LatTunes.ATOM)    # Hybrid tune
 
-    if ret.flags & HyundaiFlags.ALT_LIMITS:
-      ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_ALT_LIMITS
-
     # Common longitudinal control setup
 
-    ret.radarUnavailable = RADAR_START_ADDR not in fingerprint[1] or DBC[ret.carFingerprint]["radar"] is None
+    ret.radarUnavailable = RADAR_START_ADDR not in fingerprint[1] or Bus.radar not in DBC[ret.carFingerprint]
     ret.openpilotLongitudinalControl = experimental_long and ret.experimentalLongitudinalAvailable
     ret.pcmCruise = not ret.openpilotLongitudinalControl
     ret.startingState = True
@@ -168,15 +168,15 @@ class CarInterface(CarInterfaceBase):
     if ret.flags & HyundaiFlags.CANFD:
       pass
     else:
-      if Params().get_bool("ExperimentalLongitudinalEnabled"):
+      if params.get_bool("ExperimentalLongitudinalEnabled"):
         if candidate in LEGACY_SAFETY_MODE_CAR:
           # these cars require a special panda safety mode due to missing counters and checksums in the messages
           ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hyundaiLegacy)]
         else:
           ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hyundai, 0)]
-      elif candidate in LEGACY_SAFETY_MODE_CAR_ALT or (candidate in LEGACY_SAFETY_MODE_CAR and Params().get_bool("UFCModeEnabled")):
+      elif candidate in LEGACY_SAFETY_MODE_CAR_ALT or (candidate in LEGACY_SAFETY_MODE_CAR and params.get_bool("UFCModeEnabled")):
         ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hyundaiCommunity1Legacy)]
-      elif Params().get_bool("UFCModeEnabled"):
+      elif params.get_bool("UFCModeEnabled"):
         ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hyundaiCommunity1)]
       elif candidate in LEGACY_SAFETY_MODE_CAR:
         # these cars require a special panda safety mode due to missing counters and checksums in the messages
@@ -192,15 +192,15 @@ class CarInterface(CarInterfaceBase):
         ret.scc14Available = 905 in fingerprint[0] or 905 in fingerprint[2]
         ret.openpilotLongitudinalControl = True
         ret.radarUnavailable = False
-        if int(Params().get("KISALongAlt", encoding="utf8")) == 1:
+        if int(params.get("KISALongAlt", encoding="utf8")) == 1:
           ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hyundaiCommunity1)]
-        elif int(Params().get("KISALongAlt", encoding="utf8")) == 2:
+        elif int(params.get("KISALongAlt", encoding="utf8")) == 2:
           ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hyundaiCommunity2)]
         ret.pcmCruise = True
       else:
         ret.pcmCruise = not ret.openpilotLongitudinalControl
 
-    if (ret.openpilotLongitudinalControl and int(Params().get("KISALongAlt", encoding="utf8")) not in (1, 2)) or Params().get_bool("ExperimentalLongitudinalEnabled"):
+    if (ret.openpilotLongitudinalControl and int(params.get("KISALongAlt", encoding="utf8")) not in (1, 2)) or params.get_bool("ExperimentalLongitudinalEnabled"):
       ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_LONG
     if ret.flags & HyundaiFlags.HYBRID:
       ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_HYBRID_GAS

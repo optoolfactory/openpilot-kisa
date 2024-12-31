@@ -49,6 +49,7 @@ class CarSpecificEvents:
     self.long_alt = int(Params().get("KISALongAlt", encoding="utf8"))
     self.exp_long = self.CP.sccBus <= 0 and self.CP.openpilotLongitudinalControl and self.long_alt not in (1, 2)
     self.no_mdps_mods = Params().get_bool("NoSmartMDPS")
+    self.lfa_button_eng = Params().get_bool("LFAButtonEngagement")
 
   def update(self, CS: car.CarState, CS_prev: car.CarState, CC: car.CarControl):
     if self.CP.carName in ('body', 'mock'):
@@ -157,7 +158,8 @@ class CarSpecificEvents:
       # To avoid re-engaging when openpilot cancels, check user engagement intention via buttons
       # Main button also can trigger an engagement on these cars
       self.cruise_buttons.append(any(ev.type in HYUNDAI_ENABLE_BUTTONS for ev in CS.buttonEvents))
-      events = self.create_common_events(CS, CS_prev, pcm_enable=self.CP.pcmCruise, allow_enable=any(self.cruise_buttons))
+      events = self.create_common_events(CS, CS_prev, extra_gears=(GearShifter.sport, GearShifter.manumatic),
+                                         pcm_enable=self.CP.pcmCruise, allow_enable=any(self.cruise_buttons))
 
       # low speed steer alert hysteresis logic (only for cars with steer cut off above 10 m/s)
       if CS.vEgo < (self.CP.minSteerSpeed + 2.) and self.CP.minSteerSpeed > 10.:
@@ -215,7 +217,7 @@ class CarSpecificEvents:
       elif CC.lkasTempDisabledTimer:
         events.add(EventName.lkasEnabled)
 
-      if self.exp_long:
+      if self.exp_long or self.lfa_button_eng:
         if CS.cruiseState.enabled and not CS_prev.cruiseState.enabled and any(self.cruise_buttons):
           events.add(EventName.buttonEnable)
         elif not CS.cruiseState.enabled and any(self.cruise_buttons):

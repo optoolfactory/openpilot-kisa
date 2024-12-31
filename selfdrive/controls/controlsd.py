@@ -50,7 +50,7 @@ class Controls:
 
     self.sm = messaging.SubMaster(['liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
                                    'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'lateralPlan', 'radarState', 'liveENaviData'], poll='selfdriveState')
+                                   'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'lateralPlan', 'radarState', 'liveENaviData', 'liveMapData'], poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'])
 
     self.steer_limited = False
@@ -176,15 +176,20 @@ class Controls:
       desired_curvature1, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates)
       desired_curvature2 = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
       desired_curvature3 = interp(CS.vEgo, [0.3, 1.0], [desired_curvature1, desired_curvature2])
-      self.desired_curvature = interp(model_speed, [50, 100], [desired_curvature3, desired_curvature1])
+      self.desired_curvature = interp(model_speed, [30, 80], [desired_curvature3, desired_curvature1])
       if lat_plan.laneChangeState != LaneChangeState.off:
         self.desired_curvature = desired_curvature2
     elif self.legacy_lane_mode == 1:
-      self.desired_curvature, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates)
+      model_speed = self.sm['lateralPlan'].modelSpeed
+      desired_curvature1, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates)
+      desired_curvature2 = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
+      desired_curvature3 = interp(CS.vEgo, [0.3, 1.0], [desired_curvature1, desired_curvature2])
+      self.desired_curvature = interp(model_speed, [29, 30], [desired_curvature3, desired_curvature1])
       if lat_plan.laneChangeState != LaneChangeState.off:
-        self.desired_curvature = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
+        self.desired_curvature = desired_curvature2
     else:
       self.desired_curvature = clip_curvature(CS.vEgo, self.desired_curvature, model_v2.action.desiredCurvature)
+      self.desired_curvature_rate = 0.0
     actuators.curvature = self.desired_curvature
     actuators.steer, actuators.steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
                                                                             self.steer_limited, self.desired_curvature,
@@ -303,10 +308,10 @@ class Controls:
           cs.limitSpeedCamera = float(self.roadname_and_slc[r_index+1])
         except:
           pass
-    elif self.navi_selection == 1 and int(self.sm['liveENaviData'].safetySign) not in (20, 21):
+    elif self.navi_selection == 1 and str(self.sm['liveENaviData'].safetySign) not in ("20", "21"):
       cs.limitSpeedCamera = int(round(self.sm['liveENaviData'].speedLimit))
       cs.limitSpeedCameraDist = float(self.sm['liveENaviData'].safetyDistance)
-      cs.mapSign = int(self.sm['liveENaviData'].safetySign)
+      cs.mapSign = str(self.sm['liveENaviData'].safetySign)
     else:
       cs.limitSpeedCamera = 0
       cs.limitSpeedCameraDist = 0
@@ -379,7 +384,7 @@ class Controls:
       self.update()
       CC, lac_log = self.state_control()
       self.publish(CC, lac_log)
-      rk.keep_time()
+      rk.monitor_time()
 
 def main():
   config_realtime_process(4, Priority.CTRL_HIGH)

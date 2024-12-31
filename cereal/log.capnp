@@ -517,6 +517,9 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   nvmeTempC @35 :List(Float32);
   modemTempC @36 :List(Float32);
   pmicTempC @39 :List(Float32);
+  intakeTempC @46 :Float32;
+  exhaustTempC @47 :Float32;
+  caseTempC @48 :Float32;
   maxTempC @44 :Float32;  # max of other temps, used to control fan
   thermalZones @38 :List(ThermalZone);
   thermalStatus @14 :ThermalStatus;
@@ -524,7 +527,7 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   fanSpeedPercentDesired @10 :UInt16;
   screenBrightnessPercent @37 :Int8;
 
-  ipAddress @46 :Text;
+  ipAddress @49 :Text;
 
   struct ThermalZone {
     name @0 :Text;
@@ -588,7 +591,7 @@ struct DeviceState @0xa4d8b5af2aa492eb {
   chargingErrorDEPRECATED @17 :Bool;
   chargingDisabledDEPRECATED @18 :Bool;
   usbOnlineDEPRECATED @12 :Bool;
-  ambientTempC @30 :Float32;
+  ambientTempCDEPRECATED @30 :Float32;
 }
 
 struct PandaState @0xa7649e2575e4591e {
@@ -882,7 +885,6 @@ struct ControlsState @0x97ff69c53601abf1 {
   lateralPlanMonoTime @50 :UInt64;
 
   longControlState @30 :Car.CarControl.Actuators.LongControlState;
-  vTargetLead @3 :Float32;
   upAccelCmd @4 :Float32;
   uiAccelCmd @5 :Float32;
   ufAccelCmd @33 :Float32;
@@ -899,7 +901,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   limitSpeedCamera @72 :Float32 = 0;
   limitSpeedCameraDist @73 :Float32 = 0;
   steerRatio @74 :Float32;
-  mapSign @75 :Float32;
+  mapSign @75 :Text;
   mapSignCam @76 :Float32;
   dynamicTRMode @77 :UInt8;
   dynamicTRValue @78 :Float32;
@@ -1090,6 +1092,7 @@ struct ControlsState @0x97ff69c53601abf1 {
   startMonoTimeDEPRECATED @48 :UInt64;
   cumLagMsDEPRECATED @15 :Float32;
   aTargetDEPRECATED @35 :Float32;
+  vTargetLeadDEPRECATED @3 :Float32;
 }
 
 struct DrivingModelData {
@@ -2397,8 +2400,8 @@ struct LiveTorqueParametersData {
 struct LiveENaviData {
   speedLimit @0 :Int32;
   safetyDistance @1 :Float32;
-  safetySign @2 :Int32;
-  turnInfo @3 :Int32;
+  safetySign @2 :Text;
+  turnInfo @3 :Text;
   distanceToTurn @4 :Float32;
   safetySignCam @5 :Int32;
   connectionAlive @6 :Bool;
@@ -2637,6 +2640,14 @@ struct Microphone {
   filteredSoundPressureWeightedDb @2 :Float32;
 }
 
+struct Touch {
+  sec @0 :Int64;
+  usec @1 :Int64;
+  type @2 :UInt8;
+  code @3 :Int32;
+  value @4 :Int32;
+}
+
 struct Event {
   logMonoTime @0 :UInt64;  # nanoseconds
   valid @67 :Bool = true;
@@ -2717,6 +2728,9 @@ struct Event {
     logMessage @18 :Text;
     errorLogMessage @85 :Text;
 
+    # touch frame
+    touch @135 :List(Touch);
+
     # navigation
     navInstruction @82 :NavInstruction;
     navRoute @83 :NavRoute;
@@ -2743,8 +2757,8 @@ struct Event {
     customReservedRawData1 @125 :Data;
     customReservedRawData2 @126 :Data;
 
-    liveENaviData @135: LiveENaviData;
-    liveMapData @136: LiveMapData;
+    liveENaviData @136: LiveENaviData;
+    liveMapData @137: LiveMapData;
 
     # *********** Custom: reserved for forks ***********
     customReserved0 @107 :Custom.CustomReserved0;

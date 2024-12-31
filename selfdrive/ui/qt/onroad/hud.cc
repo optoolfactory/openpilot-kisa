@@ -169,9 +169,9 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
       }
     }
     if (s->scene.navi_select == 1) {
-      if (s->scene.liveENaviData.ekisasafetysign) uiText(p, ui_viz_rx, ui_viz_ry+560, "CS:" + QString::number(s->scene.liveENaviData.ekisasafetysign, 'f', 0));
+      if (s->scene.liveENaviData.ekisasafetysign != "") uiText(p, ui_viz_rx, ui_viz_ry+560, "CS:" + QString::fromStdString(s->scene.liveENaviData.ekisasafetysign));
       if (s->scene.liveENaviData.ekisasafetydist) uiText(p, ui_viz_rx, ui_viz_ry+600, "SL:" + QString::number(s->scene.liveENaviData.ekisaspeedlimit, 'f', 0) + "/DS:" + QString::number(s->scene.liveENaviData.ekisasafetydist, 'f', 0));
-      if (s->scene.liveENaviData.ekisaturninfo) uiText(p, ui_viz_rx, ui_viz_ry+640, "TI:" + QString::number(s->scene.liveENaviData.ekisaturninfo, 'f', 0) + "/DT:" + QString::number(s->scene.liveENaviData.ekisadisttoturn, 'f', 0));
+      if (s->scene.liveENaviData.ekisaturninfo != "") uiText(p, ui_viz_rx, ui_viz_ry+640, "TI:" + QString::fromStdString(s->scene.liveENaviData.ekisaturninfo) + "/DT:" + QString::number(s->scene.liveENaviData.ekisadisttoturn, 'f', 0));
       if (s->scene.liveENaviData.ekisaroadlimitspeed > 0 && s->scene.liveENaviData.ekisaroadlimitspeed < 200) uiText(p, ui_viz_rx, ui_viz_ry+680, "RS:" + QString::number(s->scene.liveENaviData.ekisaroadlimitspeed, 'f', 0));
       if (s->scene.liveENaviData.ekisaishighway || s->scene.liveENaviData.ekisaistunnel) uiText(p, ui_viz_rx, ui_viz_ry+720, "H:" + QString::number(s->scene.liveENaviData.ekisaishighway, 'f', 0) + "/T:" + QString::number(s->scene.liveENaviData.ekisaistunnel, 'f', 0));
     } else if (s->scene.navi_select == 2) {
@@ -366,17 +366,17 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
     p.drawText(-40, 0, QString::number(s->scene.cpuPerc, 'f', 0) + "%");
     p.resetMatrix();
 
-    // sys temp
+    // gpu temp
     num_r = num_r + 1;
     sp_yr = sp_yr + j_num;
     p.setPen(whiteColor(200));
-    debugText(p, sp_xr, sp_yr, QString("AMB TEMP"), 150, 27);
-    if (s->scene.ambientTemp > 70) {
+    debugText(p, sp_xr, sp_yr, QString("GPU TEMP"), 150, 27);
+    if (s->scene.gpuTemp > 90) {
       p.setPen(redColor(200));
-    } else if (s->scene.ambientTemp > 60) {
+    } else if (s->scene.gpuTemp > 80) {
       p.setPen(orangeColor(200));
     } 
-    debugText(p, sp_xr, sp_yr+60, QString::number(s->scene.ambientTemp, 'f', 0) + "°C", 150, 57);
+    debugText(p, sp_xr, sp_yr+60, QString::number(s->scene.gpuTemp, 'f', 0) + "°C", 150, 57);
     p.translate(sp_xr + 90, sp_yr + 20);
     p.rotate(-90);
     p.setFont(InterFont(27, QFont::DemiBold));

@@ -31,7 +31,7 @@ def calculate_checksum(data):
     res ^= b
   return res
 
-def pack_can_buffer(arr):
+def pack_can_buffer(arr, fd=False):
   snds = [b'']
   for address, dat, bus in arr:
     assert len(dat) in LEN_TO_DLC
@@ -41,7 +41,7 @@ def pack_can_buffer(arr):
     data_len_code = LEN_TO_DLC[len(dat)]
     header = bytearray(CANPACKET_HEAD_SIZE)
     word_4b = address << 3 | extended << 2
-    header[0] = (data_len_code << 4) | (bus << 1)
+    header[0] = (data_len_code << 4) | (bus << 1) | int(fd)
     header[1] = word_4b & 0xFF
     header[2] = (word_4b >> 8) & 0xFF
     header[3] = (word_4b >> 16) & 0xFF
@@ -146,6 +146,7 @@ class Panda:
   SERIAL_LIN2 = 3
   SERIAL_SOM_DEBUG = 4
 
+  USB_VIDS = (0xbbaa, 0x3801)  # 0x3801 is comma's registered VID
   USB_PIDS = (0xddee, 0xddcc)
   REQUEST_IN = usb1.ENDPOINT_IN | usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE
   REQUEST_OUT = usb1.ENDPOINT_OUT | usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE
@@ -202,7 +203,7 @@ class Panda:
   FLAG_HYUNDAI_CAMERA_SCC = 8
   FLAG_HYUNDAI_CANFD_HDA2 = 16
   FLAG_HYUNDAI_CANFD_ALT_BUTTONS = 32
-  FLAG_HYUNDAI_ALT_LIMITS = 64
+  FLAG_HYUNDAI_CANFD_LFA_ENG = 64
   FLAG_HYUNDAI_CANFD_HDA2_ALT_STEERING = 128
 
   FLAG_TESLA_POWERTRAIN = 1
@@ -216,8 +217,7 @@ class Panda:
 
   FLAG_SUBARU_GEN2 = 1
   FLAG_SUBARU_LONG = 2
-
-  FLAG_SUBARU_PREGLOBAL_REVERSED_DRIVER_TORQUE = 1
+  FLAG_SUBARU_PREGLOBAL_REVERSED_DRIVER_TORQUE = 4
 
   FLAG_NISSAN_ALT_EPS_BUS = 1
 
@@ -254,7 +254,6 @@ class Panda:
       return None
     if len(pandas) == 1:
       print(f"INFO: connecting to panda {pandas[0]}")
-      time.sleep(1)
       return pandas[0]
     while True:
       print("Multiple pandas available:")
@@ -327,6 +326,10 @@ class Panda:
     # reset comms
     self.can_reset_communications()
 
+    # disable automatic CAN-FD switching
+    for bus in range(PANDA_BUS_CNT):
+      self.set_canfd_auto(bus, False)
+
     # set CAN speed
     for bus in range(PANDA_BUS_CNT):
       self.set_can_speed_kbps(bus, self._can_speed_kbps)
@@ -384,7 +387,7 @@ class Panda:
     context.open()
     try:
       for device in context.getDeviceList(skip_on_error=True):
-        if device.getVendorID() == 0xbbaa and device.getProductID() in cls.USB_PIDS:
+        if device.getVendorID() in cls.USB_VIDS and device.getProductID() in cls.USB_PIDS:
           try:
             this_serial = device.getSerialNumber()
           except Exception:
@@ -440,7 +443,7 @@ class Panda:
     try:
       with usb1.USBContext() as context:
         for device in context.getDeviceList(skip_on_error=True):
-          if device.getVendorID() == 0xbbaa and device.getProductID() in cls.USB_PIDS:
+          if device.getVendorID() in cls.USB_VIDS and device.getProductID() in cls.USB_PIDS:
             try:
               serial = device.getSerialNumber()
               if len(serial) == 24:
@@ -810,6 +813,9 @@ class Panda:
   def set_canfd_non_iso(self, bus, non_iso):
     self._handle.controlWrite(Panda.REQUEST_OUT, 0xfc, bus, int(non_iso), b'')
 
+  def set_canfd_auto(self, bus, auto):
+      self._handle.controlWrite(Panda.REQUEST_OUT, 0xe8, bus, int(auto), b'')
+
   def set_uart_baud(self, uart, rate):
     self._handle.controlWrite(Panda.REQUEST_OUT, 0xe4, uart, int(rate / 300), b'')
 
@@ -831,23 +837,15 @@ class Panda:
     self._handle.controlWrite(Panda.REQUEST_OUT, 0xc0, 0, 0, b'')
 
   @ensure_can_packet_version
-  def can_send_many(self, arr, timeout=CAN_SEND_TIMEOUT_MS):
-    snds = pack_can_buffer(arr)
-    while True:
-      try:
-        for tx in snds:
-          while True:
-            bs = self._handle.bulkWrite(3, tx, timeout=timeout)
-            tx = tx[bs:]
-            if len(tx) == 0:
-              break
-            logger.error("CAN: PARTIAL SEND MANY, RETRYING")
-        break
-      except (usb1.USBErrorIO, usb1.USBErrorOverflow):
-        logger.error("CAN: BAD SEND MANY, RETRYING")
+  def can_send_many(self, arr, *, fd=False, timeout=CAN_SEND_TIMEOUT_MS):
+    snds = pack_can_buffer(arr, fd=fd)
+    for tx in snds:
+      while len(tx) > 0:
+        bs = self._handle.bulkWrite(3, tx, timeout=timeout)
+        tx = tx[bs:]
 
-  def can_send(self, addr, dat, bus, timeout=CAN_SEND_TIMEOUT_MS):
-    self.can_send_many([[addr, dat, bus]], timeout=timeout)
+  def can_send(self, addr, dat, bus, *, fd=False, timeout=CAN_SEND_TIMEOUT_MS):
+    self.can_send_many([[addr, dat, bus]], fd=fd, timeout=timeout)
 
   @ensure_can_packet_version
   def can_recv(self):
