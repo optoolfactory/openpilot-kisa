@@ -201,6 +201,16 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     addItem(regulatoryBtn);
   }
 
+  //const char* cal_ok = "sudo cp -f /data/openpilot/selfdrive/assets/CalibrationParams /data/params/d/";
+  auto calokbtn = new ButtonControl("캘리브레이션 강제 활성화", "실행");
+  connect(calokbtn, &ButtonControl::clicked, [&]() {
+      if (ConfirmationDialog::confirm(tr("캘리브레이션을 강제로 설정합니다. 인게이지 확인용이니 실 주행시에는 초기화 하시기 바랍니다"), tr("확인"), this)) {
+        std::system("sudo cp -f /data/openpilot/selfdrive/assets/CalibrationParams /data/params/d/");
+    }
+  }
+  );
+  addItem(calokbtn);
+
   auto translateBtn = new ButtonControl(tr("Change Language"), tr("CHANGE"), "");
   connect(translateBtn, &ButtonControl::clicked, [=]() {
     QMap<QString, QString> langs = getSupportedLanguages();
@@ -431,7 +441,7 @@ void SoftwarePanel::updateLabels() {
   lastUpdateLbl->setText(lastUpdate);
   updateBtn->setText(tr("CHECK"));
   updateBtn->setEnabled(true);
-  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(19)));
+  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(33)));
   gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
   gitCommitLbl->setText(lhash + "(" + lhash_date + ")" + " / " + rhash + "(" + rhash_date + ")");
 }
