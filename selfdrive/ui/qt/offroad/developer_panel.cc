@@ -20,6 +20,7 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(new ShowErrorToggle());
   addItem(new PrebuiltToggle());
   addItem(new LDWSToggle());
+  addItem(new CanFdHda2Toggle());
   addItem(new GearDToggle());
   addItem(new SteerWarningFixToggle());
   addItem(new IgnoreCanErroronISGToggle());
