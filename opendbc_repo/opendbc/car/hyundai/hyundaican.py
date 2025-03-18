@@ -83,6 +83,14 @@ def create_lkas11(packer, frame, CP, apply_steer, steer_req,
     # Genesis and Optima fault when forwarding while engaged
     values["CF_Lkas_LdwsActivemode"] = 2
 
+  elif CP.carFingerprint == CAR.KIA_SORENTO:
+    values["CF_Lkas_LdwsActivemode"] = 0
+    values["CF_Lkas_LdwsSysState"] = 3 if enabled else 1
+    values["CF_Lkas_SysWarning"] = 4 if sys_warning else 0
+    values["CF_Lkas_FcwOpt_USM"] = 0
+    values["CF_Lkas_LdwsOpt_USM"] = 3
+
+
   if ldws:
   	values["CF_Lkas_LdwsOpt_USM"] = 3
 

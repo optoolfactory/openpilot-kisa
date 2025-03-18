@@ -106,7 +106,6 @@ Setting Menu ⚙️📌
  - `Software` (**Function Name:** Description)
    - **Check for Updates:** Check for new commits of current fork. Pressing OK will initiate an update and reboot, similar to the 'git pull' command.
    - **Commit(Local/Remote):** Commit name of local(device) and Remote.(run once when boot in manager.py, search gitcommit.sh at the file, internet connection required)
-   - **Git Pull On Boot:** Executes 'git pull' command during boot.
    - **Load Preset/Save Preset:** Allows you to load or save your KisaPilot settings into two presets. The settings are stored in the files /data/preset1 and /data/preset2.
    - **Parameter/Settings Reset :** Remove all user settings and restore default values.
    - **Git Reset:** Discards local changes and reverts to the original status of the branch.

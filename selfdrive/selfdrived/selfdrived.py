@@ -31,7 +31,7 @@ USE_LEGACY_LANE_MODEL = int(Params().get("UseLegacyLaneModel", encoding="utf8"))
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ
 TESTING_CLOSET = "TESTING_CLOSET" in os.environ
-IGNORE_PROCESSES = {"loggerd", "encoderd", "statsd", "mapd"}
+IGNORE_PROCESSES = {"loggerd", "encoderd", "statsd", "mapd", "updated"}
 LONGITUDINAL_PERSONALITY_MAP = {v: k for k, v in log.LongitudinalPersonality.schema.enumerants.items()}
 
 ThermalStatus = log.DeviceState.ThermalStatus
@@ -96,7 +96,7 @@ class SelfdriveD:
     self.is_metric = self.params.get_bool("IsMetric")
     self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
 
-    car_recognized = self.CP.carName != 'mock'
+    car_recognized = self.CP.brand != 'mock'
 
     # cleanup old params
     if not self.CP.experimentalLongitudinalAvailable:
@@ -272,9 +272,10 @@ class SelfdriveD:
               self.events.add(EventName.preLaneChangeRight)
             else:
               self.events.add(EventName.laneChange)
-      elif latplan_type.laneChangeState in (LaneChangeState.laneChangeStarting,
-                                           LaneChangeState.laneChangeFinishing):
+      elif latplan_type.laneChangeState == LaneChangeState.laneChangeStarting:
         self.events.add(EventName.laneChange)
+      elif latplan_type.laneChangeState == LaneChangeState.laneChangeFinishing:
+        self.events.add(EventName.laneChangeFinish)
 
     for i, pandaState in enumerate(self.sm['pandaStates']):
       # All pandas must match the list of safetyConfigs, and if outside this list, must be silent or noOutput
@@ -514,6 +515,7 @@ class SelfdriveD:
     ss.alertStatus = self.AM.current_alert.alert_status
     ss.alertType = self.AM.current_alert.alert_type
     ss.alertSound = self.AM.current_alert.audible_alert
+    ss.alertHudVisual = self.AM.current_alert.visual_alert
 
     ss.pandaSafetyModel = self.pandaState_safetyModel
     ss.interfaceSafetyModel = self.interface_safetyModel

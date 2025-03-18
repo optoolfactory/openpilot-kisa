@@ -193,10 +193,8 @@ CGitGroup::CGitGroup(void *p) : CGroupWidget( tr("Git Repository/Branch") )
     GitPullCancel::confirm(this);
   });
 
-  pBoxLayout->addWidget( new GitPullOnBootToggle() );
-
   pBoxLayout->addWidget( new SwitchOpenpilot() ); // kisa
-  pBoxLayout->addWidget( new BranchSelectCombo() ); // kisa
+  //pBoxLayout->addWidget( new BranchSelectCombo() ); // kisa
 
   pBoxLayout->addWidget( gitresetbtn );
   pBoxLayout->addWidget( gitpullcanceltbtn );  
@@ -521,16 +519,16 @@ void SwitchOpenpilot::getBranchID(const QString &branchid) {
 OpenpilotUserEnv::OpenpilotUserEnv() : ButtonControl(tr("Get Your Params"), "", tr("Get parameters from github. This is useful to apply your own file.")) {
   QObject::connect(this, &ButtonControl::clicked, [=]() {
     if (text() == tr("GET")) {
-      QString userid = InputDialog::getText(tr("Input your Git ID"), this, "github.com/<your id>/openpilot_user/main/user_params.txt", false, 1, "multikyd");
+      QString userid = InputDialog::getText(tr("Input your Git ID"), this, "github.com/<your id>/openpilot_user/main/user_params.txt", false, 1, "");
       if (userid.length() > 0) {
         getUserID(userid);
-        QString repoid = InputDialog::getText(tr("Input your repository"), this, "github.com/"+userid, false, 1, "openpilot_user");
+        QString repoid = InputDialog::getText(tr("Input your repository"), this, "github.com/"+userid, false, 1, "");
         if (repoid.length() > 0) {
           getRepoID(repoid);
-          QString branchid = InputDialog::getText(tr("Input your branch"), this, "github.com/"+userid+"/"+repoid, false, 1, "main");
+          QString branchid = InputDialog::getText(tr("Input your branch"), this, "github.com/"+userid+"/"+repoid, false, 1, "");
           if (branchid.length() > 0) {
             getBranchID(branchid);
-            QString fileid = InputDialog::getText(tr("Input your file"), this, "github.com/"+userid+"/"+repoid+"/"+branchid, false, 1, "user_params.txt");
+            QString fileid = InputDialog::getText(tr("Input your file"), this, "github.com/"+userid+"/"+repoid+"/"+branchid, false, 1, "");
             if (fileid.length() > 0) {
               getFileID(fileid);
               githubbranch = branchid;
@@ -5592,7 +5590,7 @@ KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("
     int value = str.toInt();
     value = value - 1;
     if (value <= -1) {
-      value = 2;
+      value = 4;
     }
     QString values = QString::number(value);
     params.put("KISANaviSelect", values.toStdString());
@@ -5602,7 +5600,7 @@ KISANaviSelect::KISANaviSelect() : AbstractControl(tr("Navigation Select"), tr("
     auto str = QString::fromStdString(params.get("KISANaviSelect"));
     int value = str.toInt();
     value = value + 1;
-    if (value >= 3) {
+    if (value >= 5) {
       value = 0;
     }
     QString values = QString::number(value);
@@ -5617,6 +5615,8 @@ void KISANaviSelect::refresh() {
   if (option == "0") {label.setText(tr("None"));
   } else if (option == "1") {label.setText(tr("TMap/Mappy/NaverMap"));
   } else if (option == "2") {label.setText(tr("Waze"));
+  } else if (option == "3") {label.setText(tr("TMap-UDP"));
+  } else if (option == "4") {label.setText(tr("Waze-UDP"));
   }
 }
 

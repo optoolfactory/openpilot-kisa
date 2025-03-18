@@ -3,7 +3,6 @@ import numpy as np
 
 from cereal import log
 from openpilot.common.filter_simple import FirstOrderFilter
-from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.common.params import Params
@@ -44,10 +43,10 @@ class LatControlINDI(LatControl):
     self._outer_loop_gain = (CP.lateralTuning.indi.outerLoopGainBP, CP.lateralTuning.indi.outerLoopGainV)
     self._inner_loop_gain = (CP.lateralTuning.indi.innerLoopGainBP, CP.lateralTuning.indi.innerLoopGainV)
 
-    self.RC = interp(self.speed, self._RC[0], self._RC[1])
-    self.G = interp(self.speed, self._G[0], self._G[1])
-    self.outer_loop_gain = interp(self.speed, self._outer_loop_gain[0], self._outer_loop_gain[1])
-    self.inner_loop_gain = interp(self.speed, self._inner_loop_gain[0], self._inner_loop_gain[1])
+    self.RC = np.interp(self.speed, self._RC[0], self._RC[1])
+    self.G = np.interp(self.speed, self._G[0], self._G[1])
+    self.outer_loop_gain = np.interp(self.speed, self._outer_loop_gain[0], self._outer_loop_gain[1])
+    self.inner_loop_gain = np.interp(self.speed, self._inner_loop_gain[0], self._inner_loop_gain[1])
 
     self.steer_filter = FirstOrderFilter(0., self.RC, DT_CTRL)
 
@@ -69,10 +68,10 @@ class LatControlINDI(LatControl):
       self.innerLoopGain = float(Decimal(self.params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
       self.timeConstant = float(Decimal(self.params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
       self.actuatorEffectiveness = float(Decimal(self.params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
-      self.RC = interp(self.speed, [0.], [self.timeConstant]) 
-      self.G = interp(self.speed, [0.], [self.actuatorEffectiveness])
-      self.outer_loop_gain = interp(self.speed, [0.], [self.outerLoopGain])
-      self.inner_loop_gain = interp(self.speed, [0.], [self.innerLoopGain])
+      self.RC = np.interp(self.speed, [0.], [self.timeConstant]) 
+      self.G = np.interp(self.speed, [0.], [self.actuatorEffectiveness])
+      self.outer_loop_gain = np.interp(self.speed, [0.], [self.outerLoopGain])
+      self.inner_loop_gain = np.interp(self.speed, [0.], [self.innerLoopGain])
         
       self.mpc_frame = 0
 
@@ -121,7 +120,7 @@ class LatControlINDI(LatControl):
 
       output_steer = self.steer_filter.x + delta_u
 
-      output_steer = clip(output_steer, -self.steer_max, self.steer_max)
+      output_steer = np.clip(output_steer, -self.steer_max, self.steer_max)
 
       indi_log.active = True
       indi_log.rateSetPoint = float(rate_sp)
@@ -130,6 +129,6 @@ class LatControlINDI(LatControl):
       indi_log.delayedOutput = float(self.steer_filter.x)
       indi_log.delta = float(delta_u)
       indi_log.output = float(output_steer)
-      indi_log.saturated = self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited)
+      indi_log.saturated = bool(self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited))
 
     return float(output_steer), float(steers_des), indi_log

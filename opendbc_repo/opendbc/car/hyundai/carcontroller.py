@@ -1,7 +1,7 @@
+import numpy as np
 from opendbc.can.packer import CANPacker
 from opendbc.car import Bus, DT_CTRL, apply_driver_steer_torque_limits, common_fault_avoidance, make_tester_present_msg, structs, apply_std_steer_angle_limits
 from opendbc.car.common.conversions import Conversions as CV
-from opendbc.car.common.numpy_fast import clip, interp
 from opendbc.car.hyundai import hyundaicanfd, hyundaican
 from opendbc.car.hyundai.carstate import CarState
 from opendbc.car.hyundai.hyundaicanfd import CanBus
@@ -360,14 +360,14 @@ class CarController(CarControllerBase):
       new_steer = int(round(actuators.steer * self.params.STEER_MAX))
 
     # if self.CP.carFingerprint in LEGACY_SAFETY_MODE_CAR_ALT:
-    #   new_steer = int(round(interp(abs(actuators.steer), [0.9, 1.0], [new_steer, min(new_steer, 255)])))
+    #   new_steer = int(round(np.interp(abs(actuators.steer), [0.9, 1.0], [new_steer, min(new_steer, 255)])))
 
     apply_steer = apply_driver_steer_torque_limits(new_steer, self.apply_steer_last, CS.out.steeringTorque, self.params)
 
     if self.kisa_maxanglelimit == 90:
       lat_active = CC.latActive and abs(CS.out.steeringAngleDeg) < self.kisa_maxanglelimit and (CS.out.gearShifter == GearShifter.drive or self.user_specific_feature == 11)
     elif self.kisa_maxanglelimit > 90:
-      str_angle_limit = interp(CS.out.vEgo * CV.MS_TO_KPH, [0, 20], [self.kisa_maxanglelimit+60, self.kisa_maxanglelimit])
+      str_angle_limit = np.interp(CS.out.vEgo * CV.MS_TO_KPH, [0, 20], [self.kisa_maxanglelimit+60, self.kisa_maxanglelimit])
       lat_active = CC.latActive and abs(CS.out.steeringAngleDeg) < str_angle_limit and (CS.out.gearShifter == GearShifter.drive or self.user_specific_feature == 11)
     else:
       lat_active = CC.latActive and (CS.out.gearShifter == GearShifter.drive or self.user_specific_feature == 11)
@@ -393,7 +393,7 @@ class CarController(CarControllerBase):
                                                                          MAX_ANGLE_CONSECUTIVE_FRAMES)
       apply_angle = apply_std_steer_angle_limits(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw, self.params)
       self.apply_angle_now = apply_angle
-      # apply_angle = interp(self.model_speed, [50, 80], [CS.stock_str_angle, apply_angle])
+      # apply_angle = np.interp(self.model_speed, [50, 80], [CS.stock_str_angle, apply_angle])
 
       # Figure out torque value.  On Stock when LKAS is active, this is variable,
       # but 0 when LKAS is not actively steering, so because we're "tricking" ADAS
@@ -413,7 +413,7 @@ class CarController(CarControllerBase):
         if self.driver_steering_angle_above_timer >= 150:
           self.driver_steering_angle_above_timer = 150
 
-      ego_weight = interp(CS.out.vEgo, [0, 5, 10, 20], [0.2, 0.3, 0.5, 1.0])
+      ego_weight = np.interp(CS.out.vEgo, [0, 5, 10, 20], [0.2, 0.3, 0.5, 1.0])
 
       if 0 <= self.driver_steering_angle_above_timer < 150:
         self.lkas_max_torque = int(round(lkas_max_torque * (self.driver_steering_angle_above_timer / 150) * ego_weight))
@@ -436,7 +436,7 @@ class CarController(CarControllerBase):
     self.apply_steer_last = apply_steer
 
     # accel + longitudinal
-    accel = clip(actuators.accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
+    accel = float(np.clip(actuators.accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX))
     stopping = actuators.longControlState == LongCtrlState.stopping
     set_speed_in_units = hud_control.setSpeed * (CV.MS_TO_KPH if CS.is_metric else CV.MS_TO_MPH)
 
@@ -687,7 +687,7 @@ class CarController(CarControllerBase):
     # CAN-FD platforms
     if self.CP.flags & HyundaiFlags.CANFD:
       hda2 = self.CP.flags & HyundaiFlags.CANFD_HDA2
-      #hda2_long = hda2 and self.CP.openpilotLongitudinalControl
+      hda2_long = hda2 and self.CP.openpilotLongitudinalControl
 
       angle_control = self.CP.carFingerprint in ANGLE_CONTROL_CAR
       # steering control
@@ -705,8 +705,7 @@ class CarController(CarControllerBase):
                                                           self.CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING, CC.enabled, bool(self.stock_lfa_counter)))
 
       # LFA and HDA icons
-      updateLfaHdaIcons = (not hda2) or angle_control
-      if self.frame % 5 == 0 and updateLfaHdaIcons:
+      if self.frame % 5 == 0 and (not hda2 or hda2_long):
         can_sends.append(hyundaicanfd.create_lfahda_cluster(self.packer, self.CAN, CC.enabled))
 
       # blinkers
@@ -831,7 +830,7 @@ class CarController(CarControllerBase):
                 self.switch_timer -= 1
               else:
                 btn_count = 1
-                btn_count = int(interp(self.KCC.t_interval, [self.nt_interval+3,70],[1,self.btn_count])) if not CS.is_metric else int(interp(self.KCC.t_interval, [self.nt_interval,40],[1,self.btn_count]))
+                btn_count = int(np.interp(self.KCC.t_interval, [self.nt_interval+3,70],[1,self.btn_count])) if not CS.is_metric else int(np.interp(self.KCC.t_interval, [self.nt_interval,40],[1,self.btn_count]))
                 can_sends.extend([hyundaican.create_clu11(self.packer, self.resume_cnt, CS.clu11, btn_signal)] * btn_count) if not self.longcontrol \
                 else can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, btn_signal, clu11_speed, self.CP.sccBus)] * btn_count)
                 self.resume_cnt += 1
@@ -929,7 +928,7 @@ class CarController(CarControllerBase):
                 self.switch_timer -= 1
               else:
                 btn_count = 1
-                btn_count = int(interp(self.KCC.t_interval, [self.nt_interval+3,70],[1,self.btn_count])) if not CS.is_metric else int(interp(self.KCC.t_interval, [self.nt_interval,40],[1,self.btn_count]))
+                btn_count = int(np.interp(self.KCC.t_interval, [self.nt_interval+3,70],[1,self.btn_count])) if not CS.is_metric else int(np.interp(self.KCC.t_interval, [self.nt_interval,40],[1,self.btn_count]))
                 can_sends.extend([hyundaican.create_clu11(self.packer, self.resume_cnt, CS.clu11, btn_signal)] * btn_count) if not self.longcontrol \
                 else can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, btn_signal, clu11_speed, self.CP.sccBus)] * btn_count)
                 self.resume_cnt += 1
@@ -1068,11 +1067,11 @@ class CarController(CarControllerBase):
           radar_recog = (0 < CS.lead_distance <= 149)
           if self.radar_helper_option == 0: # Vision Only
             if 0 < CS.lead_distance <= self.stoppingdist:
-              stock_weight = interp(CS.lead_distance, [2.0, self.stoppingdist], [1., 0.])
+              stock_weight = np.interp(CS.lead_distance, [2.0, self.stoppingdist], [1., 0.])
               accel = accel * (1. - stock_weight) + aReqValue * stock_weight
               self.l_stat = 1
             elif 0.1 < self.dRel < (self.stoppingdist + 2.0) and self.vRel < 0:
-              accel = self.accel - (DT_CTRL * interp(CS.out.vEgo, [1.0, 3.0], [0.5, 2.0]))
+              accel = self.accel - (DT_CTRL * np.interp(CS.out.vEgo, [1.0, 3.0], [0.5, 2.0]))
               self.stopped = False
               self.l_stat = 2
             elif 0.1 < self.dRel < (self.stoppingdist + 2.0):
@@ -1098,7 +1097,7 @@ class CarController(CarControllerBase):
                 accel = min(-0.5, accel, faccel*0.5)
                 self.l_stat = 7
               elif self.smooth_start and CS.clu_Vanz < round(CS.VSetDis)*0.9:
-                accel = interp(CS.clu_Vanz, [0, round(CS.VSetDis)], [min(accel*0.6, faccel*0.6), aReqValue])
+                accel = np.interp(CS.clu_Vanz, [0, round(CS.VSetDis)], [min(accel*0.6, faccel*0.6), aReqValue])
                 self.l_stat = 8
               else:
                 self.smooth_start = False
@@ -1128,7 +1127,7 @@ class CarController(CarControllerBase):
                 self.change_accel_fast = True
                 self.l_stat = 14
               elif 0.1 < self.dRel < 6 and CS.lead_distance < 30.0 and lead_objspd > 0 and aReqValue - accel > 0.8: # in case radar detection works during vision breaking at stop.
-                accel = interp(aReqValue, [0.0, 1.8], [0.0, -0.7])
+                accel = np.interp(aReqValue, [0.0, 1.8], [0.0, -0.7])
                 self.change_accel_fast = False
                 self.l_stat = 15
               elif 0.1 < self.dRel <= 10.0 and CS.lead_distance - self.dRel >= 5.0 and aReqValue >= 0:
@@ -1141,14 +1140,14 @@ class CarController(CarControllerBase):
                 dRel1 = self.dRel if self.dRel > 0 else CS.lead_distance
                 if ((CS.lead_distance - dRel1 > 3.0) or self.KCC.cutInControl) and accel < 0:
                   if aReqValue < accel:
-                    accel = interp(lead_objspd, [-1, 0, 5], [aReqValue, aReqValue, accel])
+                    accel = np.interp(lead_objspd, [-1, 0, 5], [aReqValue, aReqValue, accel])
                     self.l_stat = 17
                   else:
-                    accel = interp(self.dRel, [0, 40], [accel*0.1, accel*0.7])
+                    accel = np.interp(self.dRel, [0, 40], [accel*0.1, accel*0.7])
                     self.l_stat = 18
                 else:
                   if aReqValue < accel:
-                    accel = interp(CS.lead_distance, [5.0, 13.0, 20.0], [aReqValue, accel*0.8+aReqValue*0.2, aReqValue])
+                    accel = np.interp(CS.lead_distance, [5.0, 13.0, 20.0], [aReqValue, accel*0.8+aReqValue*0.2, aReqValue])
                     self.l_stat = 19
                   else:
                     accel = aReqValue
@@ -1159,13 +1158,13 @@ class CarController(CarControllerBase):
                   accel = self.accel - (DT_CTRL * 2.5)
                   self.l_stat = 22
                 elif CS.lead_distance < self.stoppingdist+0.8:
-                  accel = self.accel - (DT_CTRL * interp(CS.out.vEgo, [0.0, 1.0, 2.0], [0.02, 0.8, 4.5]))
+                  accel = self.accel - (DT_CTRL * np.interp(CS.out.vEgo, [0.0, 1.0, 2.0], [0.02, 0.8, 4.5]))
                   self.l_stat = 23
               elif aReqValue < 0.0:
                 dRel2 = self.dRel if self.dRel > 0 else CS.lead_distance
-                dist_by_drel = interp(CS.lead_distance, [10, 50], [3.0, 9.0])
-                d_ratio = interp(CS.clu_Vanz, [40, 110], [0.3, 0.19])
-                d_ratio2 = interp(CS.clu_Vanz, [40, 110], [1.0, 2.0])
+                dist_by_drel = np.interp(CS.lead_distance, [10, 50], [3.0, 9.0])
+                d_ratio = np.interp(CS.clu_Vanz, [40, 110], [0.3, 0.19])
+                d_ratio2 = np.interp(CS.clu_Vanz, [40, 110], [1.0, 2.0])
                 if ((CS.lead_distance - dRel2 > dist_by_drel) or self.KCC.cutInControl) and accel < 0 and not self.ed_rd_diff_on:
                   self.ed_rd_diff_on = True
                   self.ed_rd_diff_on_timer = min(400, int(self.dRel * 5 * d_ratio2))
@@ -1179,28 +1178,28 @@ class CarController(CarControllerBase):
                   stock_weight = 1.0
                   self.l_stat = 25
                 elif self.ed_rd_diff_on_timer or (self.KCC.cut_in_run_timer and dRel2 < CS.clu_Vanz * d_ratio): # damping btw ED and RD for few secs.
-                  stock_weight = interp(self.ed_rd_diff_on_timer, [0, self.ed_rd_diff_on_timer2], [0.1, 1.0])
+                  stock_weight = np.interp(self.ed_rd_diff_on_timer, [0, self.ed_rd_diff_on_timer2], [0.1, 1.0])
                   self.ed_rd_diff_on_timer -= 1
                   self.l_stat = 26
                   if aReqValue <= accel:
                     stock_weight = 1.0
                     self.l_stat = 27
                 else:
-                  accel = interp(CS.clu_Vanz, [4.0, 10.0, 30.0], [max(accel, faccel), ((min(accel, faccel)*0.6)+(max(accel, faccel)*0.4)), min(accel, faccel)])
+                  accel = np.interp(CS.clu_Vanz, [4.0, 10.0, 30.0], [max(accel, faccel), ((min(accel, faccel)*0.6)+(max(accel, faccel)*0.4)), min(accel, faccel)])
                   if not self.KCC.cutInControl:
                     self.ed_rd_diff_on = False
                     self.l_stat = 28
                   self.ed_rd_diff_on_timer = 0
                   self.ed_rd_diff_on_timer2 = 0
-                  stock_weight = interp(abs(lead_objspd), [1.0, 5.0, 10.0, 20.0, 50.0], [0.15, 0.4, 1.0, 0.9, 0.2])
+                  stock_weight = np.interp(abs(lead_objspd), [1.0, 5.0, 10.0, 20.0, 50.0], [0.15, 0.4, 1.0, 0.9, 0.2])
                   self.l_stat = 29
                   if aReqValue <= accel:
                     self.vrel_delta_timer = 0
                     self.vrel_delta_timer3 = 0
-                    stock_weight = min(1.0, interp(CS.out.vEgo, [8.0, 30.0], [stock_weight, stock_weight*5.0]))
+                    stock_weight = min(1.0, np.interp(CS.out.vEgo, [8.0, 30.0], [stock_weight, stock_weight*5.0]))
                     self.l_stat = 30
                     if not self.stopping_dist_adj_enabled:
-                      stock_weight = min(1.0, interp(CS.lead_distance, [0.0, 10.0], [stock_weight*5.0, stock_weight]))
+                      stock_weight = min(1.0, np.interp(CS.lead_distance, [0.0, 10.0], [stock_weight*5.0, stock_weight]))
                       self.l_stat = 31
                   elif aReqValue > accel:
                     if self.vrel_delta < -5 and self.vrel_delta_timer == 0:
@@ -1210,17 +1209,17 @@ class CarController(CarControllerBase):
                       self.l_stat = 32
                     elif self.vrel_delta_timer > 0:
                       self.vrel_delta_timer -= 1
-                      stock_weight = interp(self.vrel_delta_timer, [0, self.vrel_delta_timer3], [0.1, 1.0])
+                      stock_weight = np.interp(self.vrel_delta_timer, [0, self.vrel_delta_timer3], [0.1, 1.0])
                       self.l_stat = 33
                     else:
                       self.vrel_delta_timer = 0
                       self.vrel_delta_timer3 = 0
-                      stock_weight = interp(abs(lead_objspd), [1.0, 15.0], [1.0, 0.1])
+                      stock_weight = np.interp(abs(lead_objspd), [1.0, 15.0], [1.0, 0.1])
                       self.l_stat = 34
                 accel = accel * (1.0 - stock_weight) + aReqValue * stock_weight
                 accel = min(accel, -0.5) if CS.lead_distance <= self.stoppingdist+0.5 and not CS.out.standstill else accel
               # elif aReqValue < 0.0:
-              #   stock_weight = interp(CS.lead_distance, [6.0, 10.0, 18.0, 25.0, 32.0], [1.0, 0.85, 1.0, 0.4, 1.0])
+              #   stock_weight = np.interp(CS.lead_distance, [6.0, 10.0, 18.0, 25.0, 32.0], [1.0, 0.85, 1.0, 0.4, 1.0])
               #   accel = accel * (1.0 - stock_weight) + aReqValue * stock_weight
               else:
                 stock_weight = 0.0
@@ -1228,7 +1227,7 @@ class CarController(CarControllerBase):
                 accel = accel * (1.0 - stock_weight) + aReqValue * stock_weight
                 self.l_stat = 35
             elif 0.1 < self.dRel < (self.stoppingdist + 1.5) and int(self.vRel*3.6) < 0:
-              accel = self.accel - (DT_CTRL * interp(CS.out.vEgo, [0.0, 1.0, 2.0], [0.04, 0.6, 1.1]))
+              accel = self.accel - (DT_CTRL * np.interp(CS.out.vEgo, [0.0, 1.0, 2.0], [0.04, 0.6, 1.1]))
               self.stopped = False
               self.l_stat = 36
             elif 0.1 < self.dRel < (self.stoppingdist + 1.5):
@@ -1241,7 +1240,7 @@ class CarController(CarControllerBase):
                 self.l_stat = 38
             elif 0.1 < self.dRel < 90:
               self.stopped = False
-              ddrel_weight = interp(self.dRel, [self.stoppingdist+1.5, 30], [1.0, 1.0])
+              ddrel_weight = np.interp(self.dRel, [self.stoppingdist+1.5, 30], [1.0, 1.0])
               accel = faccel*ddrel_weight
               self.l_stat = 39
             else:
@@ -1251,7 +1250,7 @@ class CarController(CarControllerBase):
                 accel = min(-0.5, accel, faccel*0.5)
                 self.l_stat = 40
               elif self.smooth_start and CS.clu_Vanz < round(CS.VSetDis)*0.9:
-                accel = interp(CS.clu_Vanz, [0, round(CS.VSetDis)], [min(accel*0.6, faccel*0.6), aReqValue])
+                accel = np.interp(CS.clu_Vanz, [0, round(CS.VSetDis)], [min(accel*0.6, faccel*0.6), aReqValue])
                 self.l_stat = 41
               else:
                 self.l_stat = 42
@@ -1267,7 +1266,7 @@ class CarController(CarControllerBase):
           if self.stock_safety_decel_enabled:
             if CS.highway_cam == 2 and accel > aReqValue:
               accel = aReqValue
-          accel = clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX)
+          accel = float(np.clip(accel, CarControllerParams.ACCEL_MIN, CarControllerParams.ACCEL_MAX))
           self.aq_value = accel
           self.aq_value_raw = aReqValue
           can_sends.append(hyundaican.create_scc11(self.packer, self.frame, set_speed_in_units, hud_control.leadVisible, self.scc_live, self.dRel, self.vRel, self.yRel, 
@@ -1300,8 +1299,8 @@ class CarController(CarControllerBase):
         str_log2 = 'AQ={:+04.2f}  SS={:03.0f}/{:03.0f}  VF={:03.0f}/{:03.0f}  TS/VS={:03.0f}/{:03.0f}  RD/ED/C/T={:04.1f}/{:04.1f}/{}/{}  C={:1.0f}/{:1.0f}/{}'.format(
         self.aq_value if self.longcontrol else CS.scc_control["aReqValue"], set_speed_in_units, self.sm['carState'].vCruise, self.vFuture, self.vFutureA, self.KCC.ctrl_speed, round(CS.VSetDis), CS.lead_distance, self.dRel, int(self.KCC.cut_in), self.KCC.cut_in_run_timer, 0, CS.cruiseGapSet, self.btnsignal if self.btnsignal is not None else 0, self.KCC.t_interval)
       else:
-        str_log2 = 'MDPS={}  LKAS={:1.0f}  LEAD={}  AQ={:+04.2f}  VF={:03.0f}/{:03.0f}  CG={:1.0f}'.format(
-        int(not CS.out.steerFaultTemporary), 0, int(bool(0 < CS.lead_distance < 149)), self.aq_value if self.longcontrol else CS.scc_control["aReqValue"], self.vFuture, self.vFutureA, CS.cruiseGapSet)
+        str_log2 = 'MDPS={}  LKAS={:1.0f}  LEAD={}  AQ={:+04.2f}  VF={:03.0f}/{:03.0f}  CG={:1.0f}  M/C={:1.0f}/{:1.0f}'.format(
+        int(not CS.out.steerFaultTemporary), 0, int(bool(0 < CS.lead_distance < 149)), self.aq_value if self.longcontrol else CS.scc_control["aReqValue"], self.vFuture, self.vFutureA, CS.cruiseGapSet, CS.main_buttons[-1], CS.cruise_buttons[-1])
     else:
       str_log1 = 'EN/LA/LO={}/{}{}/{}  MD={}  BS={:1.0f}  CV={:03.0f}/{:0.4f}  TQ={:03.0f}/{:03.0f}  VF={:03.0f}  ST={:03.0f}/{:01.0f}/{:01.0f}'.format(
         int(CC.enabled), int(CC.latActive), int(lat_active), int(CC.longActive), CS.out.cruiseState.modeSel, self.CP.sccBus, self.model_speed, abs(self.sm['controlsState'].curvature), abs(new_steer), abs(CS.out.steeringTorque), self.vFuture, self.params.STEER_MAX, self.params.STEER_DELTA_UP, self.params.STEER_DELTA_DOWN)
@@ -1309,8 +1308,8 @@ class CarController(CarControllerBase):
         str_log2 = 'AQ={:+04.2f}  SS={:03.0f}/{:03.0f}  VF={:03.0f}/{:03.0f}  TS/VS={:03.0f}/{:03.0f}  RD/ED/C/T={:04.1f}/{:04.1f}/{}/{}/{}  C={:1.0f}/{:1.0f}/{}/{:1.0f}'.format(
         self.aq_value if self.longcontrol else CS.scc12["aReqValue"], set_speed_in_units, self.sm['carState'].vCruise, self.vFuture, self.vFutureA, self.KCC.ctrl_speed, round(CS.VSetDis), CS.lead_distance, self.dRel, int(self.KCC.cut_in), self.KCC.cut_in_run_timer, self.ed_rd_diff_on_timer, CS.cruiseGapSet, self.btnsignal if self.btnsignal is not None else 0, self.KCC.t_interval, self.l_stat)
       else:
-        str_log2 = 'MDPS={}  LKAS={:1.0f}  LEAD={}  AQ={:+04.2f}  VF={:03.0f}/{:03.0f}  CG={:1.0f}'.format(
-        int(not CS.out.steerFaultTemporary), CS.lkas_button_on, int(bool(0 < CS.lead_distance < 149)), self.aq_value if self.longcontrol else CS.scc12["aReqValue"], self.vFuture, self.vFutureA, CS.cruiseGapSet)
+        str_log2 = 'MDPS={}  LKAS={:1.0f}  LEAD={}  AQ={:+04.2f}  VF={:03.0f}/{:03.0f}  CG={:1.0f}  M/C={:1.0f}/{:1.0f}'.format(
+        int(not CS.out.steerFaultTemporary), CS.lkas_button_on, int(bool(0 < CS.lead_distance < 149)), self.aq_value if self.longcontrol else CS.scc12["aReqValue"], self.vFuture, self.vFutureA, CS.cruiseGapSet, CS.main_buttons[-1], CS.cruise_buttons[-1])
 
     self.cc_timer += 1
     if self.cc_timer > 100:
@@ -1459,7 +1458,7 @@ class CarController(CarControllerBase):
               self.gap_now = CS.DistSet if CS.DistSet > 0 else CS.cruiseGapSet
               self.pause_time += 1 if self.gap_now == self.gap_prev else 0
               self.gap_prev = self.gap_now
-              pause_time = interp(self.KCC.t_interval, [7, 80], [90, 250])
+              pause_time = np.interp(self.KCC.t_interval, [7, 80], [90, 250])
               if self.pause_time > pause_time:
                 self.last_button_frame = self.frame
                 self.cruise_gap_adjusting = False
@@ -1476,7 +1475,7 @@ class CarController(CarControllerBase):
               self.cruise_set_now = round(CS.VSetDis)
               self.pause_time += 1 if self.cruise_set_now == self.cruise_set_prev else 0
               self.cruise_set_prev = self.cruise_set_now
-              pause_time = interp(self.KCC.t_interval, [7, 80], [90, 250])
+              pause_time = np.interp(self.KCC.t_interval, [7, 80], [90, 250])
               if self.pause_time > pause_time:
                 self.last_button_frame = self.frame
                 self.cruise_speed_adjusting = False

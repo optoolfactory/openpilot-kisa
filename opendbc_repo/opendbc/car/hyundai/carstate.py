@@ -98,6 +98,8 @@ class CarState(CarStateBase):
     self.prev_main_btn = False
     self.prev_lfa_btn = False
     self.prev_lfa_btn_timer = 0
+    self.prev_main_btn2 = False
+    self.prev_main_btn_timer = 0
     self.acc_active = False
     self.cruise_set_speed_kph = 0
     self.cruise_set_mode = int(Params().get("CruiseStatemodeSelInit", encoding="utf8"))
@@ -105,6 +107,7 @@ class CarState(CarStateBase):
     self.cruiseGapSet = 4.0
 
     self.ufc_mode = Params().get_bool("UFCModeEnabled")
+    self.user_specific_feature = int(Params().get("UserSpecificFeature", encoding="utf8"))
     self.lfa_button_eng = Params().get_bool("LFAButtonEngagement")
     self.long_alt = int(Params().get("KISALongAlt", encoding="utf8"))
     self.exp_engage_available = False
@@ -460,8 +463,24 @@ class CarState(CarStateBase):
       ret.cruiseAccStatus = self.acc_active
       ret.cruiseGapSet = self.cruise_gap
     else:
-      ret.cruiseState.available = cp_scc.vl["SCC11"]["MainMode_ACC"] != 0
-      ret.cruiseState.enabled = cp_scc.vl["SCC12"]["ACCMode"] != 0
+      if self.user_specific_feature != 38:
+        ret.cruiseState.available = cp_scc.vl["SCC11"]["MainMode_ACC"] != 0
+        ret.cruiseState.enabled = cp_scc.vl["SCC12"]["ACCMode"] != 0
+
+      if self.user_specific_feature == 38:
+        if self.main_buttons[-1]:
+          self.prev_main_btn_timer = 2
+        elif self.prev_main_btn_timer:
+          self.prev_main_btn_timer -= 1
+          if self.prev_main_btn_timer == 0:
+            self.prev_main_btn2 = not self.prev_main_btn2
+        if self.prev_main_btn2:
+          ret.cruiseState.available = True
+          ret.cruiseState.enabled = ret.cruiseState.available
+        else:
+          ret.cruiseState.available = False
+          ret.cruiseState.enabled = ret.cruiseState.available
+
       ret.cruiseState.standstill = cp_scc.vl["SCC11"]["SCCInfoDisplay"] == 4.
       ret.cruiseState.nonAdaptive = cp_cruise.vl["SCC11"]["SCCInfoDisplay"] == 2.  # Shows 'Cruise Control' on dash
       if self.ufc_mode:
@@ -637,6 +656,10 @@ class CarState(CarStateBase):
 
     gear = cp.vl[self.gear_msg_canfd]["GEAR"]
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(gear))
+    if self.CP.flags & HyundaiFlags.CANFD_ALT_GEARS:
+      ret.gearStep = cp.vl[self.gear_msg_canfd]["GEAR_STEP"]
+    else:
+      ret.gearStep = 0
 
     # kisa
     if self.CP.tpmsAvailable:
@@ -761,7 +784,7 @@ class CarState(CarStateBase):
       ret.autoHold = ret.brakeHoldActive
 
       if self.CP.adrvAvailable:
-        ret.cruiseState.gapSet = cp.vl["ADRV_0x200"]["TauGapSet"]
+        ret.cruiseState.gapSet = cp_cruise_info.vl["ADRV_0x200"]["TauGapSet"]
       self.cruiseGapSet = ret.cruiseState.gapSet
       ret.cruiseGapSet = self.cruiseGapSet
       self.DistSet = cp_cruise_info.vl["SCC_CONTROL"]["DISTANCE_SETTING"] - 5 if cp_cruise_info.vl["SCC_CONTROL"]["DISTANCE_SETTING"] > 5 else cp_cruise_info.vl["SCC_CONTROL"]["DISTANCE_SETTING"]
@@ -782,7 +805,7 @@ class CarState(CarStateBase):
       elif self.driverAcc_time:
         self.driverAcc_time -= 1
       ret.driverAcc = bool(self.driverOverride)
-      if self.CP.carFingerprint in ANGLE_CONTROL_CAR:
+      if self.CP.carFingerprint in ANGLE_CONTROL_CAR and self.CP.flags & HyundaiFlags.CANFD_HDA2:
         self.stock_str_angle = cp_cam.vl["LKAS_ALT"]["LKAS_ANGLE_CMD"] * -1 if self.CP.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING else 0
 
     # Manual Speed Limit Assist is a feature that replaces non-adaptive cruise control on EV CAN FD platforms.
@@ -858,7 +881,7 @@ class CarState(CarStateBase):
         ("SCC_CONTROL", 50),
       ]
 
-    if CP.adrvAvailable:
+    if CP.adrvAvailable and CP.flags & HyundaiFlags.CANFD_HDA2:
       pt_messages += [
         ("ADRV_0x200", 20),
       ]
@@ -885,6 +908,10 @@ class CarState(CarStateBase):
       cam_messages += [
         ("SCC_CONTROL", 50),
       ]
+      if CP.adrvAvailable and not CP.flags & HyundaiFlags.CANFD_HDA2:
+        cam_messages += [
+          ("ADRV_0x200", 20),
+        ]
 
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).ECAN),

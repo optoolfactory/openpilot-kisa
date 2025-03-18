@@ -1,5 +1,5 @@
+import numpy as np
 from cereal import log
-from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.realtime import DT_CTRL, DT_MDL
 
 from openpilot.selfdrive.modeld.constants import ModelConstants
@@ -15,10 +15,10 @@ MAX_LATERAL_JERK = 5.0
 MAX_VEL_ERR = 5.0
 
 def clip_curvature(v_ego, prev_curvature, new_curvature):
-  new_curvature = clip(new_curvature, -MAX_CURVATURE, MAX_CURVATURE)
+  new_curvature = np.clip(new_curvature, -MAX_CURVATURE, MAX_CURVATURE)
   v_ego = max(MIN_SPEED, v_ego)
   max_curvature_rate = MAX_LATERAL_JERK / (v_ego**2) # inexact calculation, check https://github.com/commaai/openpilot/pull/24755
-  safe_desired_curvature = clip(new_curvature,
+  safe_desired_curvature = np.clip(new_curvature,
                                 prev_curvature - max_curvature_rate * DT_CTRL,
                                 prev_curvature + max_curvature_rate * DT_CTRL)
 
@@ -38,17 +38,17 @@ def get_lag_adjusted_curvature(CP, v_ego, psis, curvatures, curvature_rates):
   # in high delay cases some corrections never even get commanded. So just use
   # psi to calculate a simple linearization of desired curvature
   current_curvature_desired = curvatures[0]
-  psi = interp(delay, ModelConstants.T_IDXS[:CONTROL_N], psis)
+  psi = np.interp(delay, ModelConstants.T_IDXS[:CONTROL_N], psis)
   average_curvature_desired = psi / (v_ego * delay)
   desired_curvature = 2 * average_curvature_desired - current_curvature_desired
 
   # This is the "desired rate of the setpoint" not an actual desired rate
   desired_curvature_rate = curvature_rates[0]
   max_curvature_rate = MAX_LATERAL_JERK / (v_ego**2) # inexact calculation, check https://github.com/commaai/openpilot/pull/24755
-  safe_desired_curvature_rate = clip(desired_curvature_rate,
+  safe_desired_curvature_rate = np.clip(desired_curvature_rate,
                                      -max_curvature_rate,
                                      max_curvature_rate)
-  safe_desired_curvature = clip(desired_curvature,
+  safe_desired_curvature = np.clip(desired_curvature,
                                 current_curvature_desired - max_curvature_rate * DT_MDL,
                                 current_curvature_desired + max_curvature_rate * DT_MDL)
 
@@ -58,6 +58,6 @@ def get_lag_adjusted_curvature(CP, v_ego, psis, curvatures, curvature_rates):
 def get_speed_error(modelV2: log.ModelDataV2, v_ego: float) -> float:
   # ToDo: Try relative error, and absolute speed
   if len(modelV2.temporalPose.trans):
-    vel_err = clip(modelV2.temporalPose.trans[0] - v_ego, -MAX_VEL_ERR, MAX_VEL_ERR)
+    vel_err = np.clip(modelV2.temporalPose.trans[0] - v_ego, -MAX_VEL_ERR, MAX_VEL_ERR)
     return float(vel_err)
   return 0.0

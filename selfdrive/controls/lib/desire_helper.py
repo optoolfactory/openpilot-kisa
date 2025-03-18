@@ -1,9 +1,9 @@
+import numpy as np
+
 from cereal import log
 from openpilot.common.conversions import Conversions as CV
 from openpilot.common.realtime import DT_MDL
 
-import numpy as np
-from openpilot.common.numpy_fast import interp
 from openpilot.common.params import Params
 from decimal import Decimal
 
@@ -165,13 +165,13 @@ class DesireHelper:
         if self.lane_change_adjust_enable:
           if controlsstate is not None:
             if controlsstate.curvature > 0.0005 and self.lane_change_direction == LaneChangeDirection.left: # left curve
-              self.lane_change_adjust_new = min(2.0, interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)*1.5)
+              self.lane_change_adjust_new = min(2.0, np.interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)*1.5)
             elif controlsstate.curvature < -0.0005 and self.lane_change_direction == LaneChangeDirection.right: # right curve
-              self.lane_change_adjust_new = min(2.0, interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)*1.5)
+              self.lane_change_adjust_new = min(2.0, np.interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)*1.5)
             else:
-              self.lane_change_adjust_new = interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)
+              self.lane_change_adjust_new = np.interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)
           else:
-            self.lane_change_adjust_new = interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)
+            self.lane_change_adjust_new = np.interp(v_ego, self.lane_change_adjust_vel, self.lane_change_adjust)
         else:
           self.lane_change_adjust_new = 2.0
       # LaneChangeState.preLaneChange
@@ -196,10 +196,10 @@ class DesireHelper:
         # fade in laneline over 1s
         if USE_LEGACY_LANE_MODEL and self.lane_change_keep_enable and False:
           if self.lane_change_direction == LaneChangeDirection.left:
-            prob_adj_val = interp(v_ego, [16.6, 30.5], [0.05, self.lane_change_keep_time_left])
+            prob_adj_val = np.interp(v_ego, [16.6, 30.5], [0.05, self.lane_change_keep_time_left])
             self.lane_change_ll_prob = min(self.lane_change_ll_prob + prob_adj_val, 1.0)
           else:
-            prob_adj_val = interp(v_ego, [16.6, 30.5], [0.05, self.lane_change_keep_time_right])
+            prob_adj_val = np.interp(v_ego, [16.6, 30.5], [0.05, self.lane_change_keep_time_right])
             self.lane_change_ll_prob = min(self.lane_change_ll_prob + prob_adj_val, 1.0)
         else:
           self.lane_change_ll_prob = min(self.lane_change_ll_prob + DT_MDL, 1.0)

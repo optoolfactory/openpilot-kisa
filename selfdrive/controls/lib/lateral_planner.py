@@ -1,7 +1,6 @@
 import time
 import numpy as np
 from openpilot.common.realtime import DT_MDL
-from openpilot.common.numpy_fast import interp
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.controls.lib.lateral_mpc_lib.lat_mpc import LateralMpc
@@ -107,6 +106,8 @@ class LateralPlanner:
     self.sm = messaging.SubMaster(['liveMapData'])
     self.total_camera_offset = self.camera_offset
     self.is_mph = not self.params.get_bool("IsMetric")
+    self.right_lane_to_right_edge_width = 0.0
+    self.left_lane_to_left_edge_width = 0.0
 
 
   def parse_model(self, md, sm, v_ego):
@@ -162,6 +163,10 @@ class LateralPlanner:
       right_nearside_prob = md.laneLineProbs[3]
       right_edge_prob = np.clip(1.0 - md.roadEdgeStds[1], 0.0, 1.0)
 
+      self.right_lane_to_right_edge_width = abs(self.rll_y[0] - md.roadEdges[1].y[0])
+      self.left_lane_to_left_edge_width = abs(self.lll_y[0] - md.roadEdges[0].y[0])
+      lane_to_edge_threshold = 2.6
+
       self.timer3 += DT_MDL
       if self.timer3 > 1.0:
         self.timer3 = 0.0
@@ -175,7 +180,7 @@ class LateralPlanner:
               self.road_edge_offset += max(0.01, round((self.road_edge_offset/5), 2))
               if self.road_edge_offset > 0.0:
                 self.road_edge_offset = 0.0
-        elif right_edge_prob > 0.3 and right_nearside_prob < 0.3 and right_close_prob > 0.4 and left_nearside_prob >= right_nearside_prob:
+        elif right_edge_prob > 0.3 and right_nearside_prob < 0.3 and right_close_prob > 0.4 and left_nearside_prob >= right_nearside_prob and self.right_lane_to_right_edge_width < lane_to_edge_threshold:
           if self.right_edge_offset != 0.0 and self.road_edge_offset != self.right_edge_offset:
             if self.road_edge_offset < self.right_edge_offset:
               self.road_edge_offset += max(0.01, round((self.right_edge_offset/5), 2))
@@ -185,7 +190,7 @@ class LateralPlanner:
               self.road_edge_offset -= max(0.01, round((self.right_edge_offset/5), 2))
               if self.road_edge_offset < self.right_edge_offset:
                 self.road_edge_offset = self.right_edge_offset
-        elif left_edge_prob > 0.3 and left_nearside_prob < 0.3 and left_close_prob > 0.4 and right_nearside_prob >= left_nearside_prob:
+        elif left_edge_prob > 0.3 and left_nearside_prob < 0.3 and left_close_prob > 0.4 and right_nearside_prob >= left_nearside_prob and self.left_lane_to_left_edge_width < lane_to_edge_threshold:
           if self.left_edge_offset != 0.0 and self.road_edge_offset != self.left_edge_offset:
             if self.road_edge_offset < self.left_edge_offset:
               self.road_edge_offset += max(0.01, round((self.left_edge_offset/5), 2))
@@ -210,7 +215,7 @@ class LateralPlanner:
       self.road_edge_offset = 0.0
       self.path_offset2 = self.road_edge_offset
     if self.speed_offset:
-      speed_offset = -interp(v_ego, [0, 11.1, 16.6, 22.2, 31], [0.10, 0.05, 0.02, 0.01, 0.0])
+      speed_offset = -np.interp(v_ego, [0, 11.1, 16.6, 22.2, 31], [0.10, 0.05, 0.02, 0.01, 0.0])
     else:
       speed_offset = 0.0
 
@@ -249,15 +254,15 @@ class LateralPlanner:
     width_pts = self.rll_y - self.lll_y
     prob_mods = []
     for t_check in (0.0, 1.5, 3.0):
-      width_at_t = interp(t_check * (v_ego + 7), self.ll_x, width_pts)
-      prob_mods.append(interp(width_at_t, [4.0, 5.0], [1.0, 0.0]))
+      width_at_t = np.interp(t_check * (v_ego + 7), self.ll_x, width_pts)
+      prob_mods.append(np.interp(width_at_t, [4.0, 5.0], [1.0, 0.0]))
     mod = min(prob_mods)
     l_prob *= mod
     r_prob *= mod
 
     # Reduce reliance on uncertain lanelines
-    l_std_mod = interp(self.lll_std, [.15, .3], [1.0, 0.0])
-    r_std_mod = interp(self.rll_std, [.15, .3], [1.0, 0.0])
+    l_std_mod = np.interp(self.lll_std, [.15, .3], [1.0, 0.0])
+    r_std_mod = np.interp(self.rll_std, [.15, .3], [1.0, 0.0])
     l_prob *= l_std_mod
     r_prob *= r_std_mod
 
@@ -265,7 +270,7 @@ class LateralPlanner:
     self.lane_width_certainty.update(l_prob * r_prob)
     current_lane_width = abs(self.rll_y[0] - self.lll_y[0])
     self.lane_width_estimate.update(current_lane_width)
-    speed_lane_width = interp(v_ego, self.spd_lane_width_spd, self.spd_lane_width_set)
+    speed_lane_width = np.interp(v_ego, self.spd_lane_width_spd, self.spd_lane_width_set)
     self.lane_width = self.lane_width_certainty.x * self.lane_width_estimate.x + \
                       (1 - self.lane_width_certainty.x) * speed_lane_width
 
@@ -293,7 +298,7 @@ class LateralPlanner:
       dy = np.gradient(y, x)
       d2y = np.gradient(dy, x)
       curv = d2y / (1 + dy ** 2) ** 1.5
-      start = int(interp(v_ego, [10., 27.], [10, TRAJECTORY_SIZE-10])) # neokii's factor
+      start = int(np.interp(v_ego, [10., 27.], [10, TRAJECTORY_SIZE-10])) # neokii's factor
       if abs(curvature) > 0.0008: # kisapilot
         curv = curv[5:TRAJECTORY_SIZE-10]
       else:
@@ -409,7 +414,7 @@ class LateralPlanner:
       # mpc.u_sol is the desired second derivative of psi given x0 curv state.
       # with x0[3] = measured_yaw_rate, this would be the actual desired yaw rate.
       # instead, interpolate x_sol so that x0[3] is the desired yaw rate for lat_control.
-      self.x0[3] = interp(DT_MDL, self.t_idxs[:LAT_MPC_N + 1], self.lat_mpc.x_sol[:, 3])
+      self.x0[3] = np.interp(DT_MDL, self.t_idxs[:LAT_MPC_N + 1], self.lat_mpc.x_sol[:, 3])
 
       #  Check for infeasible MPC solution
       mpc_nans = np.isnan(self.lat_mpc.x_sol[:, 3]).any()
@@ -459,5 +464,7 @@ class LateralPlanner:
     lateralPlan.vCurvature = float(sm['controlsState'].curvature)
     lateralPlan.lanelessMode = bool(self.laneless_mode_status)
     lateralPlan.totalCameraOffset = float(self.total_camera_offset)
+    lateralPlan.rightLanetoRightEdgeWidth = float(self.right_lane_to_right_edge_width)
+    lateralPlan.leftLanetoLeftEdgeWidth = float(self.left_lane_to_left_edge_width)
 
     pm.send('lateralPlan', plan_send)

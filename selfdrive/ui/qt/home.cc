@@ -33,6 +33,11 @@ HomeWindow::HomeWindow(QWidget* parent) : QWidget(parent) {
   body = new BodyWindow(this);
   slayout->addWidget(body);
 
+  driver_view = new DriverViewWindow(this);
+  connect(driver_view, &DriverViewWindow::done, [=] {
+    showDriverView(false);
+  });
+  slayout->addWidget(driver_view);
   setAttribute(Qt::WA_NoSystemBackground);
   QObject::connect(uiState(), &UIState::uiUpdate, this, &HomeWindow::updateState);
   QObject::connect(uiState(), &UIState::offroadTransition, this, &HomeWindow::offroadTransition);
@@ -63,6 +68,17 @@ void HomeWindow::offroadTransition(bool offroad) {
   }
 }
 
+void HomeWindow::showDriverView(bool show) {
+  if (show) {
+    emit closeSettings();
+    slayout->setCurrentWidget(driver_view);
+  } else {
+    slayout->setCurrentWidget(home);
+  }
+  sidebar->setVisible(show == false);
+}
+
+
 int HomeWindow::clip(int &x, int lo, int hi)
 {
   int  nMin = hi;
@@ -85,10 +101,9 @@ void HomeWindow::mousePressCommon(QMouseEvent* e, int nDir) {
     clip(uiState()->scene.cameraOffset, -1000, 1000);
     QString value = QString::number(uiState()->scene.cameraOffset);
     Params().put("CameraOffsetAdj", value.toStdString());
-  } else if (live_tune_panel_list == 1) {
     uiState()->scene.pathOffset += 5*nDir;
     clip(uiState()->scene.pathOffset, -1000, 1000);
-    QString value = QString::number(uiState()->scene.pathOffset);
+    value = QString::number(uiState()->scene.pathOffset);
     Params().put("PathOffsetAdj", value.toStdString());
   }
 }

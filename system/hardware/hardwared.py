@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import fcntl
 import os
+import subprocess
 import json
 import queue
 import struct
@@ -20,7 +21,7 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import DT_HW
 from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
 from openpilot.system.hardware import HARDWARE, TICI, AGNOS
-from openpilot.system.loggerd.config import get_available_percenta
+from openpilot.system.loggerd.config import get_available_percent
 from openpilot.system.statsd import statlog
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.hardware.power_monitoring import PowerMonitoring
@@ -54,6 +55,23 @@ OFFROAD_DANGER_TEMP = 75
 prev_offroad_states: dict[str, tuple[bool, str | None]] = {}
 
 
+
+def get_available_percenta(default=None):
+  try:
+    statvfs = os.statvfs('/data/media/')
+    available_percent = 100.0 * statvfs.f_bavail / statvfs.f_blocks
+  except OSError:
+    available_percent = default
+
+  return available_percent
+
+def get_ip_address():
+  try:
+    out = subprocess.check_output(["hostname", "-I"], text=True).strip()
+    ip_address = out.replace(' ', '\n')
+    return ip_address
+  except subprocess.CalledProcessError:
+    return ""
 
 def set_offroad_alert_if_changed(offroad_alert: str, show_alert: bool, extra_text: str | None=None):
   if prev_offroad_states.get(offroad_alert, None) == (show_alert, extra_text):
@@ -136,7 +154,7 @@ def hw_state_thread(end_event, hw_queue):
 
         tx, rx = HARDWARE.get_modem_data_usage()
 
-        ip_address = HARDWARE.get_ip_address() if TICI else ""
+        ip_address = get_ip_address() if TICI else ""
 
         hw_state = HardwareState(
           network_type=network_type,

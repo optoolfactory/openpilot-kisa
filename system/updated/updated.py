@@ -14,7 +14,7 @@ from pathlib import Path
 
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.params import Params
-from openpilot.common.time import system_time_valid
+from openpilot.common.time_helpers import system_time_valid
 from openpilot.common.markdown import parse_markdown
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
@@ -86,7 +86,7 @@ def set_consistent_flag(consistent: bool) -> None:
 
 def parse_release_notes(basedir: str) -> bytes:
   try:
-    with open(os.path.join(basedir, "RELEASES.md"), "rb") as f:
+    with open(os.path.join(basedir, "KP_Updates.md"), "rb") as f:
       r = f.read().split(b'\n\n', 1)[0]  # Slice latest release notes
     try:
       return bytes(parse_markdown(r.decode("utf-8")), encoding="utf-8")
@@ -172,7 +172,7 @@ def init_overlay() -> None:
   run(["sudo"] + mount_cmd)
   run(["sudo", "chmod", "755", os.path.join(OVERLAY_METADATA, "work")])
 
-  git_diff = run(["git", "diff"], OVERLAY_MERGED)
+  git_diff = run(["git", "diff", "--submodule=diff"], OVERLAY_MERGED)
   params.put("GitDiff", git_diff)
   cloudlog.info(f"git diff output:\n{git_diff}")
 

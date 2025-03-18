@@ -3,7 +3,6 @@ import numpy as np
 
 from cereal import log
 from openpilot.common.realtime import DT_CTRL
-from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.filter_simple import FirstOrderFilter
 
 from openpilot.common.params import Params
@@ -110,10 +109,10 @@ class LatCtrlIndATOM(LatControlINDI):
     self._outer_loop_gain = (INDI.outerLoopGainBP, INDI.outerLoopGainV)
     self._inner_loop_gain = (INDI.innerLoopGainBP, INDI.innerLoopGainV)
 
-    self.RC = interp(self.speed, self._RC[0], self._RC[1])
-    self.G = interp(self.speed, self._G[0], self._G[1])
-    self.outer_loop_gain = interp(self.speed, self._outer_loop_gain[0], self._outer_loop_gain[1])
-    self.inner_loop_gain = interp(self.speed, self._inner_loop_gain[0], self._inner_loop_gain[1])
+    self.RC = np.interp(self.speed, self._RC[0], self._RC[1])
+    self.G = np.interp(self.speed, self._G[0], self._G[1])
+    self.outer_loop_gain = np.interp(self.speed, self._outer_loop_gain[0], self._outer_loop_gain[1])
+    self.inner_loop_gain = np.interp(self.speed, self._inner_loop_gain[0], self._inner_loop_gain[1])
 
     self.steer_filter = FirstOrderFilter(0., self.RC, DT_CTRL)
 
@@ -217,8 +216,8 @@ class LatControlATOM(LatControl):
     output_torque1, desired_angle1, log1  = self.lat_fun1( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
     output_torque2, desired_angle2, log2  = self.lat_fun2( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
 
-    desired_angle = interp( steer_ang, self.latBP, [desired_angle0, desired_angle1, desired_angle2] )
-    output_torque = interp( steer_ang, self.latBP, [output_torque0, output_torque1, output_torque2] )
+    desired_angle = np.interp( steer_ang, self.latBP, [desired_angle0, desired_angle1, desired_angle2] )
+    output_torque = np.interp( steer_ang, self.latBP, [output_torque0, output_torque1, output_torque2] )
 
     return output_torque, desired_angle
 
@@ -228,8 +227,8 @@ class LatControlATOM(LatControl):
     output_torque1, desired_angle1, log1  = self.lat_fun1( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
     output_torque2, desired_angle2, log2  = self.lat_fun2( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
 
-    desired_angle = interp( speed, self.latBP, [desired_angle0, desired_angle1, desired_angle2] )
-    output_torque = interp( speed, self.latBP, [output_torque0, output_torque1, output_torque2] )
+    desired_angle = np.interp( speed, self.latBP, [desired_angle0, desired_angle1, desired_angle2] )
+    output_torque = np.interp( speed, self.latBP, [output_torque0, output_torque1, output_torque2] )
     
     return output_torque, desired_angle
 
@@ -278,8 +277,8 @@ class LatControlATOM(LatControl):
           selected = self.multi_lat_spdMethod[1]
         else:
           selected = self.multi_lat_spdMethod[2]
-        desired_angle = interp( selected, [0, 1, 2, 3], [pid_desired_angle, ind_desired_angle, lqr_desired_angle, toq_desired_angle] )
-        output_torque = interp( selected, [0, 1, 2, 3], [pid_output_torque, ind_output_torque, lqr_output_torque, toq_output_torque] )
+        desired_angle = np.interp( selected, [0, 1, 2, 3], [pid_desired_angle, ind_desired_angle, lqr_desired_angle, toq_desired_angle] )
+        output_torque = np.interp( selected, [0, 1, 2, 3], [pid_output_torque, ind_output_torque, lqr_output_torque, toq_output_torque] )
       elif self.multi_lateral_method == LaMethod.ANGLE_LOWDT:
         if 2 in self.multi_lat_angMethod:
           lqr_output_torque, lqr_desired_angle, lqr_log  = self.LaLqr.update( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
@@ -301,8 +300,8 @@ class LatControlATOM(LatControl):
           selected = self.multi_lat_angMethod[1]
         else:
           selected = self.multi_lat_angMethod[2]
-        desired_angle = interp( selected, [0, 1, 2, 3], [pid_desired_angle, ind_desired_angle, lqr_desired_angle, toq_desired_angle] )
-        output_torque = interp( selected, [0, 1, 2, 3], [pid_output_torque, ind_output_torque, lqr_output_torque, toq_output_torque] )
+        desired_angle = np.interp( selected, [0, 1, 2, 3], [pid_desired_angle, ind_desired_angle, lqr_desired_angle, toq_desired_angle] )
+        output_torque = np.interp( selected, [0, 1, 2, 3], [pid_output_torque, ind_output_torque, lqr_output_torque, toq_output_torque] )
       elif self.multi_lateral_method == LaMethod.ANGLE_INTERP:
         selected = 4
         output_torque, desired_angle  =  self.method_angle( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
@@ -311,7 +310,7 @@ class LatControlATOM(LatControl):
         output_torque, desired_angle  =  self.method_speed( active, CS, VM, params, steer_limited, desired_curvature, desired_curvature_rate, calibrated_pose )
 
 
-      output_torque = clip( output_torque, -self.steer_max, self.steer_max )
+      output_torque = np.clip( output_torque, -self.steer_max, self.steer_max )
 
       # 2. log
       atom_log.active = True

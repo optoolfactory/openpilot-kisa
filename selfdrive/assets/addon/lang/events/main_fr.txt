@@ -193,3 +193,4 @@ Carillon pour le départ
 Ralentir pour l'alerte Waze
 Mauvaise réception GPS
 Assurez-vous que l'appareil a une vue dégagée sur le ciel
+Finir le changement de voie

@@ -19,6 +19,8 @@ from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata, terms_version, training_version
 from openpilot.system.hardware.hw import Paths
 
+from openpilot.system.hardware import PC
+
 
 def manager_init() -> None:
   #save_bootlog()
@@ -41,6 +43,9 @@ def manager_init() -> None:
     ("OpenpilotEnabledToggle", "1"),
     ("LongitudinalPersonality", str(log.LongitudinalPersonality.standard)),
     ("IsMetric", "1"),
+  ]
+
+  kisa_params: list[tuple[str, str | bytes]] = [
     ("KisaAutoShutdown", "12"),
     ("KisaAutoScreenOff", "-2"),
     ("KisaUIBrightness", "0"),
@@ -139,7 +144,6 @@ def manager_init() -> None:
     ("SafetyCamDecelDistGain", "0"),
     ("KisaLiveTunePanelEnable", "0"),
     ("RadarLongHelper", "2"),
-    ("GitPullOnBoot", "0"),
     ("LiveSteerRatioPercent", "0"),
     ("StoppingDistAdj", "0"),
     ("ShowError", "1"),
@@ -229,6 +233,17 @@ def manager_init() -> None:
     ("RegenBrakeFeature", "0"),
     ("RegenBrakeFeatureOn", "0"),
   ]
+
+  if not PC:
+    default_params += kisa_params
+  else:
+    for param_name, param_value in kisa_params:
+      file_path = os.path.expanduser(f"~/.comma/params/d/{param_name}")
+      try:
+        with open(file_path, "w") as file:
+          file.write(param_value)
+      except:
+        print(f"Error writing to {file_path}: {e}")
 
   if params.get_bool("RecordFrontLock"):
     params.put_bool("RecordFront", True)

@@ -1,4 +1,4 @@
-from opendbc.car.common.numpy_fast import clip, interp
+import numpy as np
 from cereal import car
 from opendbc.car import DT_CTRL
 from opendbc.car.common.conversions import Conversions as CV

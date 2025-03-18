@@ -27,8 +27,8 @@ protected:
 
 signals:
   void closeSettings();
-  void offroadTransition(bool offroad);
   void reviewTrainingGuide();
+  void showDriverView();
   void expandToggleDescription(const QString &param);
 
 private:
@@ -45,6 +45,7 @@ public:
 
 signals:
   void reviewTrainingGuide();
+  void showDriverView();
 
 private slots:
   void poweroff();
@@ -88,16 +89,10 @@ private:
   bool is_onroad = false;
 
   QLabel *onroadLbl;
-  LabelControl *gitRemoteLbl;
-  LabelControl *gitBranchLbl;
-  LabelControl *gitCommitLbl;
-  LabelControl *lastUpdateLbl;
-
   LabelControl *versionLbl;
   ButtonControl *installBtn;
   ButtonControl *downloadBtn;
   ButtonControl *targetBranchBtn;
-  ButtonControl *updateBtn;
 
   Params params;
   ParamWatcher *fs_watch;

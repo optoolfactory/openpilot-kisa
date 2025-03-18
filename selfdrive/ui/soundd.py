@@ -14,7 +14,6 @@ from openpilot.common.swaglog import cloudlog
 from openpilot.system import micd
 
 from openpilot.common.params import Params
-from openpilot.common.numpy_fast import interp
 
 SAMPLE_RATE = 48000
 SAMPLE_BUFFER = 4096 # (approx 100ms)
@@ -135,7 +134,7 @@ class Soundd:
     elif int(self.params.get("KisaUIVolumeBoost")) < -5:
       return 0.0
     elif int(self.params.get("KisaUIVolumeBoost")) > 5:
-      return interp(min(int(self.params.get("KisaUIVolumeBoost")), 100), [10, 20, 30, 40, 50, 100],[0.01, 0.025, 0.05, 0.075, 0.1, 1.0])
+      return np.interp(min(int(self.params.get("KisaUIVolumeBoost")), 100), [10, 20, 30, 40, 50, 100],[0.01, 0.025, 0.05, 0.075, 0.1, 1.0])
     else:
       volume = ((weighted_db - AMBIENT_DB) / DB_SCALE) * (MAX_VOLUME - MIN_VOLUME) + MIN_VOLUME
       return math.pow(10, (np.clip(volume, MIN_VOLUME, MAX_VOLUME) - 1))

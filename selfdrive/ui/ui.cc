@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem> //kisa
 
 #include <QtConcurrent>
 
@@ -64,6 +65,8 @@ static void update_state(UIState *s) {
     auto cs_data = sm["carState"].getCarState();
     auto cruiseState = scene.car_state.getCruiseState();
     scene.awake = cruiseState.getCruiseSwState();
+    scene.cavailable = cruiseState.getAvailable();
+    scene.cenabled = cruiseState.getEnabled();
 
     if (scene.leftBlinker!=cs_data.getLeftBlinker() || scene.rightBlinker!=cs_data.getRightBlinker()) {
       scene.blinker_blinkingrate = 120;
@@ -177,6 +180,7 @@ static void update_state(UIState *s) {
     scene.longitudinal_control = cp_data.getOpenpilotLongitudinalControl();
     scene.steer_actuator_delay = cp_data.getSteerActuatorDelay();
     scene.car_fingerprint = cp_data.getCarFingerprint();
+    scene.pcm_cruise = cp_data.getPcmCruise();
   }
   if (sm.updated("wideRoadCameraState")) {
     auto cam_state = sm["wideRoadCameraState"].getWideRoadCameraState();
@@ -206,6 +210,8 @@ static void update_state(UIState *s) {
     scene.lateralPlan.rProb = lp_data.getRProb();
     scene.lateralPlan.lanelessModeStatus = lp_data.getLanelessMode();
     scene.lateralPlan.totalCameraOffset = lp_data.getTotalCameraOffset();
+    scene.lateralPlan.rightLanetoRightEdgeWidth = lp_data.getRightLanetoRightEdgeWidth();
+    scene.lateralPlan.leftLanetoLeftEdgeWidth = lp_data.getLeftLanetoLeftEdgeWidth();
   }
   if (sm.updated("longitudinalPlan")) {
     scene.longitudinal_plan = sm["longitudinalPlan"].getLongitudinalPlan();
@@ -252,7 +258,7 @@ static void update_state(UIState *s) {
       scene.liveENaviData.ekisa8 = lme_data.getKisa8();
       scene.liveENaviData.ekisa9 = lme_data.getKisa9();
     }
-    if (scene.navi_select == 2) {
+    if (scene.navi_select == 2 || scene.navi_select == 4 ) {
       scene.liveENaviData.ewazealertid = lme_data.getWazeAlertId();
       scene.liveENaviData.ewazealertdistance = lme_data.getWazeAlertDistance();
       scene.liveENaviData.ewazeroadspeedlimit = lme_data.getWazeRoadSpeedLimit();
@@ -319,17 +325,6 @@ void UIState::updateStatus() {
     }
   }
 
-  // this is useful to save compiling time before depart when you use remote ignition
-  if (!scene.auto_gitpull && (sm->frame - scene.started_frame > 30*UI_FREQ)) {
-    if (Params().getBool("GitPullOnBoot")) {
-      scene.auto_gitpull = true;
-      Params().put("RunCustomCommand", "2", 1);
-    } else if (sm->frame - scene.started_frame > 300*UI_FREQ) {
-      scene.auto_gitpull = true;
-      Params().put("RunCustomCommand", "1", 1);
-    }
-  }
-
   if (!scene.read_params_once) {
     Params params;
     // user param value init
@@ -383,9 +378,12 @@ void UIState::updateStatus() {
     scene.ufc_mode = params.getBool("UFCModeEnabled");
     scene.op_long_enabled = params.getBool("ExperimentalLongitudinalEnabled");
     scene.model_name = QString::fromStdString(params.get("DrivingModel"));
+    scene.branch_name = QString::fromStdString(params.get("GitBranch"));
     scene.hotspot_on_boot = params.getBool("KisaHotspotOnBoot");
     scene.user_specific_feature = std::stoi(params.get("UserSpecificFeature"));
     scene.use_radar_value = params.getBool("UseRadarValue");
+    scene.no_smart_mdps = params.getBool("NoSmartMDPS");
+    scene.lfa_button_eng = params.getBool("LFAButtonEngagement");
 
     if (scene.autoScreenOff > 0) {
       scene.nTime = scene.autoScreenOff * 60 * UI_FREQ;
@@ -400,7 +398,7 @@ void UIState::updateStatus() {
     }
     scene.comma_stock_ui = std::stoi(params.get("CommaStockUI"));
     scene.kisa_livetune_ui = params.getBool("KisaLiveTunePanelEnable");
-    std::system("sudo rm /data/kisa_starting");
+    std::filesystem::exists("/data/kisa_starting") && std::system("sudo rm /data/kisa_starting");
     scene.read_params_once = true;
   }
 }

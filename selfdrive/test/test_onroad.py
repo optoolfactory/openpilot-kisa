@@ -23,7 +23,7 @@ from openpilot.selfdrive.selfdrived.events import EVENTS, ET
 from openpilot.selfdrive.test.helpers import set_params_enabled, release_only
 from openpilot.system.hardware import HARDWARE
 from openpilot.system.hardware.hw import Paths
-from openpilot.system.loggerd.uploader import LOG_COMPRESSION_LEVEL
+from openpilot.common.file_helpers import LOG_COMPRESSION_LEVEL
 from openpilot.tools.lib.logreader import LogReader
 
 """
@@ -103,7 +103,7 @@ TIMINGS = {
 
 LOGS_SIZE_RATE = {
   "qlog": 0.0083,
-  "rlog": 0.1528,
+  "rlog": 0.135,
   "qcamera.ts": 0.03828,
 }
 LOGS_SIZE_RATE.update(dict.fromkeys(['ecamera.hevc', 'fcamera.hevc'], 1.2740))

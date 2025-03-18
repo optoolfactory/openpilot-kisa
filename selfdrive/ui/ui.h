@@ -132,7 +132,7 @@ typedef struct UIScene {
   bool live_tune_panel_enable;
   int bottom_text_view;
   int live_tune_panel_list = 0;
-  int list_count = 2;
+  int list_count = 1;
   int nTime, autoScreenOff, brightness, awake;
   int nVolumeBoost = 0;
   bool read_params_once = false;
@@ -140,7 +140,6 @@ typedef struct UIScene {
   bool nDebugUi2;
   bool nDebugUi3;
   bool nKisaBlindSpotDetect;
-  bool auto_gitpull = false;
   bool is_speed_over_limit = false;
   bool controlAllowed;
   bool steer_warning;
@@ -188,10 +187,14 @@ typedef struct UIScene {
 
   int user_specific_feature = 0;
   bool use_radar_value;
+  bool no_smart_mdps;
+  bool lfa_button_eng;
   bool error_occurred = false;
   int standstillElapsedTime = 0;
+  bool cavailable, cenabled;
 
   QString model_name;
+  QString branch_name;
 
   cereal::DeviceState::Reader deviceState;
   cereal::PeripheralState::Reader peripheralState;
@@ -225,6 +228,8 @@ typedef struct UIScene {
     float angleOffset;
     bool lanelessModeStatus;
     float totalCameraOffset;
+    float rightLanetoRightEdgeWidth;
+    float leftLanetoLeftEdgeWidth;
   } lateralPlan;
 
   struct _LiveENaviData
@@ -289,7 +294,7 @@ typedef struct UIScene {
   cereal::LongitudinalPersonality personality;
 
   float light_sensor = -1;
-  bool started, ignition, is_metric, longitudinal_control;
+  bool started, ignition, is_metric, longitudinal_control, pcm_cruise;
   uint64_t started_frame;
 } UIScene;
 

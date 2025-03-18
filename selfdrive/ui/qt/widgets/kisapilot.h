@@ -544,18 +544,6 @@ public:
   }
 };
 
-class GitPullOnBootToggle : public ToggleControl {
-  Q_OBJECT
-
-public:
-  GitPullOnBootToggle() : ToggleControl(tr("Git Pull On Boot"), tr("If there is an update after the boot, run Git Pull automatically and reboot."), "", Params().getBool("GitPullOnBoot")) {
-    QObject::connect(this, &GitPullOnBootToggle::toggleFlipped, [=](int state) {
-      bool status = state ? true : false;
-      Params().putBool("GitPullOnBoot", status);
-    });
-  }
-};
-
 class StoppingDistAdjToggle : public ToggleControl {
   Q_OBJECT
 

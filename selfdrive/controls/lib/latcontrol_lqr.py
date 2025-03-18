@@ -1,7 +1,6 @@
 import math
 import numpy as np
 
-from openpilot.common.numpy_fast import clip
 from openpilot.common.realtime import DT_CTRL
 from cereal import log
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
@@ -102,11 +101,11 @@ class LatControlLQR(LatControl):
           self.i_lqr = i
 
       output_steer = lqr_output + self.i_lqr
-      output_steer = clip(output_steer, -self.steer_max, self.steer_max)
+      output_steer = np.clip(output_steer, -self.steer_max, self.steer_max)
 
-    lqr_log.steeringAngleDeg = angle_steers_k
-    lqr_log.i = self.i_lqr
-    lqr_log.output = output_steer
-    lqr_log.lqrOutput = lqr_output
-    lqr_log.saturated = self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited)
+    lqr_log.steeringAngleDeg = float(angle_steers_k)
+    lqr_log.i = float(self.i_lqr)
+    lqr_log.output = float(output_steer)
+    lqr_log.lqrOutput = float(lqr_output)
+    lqr_log.saturated = bool(self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited))
     return output_steer, desired_angle, lqr_log

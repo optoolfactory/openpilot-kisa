@@ -158,6 +158,7 @@ struct OnroadEvent @0xc4fa6047f024e718 {
     chimeAtResume @120;
     autoHold @121;
     lkasDisabled @122;
+    laneChangeFinish @123;
   }
 }
 
@@ -440,6 +441,7 @@ struct GpsLocationData {
   speedAccuracy @12 :Float32;
 
   hasFix @13 :Bool;
+  satelliteCount @14 :Int8;
 
   enum SensorSource {
     android @0;
@@ -1428,6 +1430,8 @@ struct LateralPlan @0xe1e9318e2ae8b51e {
   lanelessMode @37 :Bool;
   modelSpeed @38 :Float32;
   totalCameraOffset @39 :Float32;
+  rightLanetoRightEdgeWidth @40 :Float32;
+  leftLanetoLeftEdgeWidth @41 :Float32;
 
   enum Desire {
     none @0;
@@ -2753,14 +2757,17 @@ struct Event {
     livestreamWideRoadEncodeData @121 :EncodeData;
     livestreamDriverEncodeData @122 :EncodeData;
 
+    # *********** Custom: reserved for forks ***********
+
+    # DO change the name of the field
+    # DON'T change anything after the "@"
     customReservedRawData0 @124 :Data;
     customReservedRawData1 @125 :Data;
     customReservedRawData2 @126 :Data;
 
-    liveENaviData @136: LiveENaviData;
-    liveMapData @137: LiveMapData;
-
-    # *********** Custom: reserved for forks ***********
+    # DO change the name of the field and struct
+    # DON'T change the ID (e.g. @107)
+    # DON'T change which struct it points to 
     customReserved0 @107 :Custom.CustomReserved0;
     customReserved1 @108 :Custom.CustomReserved1;
     customReserved2 @109 :Custom.CustomReserved2;
@@ -2771,6 +2778,19 @@ struct Event {
     customReserved7 @114 :Custom.CustomReserved7;
     customReserved8 @115 :Custom.CustomReserved8;
     customReserved9 @116 :Custom.CustomReserved9;
+    customReserved10 @136 :Custom.CustomReserved10;
+    customReserved11 @137 :Custom.CustomReserved11;
+    customReserved12 @138 :Custom.CustomReserved12;
+    customReserved13 @139 :Custom.CustomReserved13;
+    customReserved14 @140 :Custom.CustomReserved14;
+    customReserved15 @141 :Custom.CustomReserved15;
+    customReserved16 @142 :Custom.CustomReserved16;
+    customReserved17 @143 :Custom.CustomReserved17;
+    customReserved18 @144 :Custom.CustomReserved18;
+    customReserved19 @145 :Custom.CustomReserved19;
+
+    liveENaviData @146: LiveENaviData;
+    liveMapData @147: LiveMapData;
 
     # *********** legacy + deprecated ***********
     model @9 :Legacy.ModelData; # TODO: rename modelV2 and mark this as deprecated

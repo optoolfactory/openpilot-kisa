@@ -1,11 +1,11 @@
 import time
 import threading
+import numpy as np
 
 from openpilot.common.params import Params
 from openpilot.system.hardware import HARDWARE
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.statsd import statlog
-from openpilot.common.numpy_fast import interp
 from openpilot.common.params import Params
 
 CAR_VOLTAGE_LOW_PASS_K = 0.011 # LPF gain for 45s tau (dt/tau / (dt/tau + 1))
@@ -15,7 +15,7 @@ CAR_BATTERY_CAPACITY_uWh = 30e6
 CAR_CHARGING_RATE_W = 45
 
 VBATT_PAUSE_CHARGING = 11.8           # Lower limit on the LPF car battery voltage
-MAX_TIME_OFFROAD_S = interp(int(Params().get("KisaAutoShutdown", encoding="utf8")), [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], [0,5,30,60,180,300,600,1800,3600,10800,18000,36000,86400,172800,259200]) \
+MAX_TIME_OFFROAD_S = np.interp(int(Params().get("KisaAutoShutdown", encoding="utf8")), [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14], [0,5,30,60,180,300,600,1800,3600,10800,18000,36000,86400,172800,259200]) \
                       if Params().get("KisaAutoShutdown", encoding="utf8") is not None else 0 # 30*3600
 MIN_ON_TIME_S = 3600
 DELAY_SHUTDOWN_TIME_S = 300 # Wait at least DELAY_SHUTDOWN_TIME_S seconds after offroad_time to shutdown.

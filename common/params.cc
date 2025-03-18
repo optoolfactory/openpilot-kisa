@@ -89,6 +89,7 @@ private:
 
 std::unordered_map<std::string, uint32_t> keys = {
     {"AccessToken", CLEAR_ON_MANAGER_START | DONT_LOG},
+    {"AdbEnabled", PERSISTENT},
     {"AlwaysOnDM", PERSISTENT},
     {"ApiCache_Device", PERSISTENT},
     {"AssistNowToken", PERSISTENT},
@@ -119,6 +120,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"ExperimentalLongitudinalEnabled", PERSISTENT},
     {"ExperimentalMode", PERSISTENT},
     {"ExperimentalModeConfirmed", PERSISTENT},
+    {"FirehoseMode", CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION},
     {"FirmwareQueryDone", CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION},
     {"ForcePowerDown", PERSISTENT},
     {"GitBranch", PERSISTENT},
@@ -301,7 +303,6 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"KisaLiveTunePanelEnable", PERSISTENT},
     {"BottomTextView", PERSISTENT},
     {"RadarLongHelper", PERSISTENT},
-    {"GitPullOnBoot", PERSISTENT},
     {"LiveSteerRatioPercent", PERSISTENT},
     {"StoppingDistAdj", PERSISTENT},
     {"ShowError", PERSISTENT},
@@ -390,7 +391,6 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"UseLegacyLaneModel", PERSISTENT},
     {"GitCommitRemote", PERSISTENT},
     {"GitCommitRemoteDate", PERSISTENT},
-    {"GitCommitLocalDate", PERSISTENT},
     {"DrivingModel", PERSISTENT},
     {"LCTimingKeepFactorLeft", PERSISTENT},
     {"LCTimingKeepFactorRight", PERSISTENT},

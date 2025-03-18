@@ -5,14 +5,10 @@
 #include <vector>
 
 #include <QDebug>
-#include <QProcess> // kisapilot
-#include <QDateTime> // kisapilot
 #include <QTimer> // kisapilot
-#include <QFileInfo> // kisapilot
 
 #include "common/watchdog.h"
 #include "common/util.h"
-#include "selfdrive/ui/qt/offroad/driverview.h"
 #include "selfdrive/ui/qt/network/networking.h"
 #include "selfdrive/ui/qt/offroad/settings.h"
 #include "selfdrive/ui/qt/qt_window.h"
@@ -33,15 +29,6 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       "../assets/img_chffr_wheel.png",
     },
     {
-      "ExperimentalLongitudinalEnabled",
-      tr("openpilot Longitudinal Control (Alpha)"),
-      QString("<b>%1</b><br><br>%2")
-      .arg(tr("WARNING: openpilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB)."))
-      .arg(tr("On this car, openpilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. "
-              "Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.")),
-      "../assets/offroad/icon_speed_limit.png",
-    },
-    {
       "ExperimentalMode",
       tr("Experimental Mode"),
       QString("%1<br>"
@@ -55,7 +42,7 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
               "Since the driving model decides the speed to drive, the set speed will only act as an upper bound. This is an alpha quality feature; "
               "mistakes should be expected."))
       .arg(tr("New Driving Visualization"))
-      .arg(tr("The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner. ")),
+      .arg(tr("The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner.")),
       "../assets/img_experimental_white.svg",
     },
     {
@@ -63,6 +50,20 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       tr("Disengage on Accelerator Pedal"),
       tr("When enabled, pressing the accelerator pedal will disengage openpilot."),
       "../assets/offroad/icon_disengage_on_accelerator.svg",
+    },
+    {
+      "FirehoseMode",
+      tr("FIREHOSE Mode"),
+      tr("Enable <b>FIREHOSE Mode</b> to get your driving data in the training set.<br><br>"
+         "Follow these steps to get your device ready:<br>"
+         "  1. Bring your device inside and connect to a good USB-C adapter<br>"
+         "  2. Connect to Wi-Fi<br>"
+         "  3. Enable this toggle<br>"
+         "  4. Leave it connected for at least 30 minutes<br>"
+         "<br>"
+         "This toggle turns off once you restart your device. Repeat once a week for maximum effectiveness."
+         ""),
+      "../assets/offroad/icon_warning.png",
     },
     {
       "IsLdwEnabled",
@@ -120,7 +121,6 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
   // Toggles with confirmation dialogs
   toggles["ExperimentalMode"]->setActiveIcon("../assets/img_experimental.svg");
   toggles["ExperimentalMode"]->setConfirmation(true, false);
-  toggles["ExperimentalLongitudinalEnabled"]->setConfirmation(true, false);
 }
 
 void TogglesPanel::updateState(const UIState &s) {
@@ -161,12 +161,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
 
   auto dcamBtn = new ButtonControl(tr("Driver Camera"), tr("PREVIEW"),
                                    tr("Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)"));
-  connect(dcamBtn, &ButtonControl::clicked, [this, dcamBtn]() {
-    dcamBtn->setEnabled(false);
-    DriverViewDialog driver_view(this);
-    driver_view.exec();
-    dcamBtn->setEnabled(true);
-  });
+  connect(dcamBtn, &ButtonControl::clicked, [=]() { emit showDriverView(); });
   addItem(dcamBtn);
 
   auto resetCalibBtn = new ButtonControl(tr("Reset Calibration"), tr("RESET"), " ");
@@ -174,6 +169,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   connect(resetCalibBtn, &ButtonControl::clicked, [&]() {
     if (ConfirmationDialog::confirm(tr("Are you sure you want to reset calibration?"), tr("Reset"), this)) {
       params.remove("CalibrationParams");
+      params.remove("LiveTorqueParameters");
       params.putBool("OnRoadRefresh", true);
       QTimer::singleShot(3000, [this]() {
         params.putBool("OnRoadRefresh", false);
@@ -201,16 +197,6 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
     addItem(regulatoryBtn);
   }
 
-  //const char* cal_ok = "sudo cp -f /data/openpilot/selfdrive/assets/CalibrationParams /data/params/d/";
-  auto calokbtn = new ButtonControl("캘리브레이션 강제 활성화", "실행");
-  connect(calokbtn, &ButtonControl::clicked, [&]() {
-      if (ConfirmationDialog::confirm(tr("캘리브레이션을 강제로 설정합니다. 인게이지 확인용이니 실 주행시에는 초기화 하시기 바랍니다"), tr("확인"), this)) {
-        std::system("sudo cp -f /data/openpilot/selfdrive/assets/CalibrationParams /data/params/d/");
-    }
-  }
-  );
-  addItem(calokbtn);
-
   auto translateBtn = new ButtonControl(tr("Change Language"), tr("CHANGE"), "");
   connect(translateBtn, &ButtonControl::clicked, [=]() {
     QMap<QString, QString> langs = getSupportedLanguages();
@@ -230,9 +216,6 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   QObject::connect(uiState(), &UIState::offroadTransition, [=](bool offroad) {
     for (auto btn : findChildren<ButtonControl *>()) {
       btn->setEnabled(true);
-      //if (btn != pair_device) {
-      //  btn->setEnabled(offroad);
-      //}
     }
   });
 
@@ -340,113 +323,6 @@ void DevicePanel::poweroff() {
   }
 }
 
-SoftwarePanel::SoftwarePanel(QWidget* parent) : ListWidget(parent) {
-  gitRemoteLbl = new LabelControl(tr("Git Remote"));
-  gitBranchLbl = new LabelControl(tr("Git Branch"));
-  gitCommitLbl = new LabelControl(tr("Commit(Local/Remote)"));
-  versionLbl = new LabelControl(tr("Fork"));
-  lastUpdateLbl = new LabelControl(tr("Last Update Check"), "", "");
-  updateBtn = new ButtonControl(tr("Check for Updates"), "");
-  connect(updateBtn, &ButtonControl::clicked, [=]() {
-    std::system("date '+%F %T' > /data/params/d/LastUpdateTime");
-    QString last_ping = QString::fromStdString(params.get("LastAthenaPingTime"));
-    QString desc = "";
-    QString commit_local = QString::fromStdString(params.get("GitCommit").substr(0, 5));
-    QString commit_remote = QString::fromStdString(params.get("GitCommitRemote").substr(0, 5));
-    QString commit_local_date = QString::fromStdString(params.get("GitCommitLocalDate"));
-    QString commit_remote_date = QString::fromStdString(params.get("GitCommitRemoteDate"));
-    QString empty = "";
-    desc = tr("LOCAL: %1(%2)  /  REMOTE: %3(%4)").arg(commit_local, commit_local_date, commit_remote, commit_remote_date);
-    if (!last_ping.length()) {
-      desc = tr("Network connection is missing or unstable. Check the connection.");
-      ConfirmationDialog::alert(desc, this);
-    } else if (commit_local == commit_remote) {
-      params.put("RunCustomCommand", "1", 1);
-      desc = tr("Checking update takes a time. If Same message, no update required.");
-      ConfirmationDialog::alert(desc, this);
-    } else {
-      if (QFileInfo::exists("/data/KisaPilot_Updates.txt")) {
-        QFileInfo fileInfo;
-        fileInfo.setFile("/data/KisaPilot_Updates.txt");
-        const std::string txt = util::read_file("/data/KisaPilot_Updates.txt");
-        if (UpdateInfoDialog::confirm(desc + "\n" + QString::fromStdString(txt), this)) {
-          if (ConfirmationDialog::confirm2(tr("Device will be updated and rebooted. Do you want to proceed?"), this)) {
-            std::system("touch /data/kisa_compiling");
-            params.put("RunCustomCommand", "2", 1);
-          }
-        }
-      } else {
-        QString cmd1 = "wget https://raw.githubusercontent.com/kisapilot/openpilot/"+QString::fromStdString(params.get("GitBranch"))+"/KisaPilot_Updates.txt -O /data/KisaPilot_Updates.txt";
-        QProcess::execute(cmd1);
-        QTimer::singleShot(2000, []() {});
-        if (QFileInfo::exists("/data/KisaPilot_Updates.txt")) {
-          QFileInfo fileInfo;
-          fileInfo.setFile("/data/KisaPilot_Updates.txt");
-          const std::string txt = util::read_file("/data/KisaPilot_Updates.txt");
-          if (UpdateInfoDialog::confirm(desc + "\n" + QString::fromStdString(txt), this)) {
-            if (ConfirmationDialog::confirm2(tr("Device will be updated and rebooted. Do you want to proceed?"), this)) {
-              std::system("touch /data/kisa_compiling");
-              params.put("RunCustomCommand", "2", 1);
-            }
-          }
-        }
-      }
-    }
-    updateLabels();
-  });
-
-  auto uninstallBtn = new ButtonControl(tr("Uninstall %1").arg(getBrand()), tr("UNINSTALL"));
-  connect(uninstallBtn, &ButtonControl::clicked, [&]() {
-    if (ConfirmationDialog::confirm2(tr("Are you sure you want to uninstall?"), this)) {
-      params.putBool("DoUninstall", true);
-    }
-  });
-  connect(parent, SIGNAL(offroadTransition(bool)), uninstallBtn, SLOT(setEnabled(true)));
-
-  QWidget *widgets[] = {versionLbl, gitRemoteLbl, gitBranchLbl, lastUpdateLbl, updateBtn, gitCommitLbl};
-  for (QWidget* w : widgets) {
-    addItem(w);
-  }
-
-  //addItem(new GitHash());
-  addItem(new CPresetWidget());
-  addItem(new CGitGroup());
-  //addItem(new CUtilWidget(this));
-
-  addItem(uninstallBtn);
-}
-
-void SoftwarePanel::showEvent(QShowEvent *event) {
-  updateLabels();
-}
-
-void SoftwarePanel::updateLabels() {
-  QString lastUpdate = "";
-  QString tm = QString::fromStdString(params.get("LastUpdateTime").substr(0, 19));
-  if (tm != "") {
-    lastUpdate = timeAgo(QDateTime::fromString(tm, "yyyy-MM-dd HH:mm:ss"));
-  }
-  QString lhash = QString::fromStdString(params.get("GitCommit").substr(0, 5));
-  QString rhash = QString::fromStdString(params.get("GitCommitRemote").substr(0, 5));
-  QString lhash_date = QString::fromStdString(params.get("GitCommitLocalDate"));
-  QString rhash_date = QString::fromStdString(params.get("GitCommitRemoteDate"));
-
-  if (lhash == rhash) {
-    gitCommitLbl->setStyleSheet("color: #aaaaaa");
-  } else {
-    gitCommitLbl->setStyleSheet("color: #0099ff");
-  }
-
-  versionLbl->setText("KisaPilot");
-  lastUpdateLbl->setText(lastUpdate);
-  updateBtn->setText(tr("CHECK"));
-  updateBtn->setEnabled(true);
-  gitRemoteLbl->setText(QString::fromStdString(params.get("GitRemote").substr(33)));
-  gitBranchLbl->setText(QString::fromStdString(params.get("GitBranch")));
-  gitCommitLbl->setText(lhash + "(" + lhash_date + ")" + " / " + rhash + "(" + rhash_date + ")");
-}
-
-
 UIPanel::UIPanel(QWidget *parent) : QFrame(parent) {
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(50, 0, 50, 0);
@@ -531,7 +407,7 @@ TuningPanel::TuningPanel(QWidget *parent) : QFrame(parent) {
   // kisapilot
   //layout->addWidget(new LabelControl(tr("〓〓〓〓〓〓〓〓〓〓〓〓【 TUNING 】〓〓〓〓〓〓〓〓〓〓〓〓"), ""));
   layout->addWidget(new CameraOffset());
-  layout->addWidget(new PathOffset());
+  //layout->addWidget(new PathOffset());
   layout->addWidget(new SteerAngleCorrection());
   layout->addWidget(horizontal_line());
 
@@ -604,8 +480,8 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
 
   // setup panels
   DevicePanel *device = new DevicePanel(this);
-  SoftwarePanel *software = new SoftwarePanel(this);
   QObject::connect(device, &DevicePanel::reviewTrainingGuide, this, &SettingsWindow::reviewTrainingGuide);
+  QObject::connect(device, &DevicePanel::showDriverView, this, &SettingsWindow::showDriverView);
 
   TogglesPanel *toggles = new TogglesPanel(this);
   QObject::connect(this, &SettingsWindow::expandToggleDescription, toggles, &TogglesPanel::expandToggleDescription);
@@ -617,7 +493,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     {tr("Device"), device},
     {tr("Network"), networking},
     {tr("Toggles"), toggles},
-    {tr("Software"), software},
+    {tr("Software"), new SoftwarePanel(this)},
     {tr("UIMenu"), new UIPanel(this)},
     {tr("Driving"), new DrivingPanel(this)},
     {tr("Developer"), new DeveloperPanel(this)},

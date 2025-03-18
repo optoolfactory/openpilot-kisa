@@ -127,6 +127,26 @@
         <source>Longitudinal Maneuver Mode</source>
         <translation>롱컨 기동 모드</translation>
     </message>
+    <message>
+        <source>openpilot Longitudinal Control (Alpha)</source>
+        <translation type="unfinished">openpilot 가감속 제어 (알파)</translation>
+    </message>
+    <message>
+        <source>WARNING: openpilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB).</source>
+        <translation type="unfinished">경고: openpilot 가감속 제어 알파 기능으로 차량의 자동긴급제동(AEB)을 비활성화합니다.</translation>
+    </message>
+    <message>
+        <source>On this car, openpilot defaults to the car&apos;s built-in ACC instead of openpilot&apos;s longitudinal control. Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.</source>
+        <translation type="unfinished">이 차량은 openpilot 가감속 제어 대신 기본적으로 차량의 ACC로 가감속을 제어합니다. openpilot의 가감속 제어로 전환하려면 이 기능을 활성화하세요. openpilot 가감속 제어 알파를 활성화하는 경우 실험 모드 활성화를 권장합니다.</translation>
+    </message>
+    <message>
+        <source>Enable ADB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ADB (Android Debug Bridge) allows connecting to your device over USB or over the network. See https://docs.comma.ai/how-to/connect-to-comma for more info.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>DevicePanel</name>
@@ -156,7 +176,7 @@
     </message>
     <message>
         <source>Reset Calibration</source>
-        <translation>캘리브레이션 초기화</translation>
+        <translation>캘리브레이션</translation>
     </message>
     <message>
         <source>RESET</source>
@@ -168,7 +188,7 @@
     </message>
     <message>
         <source>Review Training Guide</source>
-        <translation>트레이닝 가이드 다시보기</translation>
+        <translation>트레이닝 가이드</translation>
     </message>
     <message>
         <source>REVIEW</source>
@@ -260,7 +280,7 @@
     </message>
     <message>
         <source>Pair your device with comma connect (connect.comma.ai) and claim your comma prime offer.</source>
-        <translation>장치를 comma connect (connect.comma.ai)에서 페어링하고 comma prime 무료 이용권을 사용하세요.</translation>
+        <translation>장치를 comma connect (connect.comma.ai)에서 동기화하고 comma prime 무료 이용권을 사용하세요.</translation>
     </message>
     <message>
         <source>Pair Device</source>
@@ -471,6 +491,10 @@
         <source>Bookmark connect.comma.ai to your home screen to use it like an app</source>
         <translation>connect.comma.ai를 앱처럼 사용하려면 홈 화면에 바로가기를 만드세요</translation>
     </message>
+    <message>
+        <source>Please connect to Wi-Fi to complete initial pairing</source>
+        <translation>초기 동기화를 완료하려면 Wi-Fi에 연결하세요.</translation>
+    </message>
 </context>
 <context>
     <name>ParamControl</name>
@@ -560,18 +584,6 @@
     <message>
         <source>now</source>
         <translation>now</translation>
-    </message>
-    <message>
-        <source>Update</source>
-        <translation>업데이트</translation>
-    </message>
-    <message>
-        <source>Restore</source>
-        <translation>커밋복구</translation>
-    </message>
-    <message>
-        <source>Reset</source>
-        <translation>커밋초기화</translation>
     </message>
 </context>
 <context>
@@ -757,11 +769,11 @@ This may take up to a minute.</source>
     </message>
     <message>
         <source>Pair your device with comma connect (connect.comma.ai) and claim your comma prime offer.</source>
-        <translation>장치를 comma connect (connect.comma.ai)에서 페어링하고 comma prime 무료 이용권을 사용하세요.</translation>
+        <translation>장치를 comma connect (connect.comma.ai)에서 동기화하고 comma prime 무료 이용권을 사용하세요.</translation>
     </message>
     <message>
         <source>Pair device</source>
-        <translation>장치 페어링</translation>
+        <translation>장치 동기화</translation>
     </message>
 </context>
 <context>
@@ -913,52 +925,7 @@ This may take up to a minute.</source>
         <source>never</source>
         <translation>업데이트 안함</translation>
     </message>
-    <name>SoftwarePanel</name>
-    <message>
-        <source>Git Remote</source>
-        <translation>Git 주소</translation>
-    </message>
-    <message>
-        <source>Git Branch</source>
-        <translation>Git 브랜치</translation>
-    </message>
-    <message>
-        <source>Commit(Local/Remote)</source>
-        <translation>커밋(로컬/원격)</translation>
-    </message>
-    <message>
-        <source>Fork</source>
-        <translation>포크</translation>
-    </message>
-    <message>
-        <source>Last Update Check</source>
-        <translation>마지막 업데이트 확인</translation>
-    </message>
-    <message>
-        <source>Check for Updates</source>
-        <translation>업데이트 지금 확인</translation>
-    </message>
-    <message>
-        <source>LOCAL: %1(%2)  /  REMOTE: %3(%4)</source>
-        <translation>로컬: %1(%2)  /  원격: %3(%4)</translation>
-    </message>
-    <message>
-        <source>Network connection is missing or unstable. Check the connection.</source>
-        <translation>네트워크 연결이 끊겼거나 불안정합니다. 연결 상태를 확인하세요.</translation>
-    </message>
-    <message>
-        <source>Checking update takes a time. If Same message, no update required.</source>
-        <translation>업데이트 확인에 시간이 걸립니다. 같은 메시지가 나오면 업데이트가 필요 없습니다.</translation>
-    </message>
-    <message>
-        <source>Device will be updated and rebooted. Do you want to proceed?</source>
-        <translation>장치가 업데이트 되고 재부팅 됩니다. 진행하시겠습니까?</translation>
-    </message>
-    <message>
-        <source>failed to fetch update</source>
-        <translation>업데이트를 가져올 수 없습니다</translation>
-    </message>
-    </context>
+</context>
 <context>
     <name>SshControl</name>
     <message>
@@ -1095,18 +1062,6 @@ This may take up to a minute.</source>
         <translation>openpilot 가감속 제어는 향후 업데이트에서 지원될 수 있습니다.</translation>
     </message>
     <message>
-        <source>openpilot Longitudinal Control (Alpha)</source>
-        <translation>openpilot 가감속 제어 (알파)</translation>
-    </message>
-    <message>
-        <source>WARNING: openpilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB).</source>
-        <translation>경고: openpilot 가감속 제어 알파 기능으로 차량의 자동긴급제동(AEB)을 비활성화합니다.</translation>
-    </message>
-    <message>
-        <source>On this car, openpilot defaults to the car&apos;s built-in ACC instead of openpilot&apos;s longitudinal control. Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.</source>
-        <translation>이 차량은 openpilot 가감속 제어 대신 기본적으로 차량의 ACC로 가감속을 제어합니다. openpilot의 가감속 제어로 전환하려면 이 기능을 활성화하세요. openpilot 가감속 제어 알파를 활성화하는 경우 실험 모드 활성화를 권장합니다.</translation>
-    </message>
-    <message>
         <source>Aggressive</source>
         <translation>공격적</translation>
     </message>
@@ -1149,6 +1104,14 @@ This may take up to a minute.</source>
     <message>
         <source>Enable driver monitoring even when openpilot is not engaged.</source>
         <translation>Openpilot이 활성화되지 않은 경우에도 드라이버 모니터링을 활성화합니다.</translation>
+    </message>
+    <message>
+        <source>FIREHOSE Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable &lt;b&gt;FIREHOSE Mode&lt;/b&gt; to get your driving data in the training set.&lt;br&gt;&lt;br&gt;Follow these steps to get your device ready:&lt;br&gt;  1. Bring your device inside and connect to a good USB-C adapter&lt;br&gt;  2. Connect to Wi-Fi&lt;br&gt;  3. Enable this toggle&lt;br&gt;  4. Leave it connected for at least 30 minutes&lt;br&gt;&lt;br&gt;This toggle turns off once you restart your device. Repeat once a week for maximum effectiveness.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2698,6 +2661,14 @@ This may take up to a minute.</source>
         <source>Waze</source>
         <translation>웨이즈</translation>
     </message>
+    <message>
+        <source>TMap-UDP</source>
+        <translation>티맵-UDP</translation>
+    </message>
+    <message>
+        <source>Waze-UDP</source>
+        <translation>Waze-UDP</translation>
+    </message>
 </context>
 <context>
     <name>KISAMapboxStyle</name>
@@ -3378,17 +3349,6 @@ This may take up to a minute.</source>
     <message>
         <source>Display the UI related to live tuning on the screen. Various tuning values can be adjusted live on the driving screen. It is reflected in the parameter when adjusting, and the value is maintained even after turning off the toggle and rebooting.</source>
         <translation>실시간 튜닝과 관련된 UI를 화면에 표시합니다. 주행 화면에서 다양한 튜닝 값을 실시간으로 조정할 수 있습니다. 조정 시 파라미터에 반영되며, 토글을 끄고 재부팅한 후에도 값이 유지됩니다.</translation>
-    </message>
-</context>
-<context>
-    <name>GitPullOnBootToggle</name>
-    <message>
-        <source>Git Pull On Boot</source>
-        <translation>부팅 시 Git Pull</translation>
-    </message>
-    <message>
-        <source>If there is an update after the boot, run Git Pull automatically and reboot.</source>
-        <translation>부팅 후 업데이트가 있을 경우 Git Pull을 자동으로 실행하고 재부팅합니다.</translation>
     </message>
 </context>
 <context>

@@ -53,6 +53,8 @@ static const CanMsg HYUNDAI_COMMUNITY1_TX_MSGS[] = {
 
 bool hyundai_community1_legacy = false;
 
+static bool hyundai_controls_allowed = false;
+
 static void hyundai_community1_rx_hook(const CANPacket_t *to_push) {
   int bus = GET_BUS(to_push);
   int addr = GET_ADDR(to_push);
@@ -64,8 +66,12 @@ static void hyundai_community1_rx_hook(const CANPacket_t *to_push) {
   //  hyundai_common_cruise_state_check(cruise_engaged);
   //}
 
+  if(hyundai_controls_allowed) {
+    hyundai_common_cruise_state_check_alt(true);
+  }
+
   // MainMode ACC
-  if (addr == 0x420) {
+  if (addr == 0x420 && !hyundai_controls_allowed) {
     // 1 bits: 0
     int cruise_available = GET_BIT(to_push, 0U);
     hyundai_common_cruise_state_check_alt(cruise_available);
@@ -79,7 +85,7 @@ static void hyundai_community1_rx_hook(const CANPacket_t *to_push) {
     }
 
     // ACC steering wheel buttons
-    if (addr == 0x4F1 && !hyundai_community1_legacy) {
+    if (addr == 0x4F1 && !hyundai_controls_allowed) {
       int cruise_button = GET_BYTE(to_push, 0) & 0x7U;
       bool main_button = GET_BIT(to_push, 3U);
       bool lfa_button = false;
@@ -319,6 +325,8 @@ static safety_config hyundai_community1_init(uint16_t param) {
 }
 
 static safety_config hyundai_community1_legacy_init(uint16_t param) {
+  //const int HYUNDAI_PARAM_CANFD_LFA_ENG = 64;
+
   // older hyundai models have less checks due to missing counters and checksums
   static RxCheck hyundai_community1_legacy_rx_checks[] = {
     {.msg = {{0x260, 0, 8, .check_checksum = true, .max_counter = 3U, .frequency = 100U},
@@ -330,6 +338,8 @@ static safety_config hyundai_community1_legacy_init(uint16_t param) {
   hyundai_community1_legacy = true;
   hyundai_longitudinal = false;
   hyundai_camera_scc = false;
+  //hyundai_controls_allowed = GET_FLAG(param, HYUNDAI_PARAM_CANFD_LFA_ENG);
+  hyundai_controls_allowed = true;
   return BUILD_SAFETY_CFG(hyundai_community1_legacy_rx_checks, HYUNDAI_COMMUNITY1_TX_MSGS);
 }
 

@@ -24,7 +24,7 @@ ENABLE_BUTTONS = (ButtonType.accelCruise, ButtonType.decelCruise, ButtonType.can
 class CarInterface(CarInterfaceBase):
   @staticmethod
   def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, experimental_long, docs) -> structs.CarParams:
-    ret.carName = "hyundai"
+    ret.brand = "hyundai"
 
     cam_can = CanBus(None, fingerprint).CAM
     hda2 = 0x50 in fingerprint[cam_can] or 0x110 in fingerprint[cam_can] or Params().get_bool('CanFdHda2')
@@ -46,7 +46,7 @@ class CarInterface(CarInterfaceBase):
       ret.autoHoldAvailable = False
       ret.lfaHdaAvailable = False
       ret.navAvailable = False
-      ret.adrvAvailable = 0x200 in fingerprint[CAN.ECAN]
+      ret.adrvAvailable = (hda2 and 0x200 in fingerprint[CAN.ECAN]) or 0x200 in fingerprint[cam_can]
       ret.brakeAvailable = 0x65 in fingerprint[CAN.ECAN]
       ret.tpmsAvailable = 0x3a0 in fingerprint[CAN.ECAN]
 
@@ -120,6 +120,9 @@ class CarInterface(CarInterfaceBase):
 
       if ret.flags & HyundaiFlags.CAMERA_SCC:
         ret.safetyConfigs[0].safetyParam |= Panda.FLAG_HYUNDAI_CAMERA_SCC
+
+      if int(params.get("UserSpecificFeature", encoding="utf8")) == 33:
+        ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CANFD_LFA_ENG
 
     # Common lateral control setup
 
@@ -218,7 +221,7 @@ class CarInterface(CarInterfaceBase):
 
   @staticmethod
   def init(CP, can_recv, can_send):
-    if CP.openpilotLongitudinalControl and not (CP.flags & HyundaiFlags.CANFD_CAMERA_SCC.value) and CP.experimentalLong and not CP.experimentalLongAlt:
+    if CP.openpilotLongitudinalControl and not (CP.flags & (HyundaiFlags.CANFD_CAMERA_SCC | HyundaiFlags.CAMERA_SCC)) and not CP.experimentalLongAlt:
       addr, bus = 0x7d0, 0
       if CP.flags & HyundaiFlags.CANFD_HDA2.value:
         addr, bus = 0x730, CanBus(CP).ECAN

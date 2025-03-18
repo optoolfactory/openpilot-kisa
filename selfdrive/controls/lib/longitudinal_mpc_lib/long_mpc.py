@@ -4,7 +4,6 @@ import time
 import numpy as np
 from cereal import log
 from opendbc.car.interfaces import ACCEL_MIN
-from openpilot.common.numpy_fast import clip, interp
 from openpilot.common.realtime import DT_MDL
 from openpilot.common.swaglog import cloudlog
 # WARNING: imports outside of constants will not trigger a rebuild
@@ -347,9 +346,9 @@ class LongitudinalMpc:
     # MPC will not converge if immediate crash is expected
     # Clip lead distance to what is still possible to brake for
     min_x_lead = ((v_ego + v_lead)/2) * (v_ego - v_lead) / (-ACCEL_MIN * 2)
-    x_lead = clip(x_lead, min_x_lead, 1e8)
-    v_lead = clip(v_lead, 0.0, 1e8)
-    a_lead = clip(a_lead, -10., 5.)
+    x_lead = np.clip(x_lead, min_x_lead, 1e8)
+    v_lead = np.clip(v_lead, 0.0, 1e8)
+    a_lead = np.clip(a_lead, -10., 5.)
     lead_xv = self.extrapolate_lead(x_lead, v_lead, a_lead, a_lead_tau)
     return lead_xv
 
@@ -377,21 +376,21 @@ class LongitudinalMpc:
     lead_xv_1 = self.process_lead(radarstate.leadTwo)
 
     if self.custom_tr_enabled:
-      cruise_gap = int(clip(carstate.cruiseGapSet, 1., 4.))
-      t_follow_d = interp(self.v_ego*self.ms_to_spd, self.dynamic_tr_spd, self.dynamic_tr_set)
+      cruise_gap = int(np.clip(carstate.cruiseGapSet, 1., 4.))
+      t_follow_d = np.interp(self.v_ego*self.ms_to_spd, self.dynamic_tr_spd, self.dynamic_tr_set)
       if self.dynamic_TR_mode == 1:
-        self.t_follow = interp(float(cruise_gap), [1., 2., 3., 4.], [t_follow_d, self.cruise_gap2, self.cruise_gap3, self.cruise_gap4])
+        self.t_follow = np.interp(float(cruise_gap), [1., 2., 3., 4.], [t_follow_d, self.cruise_gap2, self.cruise_gap3, self.cruise_gap4])
       elif self.dynamic_TR_mode == 2:
-        self.t_follow = interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, t_follow_d, self.cruise_gap3, self.cruise_gap4])
+        self.t_follow = np.interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, t_follow_d, self.cruise_gap3, self.cruise_gap4])
       elif self.dynamic_TR_mode == 3:
-        self.t_follow = interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, t_follow_d, self.cruise_gap4])
+        self.t_follow = np.interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, t_follow_d, self.cruise_gap4])
       elif self.dynamic_TR_mode == 4:
-        self.t_follow = interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, self.cruise_gap3, t_follow_d])
+        self.t_follow = np.interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, self.cruise_gap3, t_follow_d])
       else:
-        self.t_follow = interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, self.cruise_gap3, self.cruise_gap4])
+        self.t_follow = np.interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, self.cruise_gap3, self.cruise_gap4])
     elif self.experimental_long_enabled:
-      cruise_gap = int(clip(carstate.cruiseGapSet, 1., 4.))
-      self.t_follow = interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, self.cruise_gap3, self.cruise_gap4])
+      cruise_gap = int(np.clip(carstate.cruiseGapSet, 1., 4.))
+      self.t_follow = np.interp(float(cruise_gap), [1., 2., 3., 4.], [self.cruise_gap1, self.cruise_gap2, self.cruise_gap3, self.cruise_gap4])
 
     # To estimate a safe distance from a moving lead, we calculate how much stopping
     # distance that lead needs as a minimum. We can add that to the current distance

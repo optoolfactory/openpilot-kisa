@@ -2,8 +2,10 @@ from cereal import log
 from openpilot.common.realtime import DT_CTRL
 from openpilot.common.conversions import Conversions as CV
 
+from openpilot.common.params import Params
+from decimal import Decimal
 
-CAMERA_OFFSET = 0.04
+CAMERA_OFFSET = (float(Decimal(Params().get("CameraOffsetAdj", encoding="utf8")) * Decimal('0.001')))
 LDW_MIN_SPEED = 31 * CV.MPH_TO_MS
 LANE_DEPARTURE_THRESHOLD = 0.1
 

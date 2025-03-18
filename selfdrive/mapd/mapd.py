@@ -76,7 +76,7 @@ class MapD():
     self.location_deg = (log.latitude, log.longitude)
     self.bearing_rad = np.radians(log.bearingDeg, dtype=float)
     self.gps_speed = log.speed
-    self.location_stdev = log.accuracy  # log accuracies are presumably 1 standard deviation.
+    self.location_stdev = log.horizontalAccuracy  # log accuracies are presumably 1 standard deviation.
 
     _debug('Mapd: ********* Got GPS fix'
            + f'Pos: {self.location_deg} +/- {self.location_stdev * 2.} mts.\n'

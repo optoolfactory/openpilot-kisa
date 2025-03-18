@@ -64,6 +64,7 @@ EnableLogger = Params().get_bool('KisaEnableLogger')
 EnableUploader = Params().get_bool('KisaEnableUploader')
 EnableOSM = Params().get_bool('OSMEnable') or Params().get_bool('OSMSpeedLimitEnable') or Params().get("CurvDecelOption", encoding="utf8") in ("1", "3")
 EnableExternalNavi = Params().get("KISANaviSelect", encoding="utf8") in ("1", "2")
+EnableExternalNaviUDP = Params().get("KISANaviSelect", encoding="utf8") in ("3", "4")
 
 procs = [
   DaemonProcess("manage_athenad", "system.athena.manage_athenad", "AthenadPid"),
@@ -87,7 +88,7 @@ procs = [
   NativeProcess("ui", "selfdrive/ui", ["./ui"], always_run, watchdog_max_dt=(5 if not PC else None)),
   PythonProcess("soundd", "selfdrive.ui.soundd", only_onroad),
   PythonProcess("locationd", "selfdrive.locationd.locationd", only_onroad),
-  NativeProcess("pandad", "selfdrive/pandad", ["./pandad"], always_run, enabled=False),
+  NativeProcess("_pandad", "selfdrive/pandad", ["./pandad"], always_run, enabled=False),
   PythonProcess("calibrationd", "selfdrive.locationd.calibrationd", only_onroad),
   PythonProcess("torqued", "selfdrive.locationd.torqued", only_onroad),
   PythonProcess("controlsd", "selfdrive.controls.controlsd", and_(not_joystick, iscar)),
@@ -106,7 +107,7 @@ procs = [
   PythonProcess("radard", "selfdrive.controls.radard", only_onroad),
   PythonProcess("hardwared", "system.hardware.hardwared", always_run),
   PythonProcess("tombstoned", "system.tombstoned", always_run, enabled=not PC),
-  #PythonProcess("updated", "system.updated.updated", only_offroad, enabled=not PC),
+  PythonProcess("updated", "system.updated.updated", always_run, enabled=not PC),
   #PythonProcess("uploader", "system.loggerd.uploader", always_run),
   PythonProcess("statsd", "system.statsd", always_run),
 
@@ -137,6 +138,11 @@ if EnableOSM:
 if EnableExternalNavi:
   procs += [
     PythonProcess("navid", "selfdrive.enavi.navi_external", only_onroad),
+  ]
+
+if EnableExternalNaviUDP:
+  procs += [
+    PythonProcess("naviudpd", "selfdrive.enavi.navi_external_udp", only_onroad),
   ]
 
 managed_processes = {p.name: p for p in procs}

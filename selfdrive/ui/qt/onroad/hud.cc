@@ -116,15 +116,13 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
     uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+240:ui_viz_ry+280, "CAR:" + QString::fromStdString(s->scene.car_fingerprint));
     uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+280:ui_viz_ry+320, "PSM:" + QString::fromStdString(s->scene.selfdrive_state.getPandaSafetyModel()) +
      "/ISM:" + QString::fromStdString(s->scene.selfdrive_state.getInterfaceSafetyModel()));
-    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+320:ui_viz_ry+360, "RXC:" + QString::number(int(s->scene.selfdrive_state.getRxChecks())) +
-     "/MCT:" + QString::number(int(s->scene.selfdrive_state.getMismatchCounter())));
-    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+360:ui_viz_ry+400, "PTY:" + QString::number(int(s->scene.pandaType)) +
-     "/IGN:" + QString::number(int(s->scene.ignition)));
-    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+400:ui_viz_ry+440, "CAW:" + QString::number(int(s->scene.controlAllowed)) +
-     "/ENA:" + QString::number(int(s->scene.enabled)));
+    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+320:ui_viz_ry+360, "MDL:" + s->scene.model_name + "/BR:" + s->scene.branch_name);
+    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+360:ui_viz_ry+400, "RXC:" + QString::number(int(s->scene.selfdrive_state.getRxChecks())) + "/MCT:" + QString::number(int(s->scene.selfdrive_state.getMismatchCounter())) +
+     "/PTY:" + QString::number(int(s->scene.pandaType)) + "/IGN:" + QString::number(int(s->scene.ignition)) + "/EXP:" + QString::number(int(s->scene.experimental_mode)));
+    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+400:ui_viz_ry+440, "PCM:" + QString::number(int(s->scene.pcm_cruise)) + "/LO:" + QString::number(int(s->scene.longitudinal_control)) + 
+     "/CAW:" + QString::number(int(s->scene.controlAllowed)) + "/ENA:" + QString::number(int(s->scene.enabled)) + "/C:" + QString::number(int(s->scene.cavailable)) + QString::number(int(s->scene.cenabled)));
     uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+440:ui_viz_ry+480, "STK:" + QString::number(int(s->scene.stock_lkas_on_disengagement)) +
-     "/UFC:" + QString::number(int(s->scene.ufc_mode)));
-    uiText(p, ui_viz_rx+400, s->scene.low_ui_profile?ui_viz_ry+480:ui_viz_ry+520, "MDL:" + s->scene.model_name);
+     "/UFC:" + QString::number(int(s->scene.ufc_mode)) + "/NSM:" + QString::number(int(s->scene.no_smart_mdps)) + "/LFA:" + QString::number(int(s->scene.lfa_button_eng)) + "/USF:" + QString::number(int(s->scene.user_specific_feature)));
   }
   if (s->scene.nDebugUi2 && s->scene.comma_stock_ui != 1) {
     p.setFont(InterFont(35, QFont::DemiBold));
@@ -137,8 +135,8 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
     uiText(p, ui_viz_rx, ui_viz_ry+320, "SF:" + QString::number(s->scene.liveParams.stiffnessFactor, 'f', 2));
     uiText(p, ui_viz_rx, ui_viz_ry+360, "AD:" + QString::number(s->scene.steer_actuator_delay, 'f', 2));
     uiText(p, ui_viz_rx, ui_viz_ry+400, "OS:" + QString::number(s->scene.output_scale, 'f', 2));
-    uiText(p, ui_viz_rx, ui_viz_ry+440, QString::number(s->scene.lateralPlan.dProb, 'f', 1) + "/" + QString::number(s->scene.lateralPlan.laneWidth, 'f', 1) + "m"
-                                + "/" + QString::number(s->scene.lateralPlan.totalCameraOffset, 'f', 2));
+    uiText(p, ui_viz_rx, ui_viz_ry+440, QString::number(s->scene.lateralPlan.dProb, 'f', 1) + "/" + QString::number(s->scene.lateralPlan.laneWidth, 'f', 1) + "m" +
+     "/" + QString::number(s->scene.lateralPlan.totalCameraOffset, 'f', 2));
 
     if (!s->scene.low_ui_profile) {
       QString szLaCMethod = "";
@@ -168,13 +166,13 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
         }
       }
     }
-    if (s->scene.navi_select == 1) {
+    if (s->scene.navi_select == 1 || s->scene.navi_select == 3) {
       if (s->scene.liveENaviData.ekisasafetysign != "") uiText(p, ui_viz_rx, ui_viz_ry+560, "CS:" + QString::fromStdString(s->scene.liveENaviData.ekisasafetysign));
       if (s->scene.liveENaviData.ekisasafetydist) uiText(p, ui_viz_rx, ui_viz_ry+600, "SL:" + QString::number(s->scene.liveENaviData.ekisaspeedlimit, 'f', 0) + "/DS:" + QString::number(s->scene.liveENaviData.ekisasafetydist, 'f', 0));
       if (s->scene.liveENaviData.ekisaturninfo != "") uiText(p, ui_viz_rx, ui_viz_ry+640, "TI:" + QString::fromStdString(s->scene.liveENaviData.ekisaturninfo) + "/DT:" + QString::number(s->scene.liveENaviData.ekisadisttoturn, 'f', 0));
       if (s->scene.liveENaviData.ekisaroadlimitspeed > 0 && s->scene.liveENaviData.ekisaroadlimitspeed < 200) uiText(p, ui_viz_rx, ui_viz_ry+680, "RS:" + QString::number(s->scene.liveENaviData.ekisaroadlimitspeed, 'f', 0));
       if (s->scene.liveENaviData.ekisaishighway || s->scene.liveENaviData.ekisaistunnel) uiText(p, ui_viz_rx, ui_viz_ry+720, "H:" + QString::number(s->scene.liveENaviData.ekisaishighway, 'f', 0) + "/T:" + QString::number(s->scene.liveENaviData.ekisaistunnel, 'f', 0));
-    } else if (s->scene.navi_select == 2) {
+    } else if (s->scene.navi_select == 2 || s->scene.navi_select == 4) {
       if (s->scene.liveENaviData.ewazealertdistance) uiText(p, ui_viz_rx, ui_viz_ry+560, "AS:" + QString::number(s->scene.liveENaviData.ewazealertid, 'f', 0) + "/DS:" + QString::number(s->scene.liveENaviData.ewazealertdistance, 'f', 0));
       if (s->scene.liveENaviData.ewazealertdistance) uiText(p, ui_viz_rx, ui_viz_ry+600, "T:" + QString::fromStdString(s->scene.liveENaviData.ewazealerttype));
       if (s->scene.liveENaviData.ewazecurrentspeed || s->scene.liveENaviData.ewazeroadspeedlimit) uiText(p, ui_viz_rx, ui_viz_ry+640, "CS:" + QString::number(s->scene.liveENaviData.ewazecurrentspeed, 'f', 0) + "/RS:" + QString::number(s->scene.liveENaviData.ewazeroadspeedlimit, 'f', 0));
@@ -296,7 +294,7 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
         p.setPen(whiteColor(200));
         debugText(p, sp_xl, sp_yl, QString("GEAR"), 150, 27);
         p.setPen(yellowColor(230));
-        debugText(p, sp_xl, sp_yl+60, "D " + QString::number(s->scene.gear_step, 'f', 0), 150, 57);
+        debugText(p, sp_xl, sp_yl+60, "D" + ((0 < s->scene.gear_step && s->scene.gear_step < 9) ? " " + QString::number(s->scene.gear_step, 'f', 0) : ""), 150, 57);
       }
       p.translate(sp_xl + 90, sp_yl + 20);
       p.rotate(-90);
@@ -796,12 +794,8 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
     QString szTuneParam = "";
     int list_menu = live_tune_panel_list - (s->scene.list_count);
     if (live_tune_panel_list == 0) {
-      //szTuneParam.sprintf("%+0.3f", s->scene.cameraOffset*0.001);
       szTuneParam.sprintf("%+0.3f", s->scene.cameraOffset*0.001);
       szTuneName = "CameraOffset";
-    } else if (live_tune_panel_list == 1) {
-      szTuneParam.sprintf("%+0.3f", s->scene.pathOffset*0.001);
-      szTuneName = "PathOffset";
     } else if (lateralControlMethod == 0) {  // 0.PID
       if ( list_menu == 0 ) {
         szTuneParam.sprintf("%0.2f", s->scene.pidKp*0.01);
@@ -988,13 +982,13 @@ void HudRenderer::draw(QPainter &p, const QRect &surface_rect) {
 
     QString road_name = "";
     QString oref = "";
-    if (s->scene.navi_select == 1 && s->scene.liveMapData.ocurrentRoadName == "") {
-      road_name = QString::fromStdString(s->scene.liveENaviData.ekisaroadname);
-    } else if (s->scene.navi_select == 2) {
-      road_name = QString::fromStdString(s->scene.liveENaviData.ewazeroadname);
-    } else if (s->scene.osm_enabled) {
+    if (s->scene.osm_enabled && s->scene.liveMapData.ocurrentRoadName != "") {
       road_name = QString::fromStdString(s->scene.liveMapData.ocurrentRoadName);
       oref = QString::fromStdString(s->scene.liveMapData.oref);
+    } else if (s->scene.navi_select == 1 || s->scene.navi_select == 3) {
+      road_name = QString::fromStdString(s->scene.liveENaviData.ekisaroadname);
+    } else if (s->scene.navi_select == 2 || s->scene.navi_select == 4) {
+      road_name = QString::fromStdString(s->scene.liveENaviData.ewazeroadname);
     }
     QDateTime now = QDateTime::currentDateTime();
     QString tvalue = "";
@@ -1069,7 +1063,7 @@ void HudRenderer::drawSetSpeed(QPainter &p, const QRect &surface_rect) {
   }
 
   // Draw "MAX" text and set speed
-  QString setSpeedStr = is_cruise_set ? QString::number(std::nearbyint(set_speed)) : "-";
+  QString setSpeedStr = (is_cruise_set && set_speed != 255) ? QString::number(std::nearbyint(set_speed)) : "-";
   p.setFont(InterFont(70, QFont::Bold));
   p.setPen(whiteColor(200));
   p.drawText(set_speed_rect.adjusted(0, 10, 0, 0), Qt::AlignTop | Qt::AlignHCenter, s->scene.ctrl_speed > 1?QString::number(s->scene.ctrl_speed, 'f', 0):setSpeedStr);

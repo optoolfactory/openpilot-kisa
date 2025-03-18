@@ -55,7 +55,7 @@ except:
   LANG_FILE='/data/openpilot/selfdrive/assets/addon/lang/events/main_en.txt'
   pass
 try:
-  IS_WAZE = Params().get("KISANaviSelect", encoding="utf8") == "2"
+  IS_WAZE = Params().get("KISANaviSelect", encoding="utf8") in ("2", "4")
 except:
   IS_WAZE = False
   pass
@@ -331,7 +331,7 @@ def modeld_lagging_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubM
 
 def wrong_car_mode_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
   text = tr(13)
-  if CP.carName == "honda":
+  if CP.brand == "honda":
     text = tr(14)
   return NoEntryAlert(text)
 
@@ -344,7 +344,7 @@ def joystick_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster,
 
 # kisa
 def can_error_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
-  if CP.carName == "hyundai":
+  if CP.brand == "hyundai":
     if os.path.isfile('/data/log/can_missing.txt'):
       f = open('/data/log/can_missing.txt', 'r')
       add = f.readline()
@@ -662,6 +662,14 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   EventName.laneChange: {
     ET.WARNING: Alert(
       tr(61),
+      "",
+      AlertStatus.normal, AlertSize.small,
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, .1),
+  },
+
+  EventName.laneChangeFinish: {
+    ET.WARNING: Alert(
+      tr(196),
       "",
       AlertStatus.normal, AlertSize.small,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, .1),

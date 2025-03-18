@@ -152,14 +152,17 @@ static bool hyundai_canfd_tx_hook(const CANPacket_t *to_send) {
   if (addr == steer_addr) {
     int desired_torque = (((GET_BYTE(to_send, 6) & 0xFU) << 7U) | (GET_BYTE(to_send, 5) >> 1U)) - 1024U;
     bool steer_req = GET_BIT(to_send, 52U);
+    int lka_mode = GET_BYTE(to_send, 3) & 0x7U;
     int max_torque = GET_BYTE(to_send, 12U);
 
     if (!controls_allowed && (max_torque != 0)) {
       tx = false;
     }
 
-    if (steer_torque_cmd_checks(desired_torque, steer_req, HYUNDAI_CANFD_STEERING_LIMITS)) {
-      tx = false;
+    if (hyundai_canfd_hda2 || lka_mode > 0) {
+      if (steer_torque_cmd_checks(desired_torque, steer_req, HYUNDAI_CANFD_STEERING_LIMITS)) {
+        tx = false;
+      }
     }
   }
 
@@ -230,7 +233,9 @@ static int hyundai_canfd_fwd_hook(int bus_num, int addr) {
     // CRUISE_INFO for non-HDA2, we send our own longitudinal commands
     bool is_scc_msg = ((addr == 0x1a0) && hyundai_longitudinal && !hyundai_canfd_hda2);
 
-    bool block_msg = is_lkas_msg || is_lfa_msg || is_lfahda_msg || is_scc_msg;
+    bool is_angle_msg = ((addr == 0xcb) && hyundai_camera_scc && !hyundai_canfd_hda2);
+
+    bool block_msg = is_lkas_msg || is_lfa_msg || is_lfahda_msg || is_scc_msg || is_angle_msg;
     if (!block_msg) {
       bus_fwd = 0;
     }
@@ -277,6 +282,7 @@ static safety_config hyundai_canfd_init(uint16_t param) {
     {0x1A0, 0, 32}, // CRUISE_INFO
     {0x1CF, 2, 8},  // CRUISE_BUTTON
     {0x1E0, 0, 16}, // LFAHDA_CLUSTER
+    {0xCB, 0, 24}, // LKAS_ADAS
   };
 
 
