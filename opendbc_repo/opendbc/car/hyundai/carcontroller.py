@@ -641,7 +641,7 @@ class CarController(CarControllerBase):
       elif self.exp_mode_push:
         self.exp_mode_push = False
         self.exp_mode_push_cnt += 1
-      elif self.exp_mode_push_cnt == 2 and self.second2 > 50:
+      elif self.exp_mode_push_cnt == 20 and self.second2 > 50:
         self.exp_mode_push_cnt = 0
         self.experimental_mode_temp = not self.experimental_mode_temp
         if self.experimental_mode_temp:
