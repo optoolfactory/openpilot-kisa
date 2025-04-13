@@ -33,7 +33,7 @@ class CarInterface(CarInterfaceBase):
     ret.brand = "hyundai"
 
     cam_can = CanBus(None, fingerprint).CAM
-    lka_steering = 0x50 in fingerprint[cam_can] or 0x110 in fingerprint[cam_can]
+    lka_steering = 0x50 in fingerprint[cam_can] or 0x110 in fingerprint[cam_can] or Params().get_bool('CanFdHda2')
     CAN = CanBus(None, fingerprint, lka_steering)
 
     params = Params()
