@@ -214,6 +214,7 @@ struct CarState {
 
   # button presses
   buttonEvents @11 :List(ButtonEvent);
+  buttonEnable @57 :Bool;  # user is requesting enable, usually one frame. set if pcmCruise=False
   leftBlinker @20 :Bool;
   rightBlinker @21 :Bool;
   genericToggle @23 :Bool;
@@ -235,24 +236,24 @@ struct CarState {
   # process meta
   cumLagMs @50 :Float32;
 
-  tpms @57 :TPMS;
-  radarDRel @58 :Float32;
-  radarVRel @59 :Float32;
-  vSetDis @60 :Float32;
-  cruiseButtons @61 :Float32;
-  cruiseAccStatus @62 :Bool;
-  driverAcc @63 :Bool;
-  autoHold @64 :Bool;    # AutoHold
-  cruiseGapSet @65 :UInt8;
-  safetyDist @66 :Float32;
-  safetySign @67 :Float32;
-  vEgoOP @68 :Float32;  # openpilot speed
-  gearStep @69 :Int8;
-  isMph @70 :Bool;
-  aReqValue @71 :Float32;
-  chargeMeter @72 :Float32;
-  brakeLights @73 :Bool;
-  pauseSpdLimit @74 :Bool;
+  tpms @58 :TPMS;
+  radarDRel @59 :Float32;
+  radarVRel @60 :Float32;
+  vSetDis @61 :Float32;
+  cruiseButtons @62 :Float32;
+  cruiseAccStatus @63 :Bool;
+  driverAcc @64 :Bool;
+  autoHold @65 :Bool;    # AutoHold
+  cruiseGapSet @66 :UInt8;
+  safetyDist @67 :Float32;
+  safetySign @68 :Float32;
+  vEgoOP @69 :Float32;  # openpilot speed
+  gearStep @70 :Int8;
+  isMph @71 :Bool;
+  aReqValue @72 :Float32;
+  chargeMeter @73 :Float32;
+  brakeLights @74 :Bool;
+  pauseSpdLimit @75 :Bool;
 
   struct TPMS {
     unit @0 :Int8;
@@ -333,13 +334,14 @@ struct CarState {
 # ******* radar state @ 20hz *******
 
 struct RadarData @0x888ad6581cf0aacb {
-  errors @0 :List(Error);
+  errors @3 :Error;
   points @1 :List(RadarPoint);
 
-  enum Error {
-    canError @0;
-    fault @1;
-    wrongConfig @2;
+  struct Error {
+    canError @0 :Bool;
+    radarFault @1 :Bool;
+    wrongConfig @2 :Bool;
+    radarUnavailableTemporary @3 :Bool;  # radar data is temporarily unavailable due to conditions the car sets
   }
 
   # similar to LiveTracks
@@ -360,8 +362,15 @@ struct RadarData @0x888ad6581cf0aacb {
     measured @6 :Bool;
   }
 
+  enum ErrorDEPRECATED {
+    canError @0;
+    fault @1;
+    wrongConfig @2;
+  }
+
   # deprecated
   canMonoTimesDEPRECATED @2 :List(UInt64);
+  errorsDEPRECATED @0 :List(ErrorDEPRECATED);
 }
 
 # ******* car controls @ 100hz *******
@@ -381,30 +390,31 @@ struct CarControl {
 
   orientationNED @13 :List(Float32);
   angularVelocity @14 :List(Float32);
+  currentCurvature @17 :Float32;  # From vehicle model
 
   cruiseControl @4 :CruiseControl;
   hudControl @5 :HUDControl;
 
-  needBrake @17: Bool;
-  lkasTempDisabled @18: Bool;
-  lanechangeManualTimer @19: Int8;
-  emergencyManualTimer @20: Int8;
-  standstillResButton @21: Bool;
-  cruiseGapAdjusting @22: Bool;
-  onSpeedBumpControl @23: Bool;
-  onSpeedControl @24: Bool;
-  curvSpeedControl @25: Bool;
-  cutInControl @26: Bool;
-  driverSccSetControl @27: Bool;
-  autoholdPopupTimer @28: Int8;
-  autoResStarting @29: Bool;
-  e2eStandstill @30: Bool;
-  modeChangeTimer @31: Int8;
-  lkasTempDisabledTimer @32: Int8;
+  needBrake @18: Bool;
+  lkasTempDisabled @19: Bool;
+  lanechangeManualTimer @20: Int8;
+  emergencyManualTimer @21: Int8;
+  standstillResButton @22: Bool;
+  cruiseGapAdjusting @23: Bool;
+  onSpeedBumpControl @24: Bool;
+  onSpeedControl @25: Bool;
+  curvSpeedControl @26: Bool;
+  cutInControl @27: Bool;
+  driverSccSetControl @28: Bool;
+  autoholdPopupTimer @29: Int8;
+  autoResStarting @30: Bool;
+  e2eStandstill @31: Bool;
+  modeChangeTimer @32: Int8;
+  lkasTempDisabledTimer @33: Int8;
 
   struct Actuators {
     # lateral commands, mutually exclusive
-    steer @2: Float32;  # [0.0, 1.0]
+    torque @2: Float32;  # [0.0, 1.0]
     steeringAngleDeg @3: Float32;
     curvature @7: Float32;
 
@@ -415,7 +425,7 @@ struct CarControl {
     # these are only for logging the actual values sent to the car over CAN
     gas @0: Float32;   # [0.0, 1.0]
     brake @1: Float32; # [0.0, 1.0]
-    steerOutputCan @8: Float32;   # value sent over can to the car
+    torqueOutputCan @8: Float32;   # value sent over can to the car
     speed @6: Float32;  # m/s
 
     oaccel @9: Float32; # m/s^2
@@ -637,6 +647,8 @@ struct CarParams {
   adrvAvailable @96 :Bool;
   brakeAvailable @97 :Bool;
   tpmsAvailable @98 :Bool;
+  isAngleControl @99 :Bool;
+  evInfo @100 :Bool;
 
   struct SmoothSteerData
   {
@@ -744,17 +756,17 @@ struct CarParams {
     volkswagenPq @21;
     subaruPreglobal @22;  # pre-Global platform
     hyundaiLegacy @23;
-    hyundaiCommunity1 @24;
+    hyundaiCommunity @24;
     volkswagenMlb @25;
     hongqi @26;
     body @27;
     hyundaiCanfd @28;
-    hyundaiCommunity2 @29;
-    hyundaiCommunity1Legacy @30;
-    volkswagenMqbEvo @31;
-    chryslerCusw @32;
-    psa @33;
-    fcaGiorgio @34;
+    volkswagenMqbEvo @29;
+    chryslerCusw @30;
+    psa @31;
+    fcaGiorgio @32;
+    rivian @33;
+    volkswagenMeb @34;
   }
 
   enum SteerControlType {

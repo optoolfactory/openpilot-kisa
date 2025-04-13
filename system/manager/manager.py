@@ -232,6 +232,7 @@ def manager_init() -> None:
     ("UseRadarValue", "1"),
     ("RegenBrakeFeature", "0"),
     ("RegenBrakeFeatureOn", "0"),
+    ("CameraAlt", "0"),
   ]
 
   if not PC:
@@ -310,10 +311,6 @@ def manager_init() -> None:
   # kisapilot
   if os.path.isfile('/data/log/error.txt'):
     os.remove('/data/log/error.txt')
-  if os.path.isfile('/data/log/can_missing.txt'):
-    os.remove('/data/log/can_missing.txt')
-  if os.path.isfile('/data/log/can_timeout.txt'):
-    os.remove('/data/log/can_timeout.txt')
 
   # preimport all processes
   for p in managed_processes.values():
