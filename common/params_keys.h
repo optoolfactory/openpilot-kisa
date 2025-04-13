@@ -317,4 +317,5 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"RegenBrakeFeatureOn", PERSISTENT},
     {"LFAButtonEngagement", PERSISTENT},
     {"CameraAlt", PERSISTENT},
+    {"CanFdHda2", PERSISTENT},
 };
