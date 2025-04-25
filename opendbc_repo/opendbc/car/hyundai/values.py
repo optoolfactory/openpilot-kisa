@@ -551,7 +551,20 @@ class CAR(Platforms):
     CarSpecs(mass=2165, wheelbase=3.09, steerRatio=14.23),
     flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.HYBRID,
   )
-
+  KIA_CARNIVAL_4TH_GEN_PE = HyundaiCanFDPlatformConfig(
+    [
+      HyundaiCarDocs("Kia Carnival 2025", car_parts=CarParts.common([CarHarness.hyundai_a])),
+    ],
+    CarSpecs(mass=2087, wheelbase=3.09, steerRatio=14.23),
+    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.ANGLE_CONTROL,
+  )
+  KIA_CARNIVAL_4TH_GEN_HEV_PE = HyundaiCanFDPlatformConfig(
+    [
+      HyundaiCarDocs("Kia Carnival Hybrid 2025", car_parts=CarParts.common([CarHarness.hyundai_a])),
+    ],
+    CarSpecs(mass=2087, wheelbase=3.09, steerRatio=14.23),
+    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.HYBRID | HyundaiFlags.ANGLE_CONTROL,
+  )
   KIA_EV9 = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia EV9 2024", car_parts=CarParts.common([CarHarness.hyundai_r, Mount.angled_mount_8_degrees]))
