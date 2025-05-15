@@ -3918,4 +3918,15 @@ This may take up to a minute.</source>
         <translation>사용안함</translation>
     </message>
 </context>
+<context>
+    <name>TimeFactorModification</name>
+    <message>
+        <source>LocalTime Adjust -> UTC</source>
+        <translation>로컬시간 조정 -> UTC</translation>
+    </message>
+    <message>
+        <source>Adjusts the time displayed by adding or subtracting time from UTC.</source>
+        <translation>UTC 기준으로 시간을 더하거나 빼서 표시되는 시간을 조정합니다.</translation>
+    </message>
+</context>
 </TS>
