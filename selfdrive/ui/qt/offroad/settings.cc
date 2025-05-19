@@ -252,6 +252,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
   });
   addItem(translateBtn);
 
+  /*
   QObject::connect(uiState()->prime_state, &PrimeState::changed, [this] (PrimeState::Type type) {
     pair_device->setVisible(type == PrimeState::PRIME_TYPE_UNPAIRED);
   });
@@ -262,6 +263,7 @@ DevicePanel::DevicePanel(SettingsWindow *parent) : ListWidget(parent) {
       }
     }
   });
+  */
 
   // power buttons
   QHBoxLayout *power_layout = new QHBoxLayout();
