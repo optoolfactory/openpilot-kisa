@@ -400,16 +400,17 @@ class CAR(Platforms):
   )
   HYUNDAI_PALISADE_LX3 = HyundaiCanFDPlatformConfig(
     [
-      HyundaiCarDocs("Hyundai Palisade 2025 (LX3)", "All", car_parts=CarParts.common([CarHarness.hyundai_h])),
+      HyundaiCarDocs("Hyundai Palisade 2025 (LX3)", "All", video_link="https://youtu.be/TAnDqjF4fDY?t=456", car_parts=CarParts.common([CarHarness.hyundai_h])),
     ],
     CarSpecs(mass=2020, wheelbase=2.97, steerRatio=15.6 * 1.15, tireStiffnessFactor=0.63),
+    flags=HyundaiFlags.ANGLE_CONTROL,
   )
   HYUNDAI_IONIQ_9 = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Hyundai IONIQ 9", car_parts=CarParts.common([CarHarness.hyundai_q])),
     ],
     CarSpecs(mass=2510, wheelbase=3.13, steerRatio=16.02),
-    flags=HyundaiFlags.EV,
+    flags=HyundaiFlags.EV | HyundaiFlags.ANGLE_CONTROL,
   )
 
   # Kia
@@ -547,7 +548,7 @@ class CAR(Platforms):
   KIA_STINGER = HyundaiPlatformConfig(
     [HyundaiCarDocs("Kia Stinger 2018-20", video="https://www.youtube.com/watch?v=MJ94qoofYw0",
                     car_parts=CarParts.common([CarHarness.hyundai_c]))],
-    CarSpecs(mass=1825, wheelbase=2.78, steerRatio=14.4 * 1.15),  # 15% higher at the center seems reasonable
+    CarSpecs(mass=1825, wheelbase=2.78, steerRatio=14.4 * 1.15)  # 15% higher at the center seems reasonable
   )
   KIA_STINGER_2022 = HyundaiPlatformConfig(
     [HyundaiCarDocs("Kia Stinger 2022-23", "All", car_parts=CarParts.common([CarHarness.hyundai_k]))],
@@ -679,7 +680,6 @@ class CAR(Platforms):
     CarSpecs(mass=2258, wheelbase=2.95, steerRatio=14.14),
   )
 
-
   # Kisa
   HYUNDAI_AVANTE_AD = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Avante", "All", car_parts=CarParts.common([CarHarness.hyundai_b]))],
@@ -704,7 +704,7 @@ class CAR(Platforms):
   HYUNDAI_GRANDEUR_IG = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Grandeur IG", "All", car_parts=CarParts.common([CarHarness.hyundai_c]))],
     CarSpecs(mass=1560, wheelbase=2.845, steerRatio=14.5),
-    flags=HyundaiFlags.LEGACY | HyundaiFlags.CLUSTER_GEARS,
+    flags=HyundaiFlags.CLUSTER_GEARS,
   )
   HYUNDAI_GRANDEUR_HEV_IG = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Grandeur IG Hybrid", "All", car_parts=CarParts.common([CarHarness.hyundai_c]))],
@@ -793,12 +793,12 @@ class CAR(Platforms):
       HyundaiCarDocs("Hyundai Santa Fe Hybrid (with HDA II) 2024", "Highway Driving Assist II", car_parts=CarParts.common([CarHarness.hyundai_q])),
     ],
     CarSpecs(mass=1930, wheelbase=2.815, steerRatio=14.26, tireStiffnessFactor=0.65),
-    flags=HyundaiFlags.HYBRID,
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.ANGLE_CONTROL,
   )
   KIA_EV3 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("KIA EV3 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
     CarSpecs(mass=1750, wheelbase=2.68, steerRatio=14.14),
-    flags=HyundaiFlags.EV,
+    flags=HyundaiFlags.ANGLE_CONTROL,
   )
   GRANDEUR_GN7 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("Hyundai GRANDEUR_GN7 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
@@ -810,7 +810,6 @@ class CAR(Platforms):
     CarSpecs(mass=1700, wheelbase=2.895, steerRatio=14.2),
     flags=HyundaiFlags.HYBRID | HyundaiFlags.RADAR_SCC,
   )
-
 
 class Buttons:
   NONE = 0
