@@ -403,14 +403,13 @@ class CAR(Platforms):
       HyundaiCarDocs("Hyundai Palisade 2025 (LX3)", "All", car_parts=CarParts.common([CarHarness.hyundai_h])),
     ],
     CarSpecs(mass=2020, wheelbase=2.97, steerRatio=15.6 * 1.15, tireStiffnessFactor=0.63),
-    flags=HyundaiFlags.ANGLE_CONTROL,
   )
   HYUNDAI_IONIQ_9 = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Hyundai IONIQ 9", car_parts=CarParts.common([CarHarness.hyundai_q])),
     ],
     CarSpecs(mass=2510, wheelbase=3.13, steerRatio=16.02),
-    flags=HyundaiFlags.EV | HyundaiFlags.ANGLE_CONTROL,
+    flags=HyundaiFlags.EV,
   )
 
   # Kia
@@ -593,14 +592,14 @@ class CAR(Platforms):
       HyundaiCarDocs("Kia Carnival 2025", car_parts=CarParts.common([CarHarness.hyundai_a])),
     ],
     CarSpecs(mass=2087, wheelbase=3.09, steerRatio=14.23),
-    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.ANGLE_CONTROL,
+    flags=HyundaiFlags.RADAR_SCC,
   )
   KIA_CARNIVAL_4TH_GEN_HEV_PE = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia Carnival Hybrid 2025", car_parts=CarParts.common([CarHarness.hyundai_a])),
     ],
     CarSpecs(mass=2087, wheelbase=3.09, steerRatio=14.23),
-    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.HYBRID | HyundaiFlags.ANGLE_CONTROL,
+    flags=HyundaiFlags.RADAR_SCC | HyundaiFlags.HYBRID, 
   )
   KIA_EV9 = HyundaiCanFDPlatformConfig(
     [
@@ -793,12 +792,12 @@ class CAR(Platforms):
       HyundaiCarDocs("Hyundai Santa Fe Hybrid (with HDA II) 2024", "Highway Driving Assist II", car_parts=CarParts.common([CarHarness.hyundai_q])),
     ],
     CarSpecs(mass=1930, wheelbase=2.815, steerRatio=14.26, tireStiffnessFactor=0.65),
-    flags=HyundaiFlags.HYBRID | HyundaiFlags.ANGLE_CONTROL,
+    flags=HyundaiFlags.HYBRID,
   )
   KIA_EV3 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("KIA EV3 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
     CarSpecs(mass=1750, wheelbase=2.68, steerRatio=14.14),
-    flags=HyundaiFlags.ANGLE_CONTROL,
+    flags=HyundaiFlags.EV,
   )
   GRANDEUR_GN7 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("Hyundai GRANDEUR_GN7 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
