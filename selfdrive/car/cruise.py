@@ -129,8 +129,6 @@ class VCruiseHelper:
                 self.osm_waze_speedlimit = round(self.sm['liveENaviData'].wazeRoadSpeedLimit)
               elif self.osm_speedlimit_enabled:
                 self.osm_waze_speedlimit = round(self.sm['liveMapData'].speedLimit)
-          elif self.first_acc and not CS.cruiseState.available:
-            self.first_acc = False
           elif CS.driverAcc and self.variable_cruise and (self.cruise_over_maxspeed or (self.cruise_road_limit_spd_enabled and self.sm['controlsState'].roadLimitSpeedOnTemp)) and t_speed <= self.v_cruise_kph < round(CS.vEgo*m_unit):
             self.cruise_road_limit_spd_switch_prev = self.sm['liveENaviData'].roadLimitSpeed
             self.cruise_road_limit_spd_switch = False
@@ -192,6 +190,8 @@ class VCruiseHelper:
               self.pause_spdlimit_push = False
               self.pause_spdlimit_push_cnt = 0
               self.pause_spdlimit = False
+    elif self.first_acc and not CS.cruiseState.available:
+      self.first_acc = False
     else:
       if not self.CP.brand == "hyundai":
         self.v_cruise_kph = V_CRUISE_UNSET
