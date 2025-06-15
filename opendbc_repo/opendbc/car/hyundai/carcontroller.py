@@ -64,6 +64,7 @@ class CarController(CarControllerBase):
     self.apply_torque_last = 0
     self.car_fingerprint = CP.carFingerprint
     self.last_button_frame = 0
+    self.last_button_frame2 = 0
 
     self.apply_angle_now = 0
     self.apply_angle_last = 0
@@ -265,6 +266,7 @@ class CarController(CarControllerBase):
     self.refresh_count = 0
     self.refresh_time2 = 0.25
     self.acc_activated = False
+    self.refresh_time3 = 10
 
     self.regenbrake = self.c_params.get_bool("RegenBrakeFeatureOn")
     rgn_option_list = list(self.c_params.get("RegenBrakeFeature", encoding="utf8"))
@@ -1089,7 +1091,7 @@ class CarController(CarControllerBase):
             pass
           else:
             for _ in range(self.standstill_res_count):
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.RES_ACCEL))
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, Buttons.RES_ACCEL))
             self.last_button_frame = self.frame
             self.standstill_res_button = True
             self.cruise_gap_adjusting = False
@@ -1103,7 +1105,7 @@ class CarController(CarControllerBase):
             self.refresh_time = 0.25
           elif 1.0 not in (CS.cruiseGapSet, CS.DistSet) and self.cruise_gap_set_init:
             for _ in range(self.btn_count):
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.GAP_DIST))
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, Buttons.GAP_DIST))
             self.last_button_frame = self.frame
             self.cruise_gap_adjusting = True
             self.refresh_time = randint(10,20) * 0.01
@@ -1133,7 +1135,7 @@ class CarController(CarControllerBase):
                 self.pause_time = 0
               else:
                 for _ in range(self.btn_count):
-                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], btn_signal))
+                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, btn_signal))
                 self.last_button_frame = self.frame
                 self.cruise_gap_adjusting = True
                 self.refresh_time = 0
@@ -1150,7 +1152,7 @@ class CarController(CarControllerBase):
                 self.pause_time = 0
               else:
                 for _ in range(self.btn_count):
-                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], btn_signal))
+                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, btn_signal))
                 self.last_button_frame = self.frame
                 self.cruise_speed_adjusting = True
                 self.refresh_time = 0
@@ -1214,16 +1216,16 @@ class CarController(CarControllerBase):
             elif CS.regen_level != 20 and self.regen_stop_pre_activated and not (CS.out.brakePressed or CS.out.gasPressed) and (self.dRel < 10 or CS.clu_Vanz < 10):
               self.regen_stop_activated = True
               for _ in range(max(10, self.standstill_res_count)):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], 0, True, False, True))
+                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, 0, True, False, True))
               self.refresh_time2 = 1.0
             elif CS.regen_level != 15 and CS.out.gasPressed and self.regen_stop_activated:
               self.regen_stop_pre_activated = False
               if CS.regen_level > 15:
                 for _ in range(max(10, self.standstill_res_count-5)):
-                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], 0, True, True, False))
+                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, 0, True, True, False))
               elif CS.regen_level < 15:
                 for _ in range(max(10, self.standstill_res_count-5)):
-                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], 0, True, False, True))
+                  can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, 0, True, False, True))
               self.refresh_time2 = 0.25
             elif CS.regen_level == 15:
               self.regen_stop_activated = False
@@ -1240,7 +1242,7 @@ class CarController(CarControllerBase):
         (self.auto_res_delay == 0 or self.auto_res_delay_timer >= self.auto_res_delay):
           if self.kisa_cruise_auto_res_option == 0:
             for _ in range(self.standstill_res_count):
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.RES_ACCEL))
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, Buttons.CANCEL))
             self.last_button_frame = self.frame
             self.auto_res_starting = True
             self.res_speed = round(CS.VSetDis) if not CS.is_metric or self.osm_spdlimit_enabled else round(CS.clu_Vanz*1.1)
@@ -1248,7 +1250,7 @@ class CarController(CarControllerBase):
             self.refresh_time2 = randint(10,30) * 0.01
           elif self.kisa_cruise_auto_res_option == 1:
             for _ in range(self.standstill_res_count):
-              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.SET_DECEL))
+              can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, Buttons.SET_DECEL))
             self.last_button_frame = self.frame
             self.auto_res_starting = True
             self.v_cruise_kph_auto_res = round(CS.clu_Vanz)
@@ -1257,15 +1259,30 @@ class CarController(CarControllerBase):
           elif self.kisa_cruise_auto_res_option == 2:
             if 1 < CS.lead_distance < 149:
               for _ in range(self.standstill_res_count):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.RES_ACCEL))
+                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, Buttons.CANCEL))
             else:
               for _ in range(self.standstill_res_count):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, CS.buttons_counter+choices([0,1], self.weights)[0], Buttons.SET_DECEL))
+                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, self.CAN, 0 if (tc := CS.buttons_counter + choices([0,1], self.weights)[0]) == 15 else tc, Buttons.SET_DECEL))
             self.last_button_frame = self.frame
             self.auto_res_starting = True
             self.v_cruise_kph_auto_res = round(CS.clu_Vanz)
             self.res_speed_timer = 50
             self.refresh_time2 = randint(10,30) * 0.01
+
+      if self.CP.capacitiveSteeringWheel or self.CP.capacitiveSteeringWheelAlt:
+        blinker = CS.out.leftBlinker or CS.out.rightBlinker
+        if (self.frame - self.last_button_frame2) * DT_CTRL > self.refresh_time3:
+          self.last_button_frame2 = self.frame
+          if self.CP.capacitiveSteeringWheel:
+            for _ in range(randint(15,20) if not blinker else randint(1,2)):
+              can_sends.append(hyundaicanfd.create_steering_wheel(self.packer, self.CP, self.CAN, 0 if (tc := CS.wheel_counter + choices([0,1], self.weights)[0]) >= 15 else tc))
+          elif self.CP.capacitiveSteeringWheelAlt:
+            for _ in range(randint(8,10) if not blinker else 1):
+              can_sends.append(hyundaicanfd.create_steering_wheel(self.packer, self.CP, self.CAN, 0 if (tc := CS.wheel_counter_alt + choices([0,2], self.weights)[0]) >= 255 else tc))
+        elif blinker:
+          self.refresh_time3 = randint(4, 6) * 0.1
+        else:
+          self.refresh_time3 = randint(8,12)
 
 
     return can_sends

@@ -59,6 +59,8 @@ class CarState(CarStateBase):
                                  "CRUISE_BUTTONS"
     self.is_metric = False
     self.buttons_counter = 0
+    self.wheel_counter = 0
+    self.wheel_counter_alt = 0
 
     self.cruise_info = {}
     self.lfa_info = {}
@@ -738,7 +740,7 @@ class CarState(CarStateBase):
 
     # TODO: alt signal usage may be described by cp.vl['BLINKERS']['USE_ALT_LAMP']
     left_blinker_sig, right_blinker_sig = "LEFT_LAMP", "RIGHT_LAMP"
-    if self.CP.carFingerprint in (CAR.HYUNDAI_KONA_EV_2ND_GEN, CAR.HYUNDAI_IONIQ_5_PE, CAR.KIA_EV9, CAR.KIA_EV6_2025, CAR.GENESIS_GV70_1ST_GEN_PE):
+    if self.CP.carFingerprint in (CAR.HYUNDAI_KONA_EV_2ND_GEN, CAR.HYUNDAI_IONIQ_5_PE, CAR.KIA_EV9, CAR.KIA_EV6_2025, CAR.GENESIS_GV70_1ST_GEN_PE, CAR.KIA_EV3):
       left_blinker_sig, right_blinker_sig = "LEFT_LAMP_ALT", "RIGHT_LAMP_ALT"
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(50, cp.vl["BLINKERS"][left_blinker_sig],
                                                                       cp.vl["BLINKERS"][right_blinker_sig])
@@ -891,6 +893,8 @@ class CarState(CarStateBase):
     self.main_buttons.extend(cp.vl_all[self.cruise_btns_msg_canfd]["ADAPTIVE_CRUISE_MAIN_BTN"])
     self.lda_button = cp.vl[self.cruise_btns_msg_canfd]["LDA_BTN"]
     self.buttons_counter = cp.vl[self.cruise_btns_msg_canfd]["COUNTER"]
+    self.wheel_counter = cp.vl["STEERING_WHEEL"]["COUNTER"] if self.CP.capacitiveSteeringWheel else -1
+    self.wheel_counter_alt = cp.vl["STEERING_WHEEL_ALT"]["COUNTER"] if self.CP.capacitiveSteeringWheelAlt else -1
     ret.accFaulted = cp.vl["TCS"]["ACCEnable"] != 0  # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
     ret.cruiseButtons = self.cruise_buttons[-1]
 
@@ -936,6 +940,16 @@ class CarState(CarStateBase):
     if not (CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS):
       pt_messages += [
         ("CRUISE_BUTTONS", 50)
+      ]
+
+    if CP.capacitiveSteeringWheel:
+      pt_messages += [
+        ("STEERING_WHEEL", 10)
+      ]
+
+    if CP.capacitiveSteeringWheelAlt:
+      pt_messages += [
+        ("STEERING_WHEEL_ALT", 5)
       ]
 
     if CP.enableBsm and not CP.adrvControl:

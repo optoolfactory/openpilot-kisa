@@ -12,7 +12,6 @@ from opendbc.car.hyundai.radar_interface import RadarInterface
 
 ButtonType = structs.CarState.ButtonEvent.Type
 
-from opendbc.car.hyundai.cruise_helper import enable_radar_tracks #ajouatom
 from opendbc.car.hyundai.tunes import LatTunes, set_lat_tune
 from openpilot.common.params import Params
 from decimal import Decimal
@@ -29,9 +28,13 @@ class CarInterface(CarInterfaceBase):
   RadarInterface = RadarInterface
 
   @staticmethod
-  def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, docs) -> structs.CarParams:
+  def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, is_release, docs) -> structs.CarParams:
     ret.brand = "hyundai"
 
+    # "LKA steering" if LKAS or LKAS_ALT messages are seen coming from the camera.
+    # Generally means our LKAS message is forwarded to another ECU (commonly ADAS ECU)
+    # that finally retransmits our steering command in LFA or LFA_ALT to the MDPS.
+    # "LFA steering" if camera directly sends LFA to the MDPS
     cam_can = CanBus(None, fingerprint).CAM
     lka_steering = 0x50 in fingerprint[cam_can] or 0x110 in fingerprint[cam_can] or Params().get_bool('CanFdHda2')
     CAN = CanBus(None, fingerprint, lka_steering)
@@ -63,6 +66,8 @@ class CarInterface(CarInterfaceBase):
       ret.tpmsAvailable = 0x3a0 in fingerprint[CAN.ECAN]
       ret.isAngleControl = 0xcb in fingerprint[CAN.ECAN] or 0xcb in fingerprint[CAN.ACAN] or 0xcb in fingerprint[cam_can]
       ret.adrvControl = (not lka_steering) and (0x1ea in fingerprint[cam_can])
+      ret.capacitiveSteeringWheel = 0x2af in fingerprint[CAN.ECAN] or 0x2af in fingerprint[CAN.ACAN] or 0x2af in fingerprint[cam_can]
+      ret.capacitiveSteeringWheelAlt = 0x208 in fingerprint[CAN.ECAN] or 0x208 in fingerprint[CAN.ACAN] or 0x208 in fingerprint[cam_can]
 
       # Check if the car is hybrid. Only HEV/PHEV cars have 0xFA on E-CAN.
       if 0xFA in fingerprint[CAN.ECAN]:
@@ -138,6 +143,8 @@ class CarInterface(CarInterfaceBase):
       ret.isAngleControl = False
       ret.evInfo = 1291 in fingerprint[0]
       ret.adrvControl = False
+      ret.capacitiveSteeringWheel = False
+      ret.capacitiveSteeringWheelAlt = False
 
       # Send LFA message on cars with HDA
       if 0x485 in fingerprint[2]:
@@ -234,7 +241,6 @@ class CarInterface(CarInterfaceBase):
       if CP.flags & HyundaiFlags.CANFD_LKA_STEERING.value:
         addr, bus = 0x730, CanBus(CP).ECAN
       disable_ecu(can_recv, can_send, bus=bus, addr=addr, com_cont_req=b'\x28\x83\x01')
-      enable_radar_tracks(CP, can_recv, can_send) # from ajouatom. really appreciate that.
 
     # for blinkers
     if CP.flags & HyundaiFlags.ENABLE_BLINKERS:
