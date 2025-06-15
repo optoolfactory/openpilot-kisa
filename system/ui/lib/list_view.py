@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from collections.abc import Callable
 from abc import ABC
 from openpilot.system.ui.lib.scroll_panel import GuiScrollPanel
-from openpilot.system.ui.lib.application import gui_app, FontWeight, Widget
+from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.lib.wrap_text import wrap_text
 from openpilot.system.ui.lib.button import gui_button, ButtonStyle
 from openpilot.system.ui.lib.toggle import Toggle, WIDTH as TOGGLE_WIDTH, HEIGHT as TOGGLE_HEIGHT
+from openpilot.system.ui.lib.widget import Widget
 
 ITEM_BASE_HEIGHT = 170
 LINE_PADDING = 40
@@ -148,6 +149,59 @@ class DualButtonAction(ItemAction):
     return False
 
 
+class MultipleButtonAction(ItemAction):
+  def __init__(self, buttons: list[str], button_width: int, selected_index: int = 0, callback: Callable = None):
+    super().__init__(width=len(buttons) * (button_width + 20), enabled=True)
+    self.buttons = buttons
+    self.button_width = button_width
+    self.selected_button = selected_index
+    self.callback = callback
+    self._font = gui_app.font(FontWeight.MEDIUM)
+
+  def _render(self, rect: rl.Rectangle) -> bool:
+    spacing = 20
+    button_y = rect.y + (rect.height - 100) / 2
+    clicked = -1
+
+    for i, text in enumerate(self.buttons):
+      button_x = rect.x + i * (self.button_width + spacing)
+      button_rect = rl.Rectangle(button_x, button_y, self.button_width, 100)
+
+      # Check button state
+      mouse_pos = rl.get_mouse_position()
+      is_hovered = rl.check_collision_point_rec(mouse_pos, button_rect)
+      is_pressed = is_hovered and rl.is_mouse_button_down(rl.MouseButton.MOUSE_BUTTON_LEFT)
+      is_selected = i == self.selected_button
+
+      # Button colors
+      if is_selected:
+        bg_color = rl.Color(51, 171, 76, 255)  # Green
+      elif is_pressed:
+        bg_color = rl.Color(74, 74, 74, 255)  # Dark gray
+      else:
+        bg_color = rl.Color(57, 57, 57, 255)  # Gray
+
+      # Draw button
+      rl.draw_rectangle_rounded(button_rect, 1.0, 20, bg_color)
+
+      # Draw text
+      text_size = measure_text_cached(self._font, text, 40)
+      text_x = button_x + (self.button_width - text_size.x) / 2
+      text_y = button_y + (100 - text_size.y) / 2
+      rl.draw_text_ex(self._font, text, rl.Vector2(text_x, text_y), 40, 0, rl.Color(228, 228, 228, 255))
+
+      # Handle click
+      if is_hovered and rl.is_mouse_button_released(rl.MouseButton.MOUSE_BUTTON_LEFT):
+        clicked = i
+
+    if clicked >= 0:
+      self.selected_button = clicked
+      if self.callback:
+        self.callback(clicked)
+      return True
+    return False
+
+
 @dataclass
 class ListItem:
   title: str
@@ -218,12 +272,13 @@ class ListView(Widget):
     self.scroll_panel = GuiScrollPanel()
     self._font = gui_app.font(FontWeight.NORMAL)
     self._hovered_item = -1
+    self._total_height = 0
 
   def _render(self, rect: rl.Rectangle):
-    total_height = self._update_item_rects(rect)
+    self._update_layout_rects()
 
     # Update layout and handle scrolling
-    content_rect = rl.Rectangle(rect.x, rect.y, rect.width, total_height)
+    content_rect = rl.Rectangle(rect.x, rect.y, rect.width, self._total_height)
     scroll_offset = self.scroll_panel.handle_scroll(rect, content_rect)
 
     # Handle mouse interaction
@@ -263,18 +318,18 @@ class ListView(Widget):
         return i
     return None
 
-  def _update_item_rects(self, container_rect: rl.Rectangle) -> float:
+  def _update_layout_rects(self):
     current_y = 0.0
     for item in self._items:
       if not item.is_visible:
-        item.rect = rl.Rectangle(container_rect.x, container_rect.y + current_y, container_rect.width, 0)
+        item.rect = rl.Rectangle(self._rect.x, self._rect.y + current_y, self._rect.width, 0)
         continue
 
-      content_width = item.get_content_width(int(container_rect.width - ITEM_PADDING * 2))
+      content_width = item.get_content_width(int(self._rect.width - ITEM_PADDING * 2))
       item_height = item.get_item_height(self._font, content_width)
-      item.rect = rl.Rectangle(container_rect.x, container_rect.y + current_y, container_rect.width, item_height)
+      item.rect = rl.Rectangle(self._rect.x, self._rect.y + current_y, self._rect.width, item_height)
       current_y += item_height
-    return current_y  # total height of all items
+    self._total_height = current_y  # total height of all items
 
   def _render_item(self, item: ListItem, y: int):
     content_x = item.rect.x + ITEM_PADDING
@@ -390,3 +445,9 @@ def dual_button_item(left_text: str, right_text: str, left_callback: Callable = 
                      visible: bool | Callable[[], bool] = True) -> ListItem:
   action = DualButtonAction(left_text, right_text, left_callback, right_callback, enabled)
   return ListItem(title="", description=description, action_item=action, visible=visible)
+
+
+def multiple_button_item(title: str, description: str, buttons: list[str], selected_index: int,
+                         button_width: int = BUTTON_WIDTH, callback: Callable = None, icon: str = ""):
+  action = MultipleButtonAction(buttons, button_width, selected_index, callback=callback)
+  return ListItem(title=title, description=description, icon=icon, action_item=action)

@@ -5,7 +5,7 @@ from enum import Enum, IntFlag
 from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, uds, AngleSteeringLimits
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.structs import CarParams
-from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column, Mount
+from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column
 from opendbc.car.fw_query_definitions import FwQueryConfig, Request, p16
 
 from openpilot.common.params import Params
@@ -563,7 +563,7 @@ class CAR(Platforms):
   )
   KIA_EV9 = HyundaiCanFDPlatformConfig(
     [
-      HyundaiCarDocs("Kia EV9 2024", car_parts=CarParts.common([CarHarness.hyundai_r, Mount.angled_mount_8_degrees]))
+      HyundaiCarDocs("Kia EV9 2024", car_parts=CarParts.common([CarHarness.hyundai_r])) # Mount_angled_mount_8_degrees
     ],
     CarSpecs(mass=2625, wheelbase=3.1, steerRatio=16.02),
     flags=HyundaiFlags.EV,
