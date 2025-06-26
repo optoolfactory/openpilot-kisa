@@ -478,6 +478,18 @@ public:
   }
 };
 
+class CanFdHda2Toggle : public ToggleControl {
+  Q_OBJECT
+
+public:
+  CanFdHda2Toggle() : ToggleControl(tr("Set HDA2 Vehicles"), "", "../assets/offroad/icon_shell.png", Params().getBool("CanFdHda2")) {
+    QObject::connect(this, &CanFdHda2Toggle::toggleFlipped, [=](int state) {
+      bool status = state ? true : false;
+      Params().putBool("CanFdHda2", status);
+    });
+  }
+};
+
 class GearDToggle : public ToggleControl {
   Q_OBJECT
 
