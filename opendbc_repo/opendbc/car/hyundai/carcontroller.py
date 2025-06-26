@@ -111,6 +111,7 @@ class CarController(CarControllerBase):
     self.kisa_maxanglelimit = float(int(self.c_params.get("KisaMaxAngleLimit", encoding="utf8")))
     self.ufc_mode_enabled = self.c_params.get_bool("UFCModeEnabled")
     self.ldws_fix = self.c_params.get_bool("LdwsCarFix")
+    self.CanFdHda2 = self.c_params.get_bool("CanFdHda2")
     self.radar_helper_option = int(self.c_params.get("RadarLongHelper", encoding="utf8"))
     self.stopping_dist_adj_enabled = self.c_params.get_bool("StoppingDistAdj")
     self.standstill_resume_alt = self.c_params.get_bool("StandstillResumeAlt")
@@ -1464,7 +1465,7 @@ class CarController(CarControllerBase):
       elif self.exp_mode_push:
         self.exp_mode_push = False
         self.exp_mode_push_cnt += 1
-      elif self.exp_mode_push_cnt == 2 and self.second2 > 50:
+      elif self.exp_mode_push_cnt == 20 and self.second2 > 50:
         self.exp_mode_push_cnt = 0
         self.experimental_mode_temp = not self.experimental_mode_temp
         if self.experimental_mode_temp:
