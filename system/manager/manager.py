@@ -35,10 +35,10 @@ def manager_init() -> None:
     params.clear_all(ParamKeyType.DEVELOPMENT_ONLY)
 
   default_params: list[tuple[str, str | bytes]] = [
-    ("CompletedTrainingVersion", "0"),
+    ("CompletedTrainingVersion", "2"),
     ("DisengageOnAccelerator", "0"),
     ("GsmMetered", "1"),
-    ("HasAcceptedTerms", "0"),
+    ("HasAcceptedTerms", "2"),
     ("LanguageSetting", "main_en"),
     ("OpenpilotEnabledToggle", "1"),
     ("LongitudinalPersonality", str(log.LongitudinalPersonality.standard)),
@@ -59,6 +59,7 @@ def manager_init() -> None:
     ("KisaSteerAngleCorrection", "0"),
     ("PutPrebuiltOn", "0"),
     ("LdwsCarFix", "0"),
+    ("CanFdHda2", "0"),    
     ("LateralControlMethod", "3"),
     ("CruiseStatemodeSelInit", "1"),
     ("InnerLoopGain", "35"),
@@ -107,7 +108,7 @@ def manager_init() -> None:
     ("KisaTurnSteeringDisable", "0"),
     ("CarModel", ""),
     ("KisaHotspotOnBoot", "0"),
-    ("KisaSSHLegacy", "1"),
+    ("KisaSSHLegacy", "0"),
     ("CruiseOverMaxSpeed", "0"),
     ("JustDoGearD", "0"),
     ("LanelessMode", "2"),
@@ -122,7 +123,7 @@ def manager_init() -> None:
     ("KisaMonitoringMode", "0"),
     ("KisaMonitorEyesThreshold", "45"),
     ("KisaMonitorBlinkThreshold", "75"),
-    ("UFCModeEnabled", "0"),
+    ("UFCModeEnabled", "1"),
     ("LFAButtonEngagement", "0"),    
     ("SteerWarningFix", "0"),
     ("CruiseGap1", "11"),
