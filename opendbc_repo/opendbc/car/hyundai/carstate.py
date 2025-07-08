@@ -60,6 +60,7 @@ class CarState(CarStateBase):
     self.is_metric = False
     self.buttons_counter = 0
     self.wheel_counter = 0
+    self.wheel_touched = False
 
     self.cruise_info = {}
     self.lfa_info = {}
@@ -137,6 +138,7 @@ class CarState(CarStateBase):
 
     self.no_mdps_mod = Params().get_bool("NoSmartMDPS")
     self.low_speed_alert = False
+    self.auto_hold = False
 
     self.sm = messaging.SubMaster(['carState'])
 
@@ -692,8 +694,7 @@ class CarState(CarStateBase):
       ret.gasPressed = bool(cp.vl[self.accelerator_msg_canfd]["ACCELERATOR_PEDAL_PRESSED"])
 
     ret.brakePressed = cp.vl["TCS"]["DriverBraking"] == 1
-    if self.CP.brakeAvailable:
-      ret.brakeLights = bool(cp.vl["BRAKE"]["BRAKE_LIGHT"])
+    ret.brakeLights = bool(cp.vl["TCS"]["BRAKE_LIGHT"] or ret.brakePressed or self.auto_hold)
 
     if self.CP.carFingerprint not in (CAR.KIA_EV3,):
       ret.doorOpen = cp.vl["DOORS_SEATBELTS"]["DRIVER_DOOR"] == 1
@@ -844,6 +845,7 @@ class CarState(CarStateBase):
       if self.CP.autoHoldAvailable:
         ret.brakeHoldActive = cp.vl["ESP_STATUS"]["AUTO_HOLD"] == 1 and cp_cruise_info.vl["SCC_CONTROL"]["ACCMode"] not in (1, 2)
         ret.autoHold = ret.brakeHoldActive
+        self.auto_hold = ret.brakeHoldActive
 
       if self.CP.adrvAvailable:
         ret.cruiseState.gapSet = cp_cruise_info.vl["ADRV_0x200"]["TauGapSet"]
@@ -896,7 +898,9 @@ class CarState(CarStateBase):
     self.main_buttons.extend(cp.vl_all[self.cruise_btns_msg_canfd]["ADAPTIVE_CRUISE_MAIN_BTN"])
     self.lda_button = cp.vl[self.cruise_btns_msg_canfd]["LDA_BTN"]
     self.buttons_counter = cp.vl[self.cruise_btns_msg_canfd]["COUNTER"]
-    self.wheel_counter = cp.vl["STEERING_WHEEL"]["COUNTER"] if self.CP.capacitiveSteeringWheel else -1
+    if self.CP.capacitiveSteeringWheel:
+      self.wheel_counter = cp.vl["STEERING_WHEEL"]["COUNTER"]
+      self.wheel_touched = True if cp.vl["STEERING_WHEEL"]["WHEEL_TOUCH_LEVEL"] > 0 else False
     ret.accFaulted = cp.vl["TCS"]["ACCEnable"] != 0  # 0 ACC CONTROL ENABLED, 1-3 ACC CONTROL DISABLED
     ret.cruiseButtons = self.cruise_buttons[-1]
 
@@ -965,11 +969,6 @@ class CarState(CarStateBase):
     if CP.adrvAvailable and CP.flags & HyundaiFlags.CANFD_LKA_STEERING and not CP.adrvControl:
       pt_messages += [
         ("ADRV_0x200", 20),
-      ]
-
-    if CP.brakeAvailable:
-      pt_messages += [
-        ("BRAKE", 100),
       ]
 
     if CP.tpmsAvailable:
