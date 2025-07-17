@@ -5,6 +5,8 @@
 
 #define HYUNDAI_CANFD_CRUISE_BUTTON_TX_MSGS(bus) \
   {0x1CF, bus, 8, .check_relay = false},  /* CRUISE_BUTTON */   \
+  {0x2AF, bus, 8, .check_relay = false},  /* STEERING_WHEEL */  \
+  {0x208, bus, 16, .check_relay = false}, /* STEERING_WHEEL2 */ \
 
 #define HYUNDAI_CANFD_LKA_STEERING_COMMON_TX_MSGS(a_can, e_can) \
   HYUNDAI_CANFD_CRUISE_BUTTON_TX_MSGS(e_can)                        \
@@ -25,25 +27,25 @@
 
 // *** Addresses checked in rx hook ***
 // EV, ICE, HYBRID: ACCELERATOR (0x35), ACCELERATOR_BRAKE_ALT (0x100), ACCELERATOR_ALT (0x105)
-#define HYUNDAI_CANFD_COMMON_RX_CHECKS(pt_bus)                                                                      \
-  {.msg = {{0x35, (pt_bus), 32, .ignore_checksum = true, .max_counter = 0xffU, .frequency = 100U},                  \
-           {0x100, (pt_bus), 32, .max_counter = 0xffU, .frequency = 100U},                                          \
-           {0x105, (pt_bus), 32, .max_counter = 0xffU, .frequency = 100U}}},                                        \
-  {.msg = {{0x175, (pt_bus), 24, .max_counter = 0xffU, .frequency = 50U}, { 0 }, { 0 }}},                           \
-  {.msg = {{0xa0, (pt_bus), 24, .max_counter = 0xffU, .frequency = 100U}, { 0 }, { 0 }}},                           \
-  {.msg = {{0xea, (pt_bus), 24, .ignore_checksum = true, .max_counter = 0xffU, .frequency = 100U}, { 0 }, { 0 }}},  \
+#define HYUNDAI_CANFD_COMMON_RX_CHECKS(pt_bus)                                                                          \
+  {.msg = {{0x35, (pt_bus), 32, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 100U},                  \
+           {0x100, (pt_bus), 32, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 100U},                 \
+           {0x105, (pt_bus), 32, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 100U}}},               \
+  {.msg = {{0x175, (pt_bus), 24, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 50U}, { 0 }, { 0 }}},  \
+  {.msg = {{0xa0, (pt_bus), 24, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 100U}, { 0 }, { 0 }}},  \
+  {.msg = {{0xea, (pt_bus), 24, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 100U}, { 0 }, { 0 }}},  \
 
-#define HYUNDAI_CANFD_STD_BUTTONS_RX_CHECKS(pt_bus)                                                               \
-  HYUNDAI_CANFD_COMMON_RX_CHECKS(pt_bus)                                                                          \
-  {.msg = {{0x1cf, (pt_bus), 8, .ignore_checksum = true, .max_counter = 0xfU, .frequency = 50U}, { 0 }, { 0 }}},  \
+#define HYUNDAI_CANFD_STD_BUTTONS_RX_CHECKS(pt_bus)                                                                                            \
+  HYUNDAI_CANFD_COMMON_RX_CHECKS(pt_bus)                                                                                                       \
+  {.msg = {{0x1cf, (pt_bus), 8, .ignore_checksum = true, .max_counter = 0xfU, .ignore_quality_flag = true, .frequency = 50U}, { 0 }, { 0 }}},  \
 
-#define HYUNDAI_CANFD_ALT_BUTTONS_RX_CHECKS(pt_bus)                                                                 \
-  HYUNDAI_CANFD_COMMON_RX_CHECKS(pt_bus)                                                                            \
-  {.msg = {{0x1aa, (pt_bus), 16, .ignore_checksum = true, .max_counter = 0xffU, .frequency = 50U}, { 0 }, { 0 }}},  \
+#define HYUNDAI_CANFD_ALT_BUTTONS_RX_CHECKS(pt_bus)                                                                                              \
+  HYUNDAI_CANFD_COMMON_RX_CHECKS(pt_bus)                                                                                                         \
+  {.msg = {{0x1aa, (pt_bus), 16, .ignore_checksum = true, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 50U}, { 0 }, { 0 }}},  \
 
 // SCC_CONTROL (from ADAS unit or camera)
-#define HYUNDAI_CANFD_SCC_ADDR_CHECK(scc_bus)                                               \
-  {.msg = {{0x1a0, (scc_bus), 32, .max_counter = 0xffU, .frequency = 50U}, { 0 }, { 0 }}},  \
+#define HYUNDAI_CANFD_SCC_ADDR_CHECK(scc_bus)                                                                            \
+  {.msg = {{0x1a0, (scc_bus), 32, .max_counter = 0xffU, .ignore_quality_flag = true, .frequency = 50U}, { 0 }, { 0 }}},  \
 
 static bool hyundai_canfd_alt_buttons = false;
 static bool hyundai_canfd_lka_steering_alt = false;
@@ -126,7 +128,7 @@ static void hyundai_canfd_rx_hook(const CANPacket_t *to_push) {
                        (rl > HYUNDAI_STANDSTILL_THRSLD) || (rr > HYUNDAI_STANDSTILL_THRSLD);
 
       // average of all 4 wheel speeds. Conversion: raw * 0.03125 / 3.6 = m/s
-      UPDATE_VEHICLE_SPEED((fr + rr + rl + fl) / 4.0 * 0.03125 / 3.6);
+      UPDATE_VEHICLE_SPEED((fr + rr + rl + fl) / 4.0 * 0.03125 * KPH_TO_MS);
     }
   }
 
@@ -182,21 +184,21 @@ static bool hyundai_canfd_tx_hook(const CANPacket_t *to_send) {
   }
 
   // cruise buttons check
-  if (addr == 0x1cf) {
-    int button = GET_BYTE(to_send, 2) & 0x7U;
-    bool is_cancel = (button == HYUNDAI_BTN_CANCEL);
-    bool is_resume = (button == HYUNDAI_BTN_RESUME);
-    bool is_set = (button == HYUNDAI_BTN_SET);
-    bool is_gap = (button == HYUNDAI_BTN_GAP);
+  // if (addr == 0x1cf) {
+  //   int button = GET_BYTE(to_send, 2) & 0x7U;
+  //   bool is_cancel = (button == HYUNDAI_BTN_CANCEL);
+  //   bool is_resume = (button == HYUNDAI_BTN_RESUME);
+  //   bool is_set = (button == HYUNDAI_BTN_SET);
+  //   bool is_gap = (button == HYUNDAI_BTN_GAP);
 
-    bool r_pad = GET_BIT(to_send, 25U);
-    bool l_pad = GET_BIT(to_send, 27U);
+  //   bool r_pad = GET_BIT(to_send, 25U);
+  //   bool l_pad = GET_BIT(to_send, 27U);
 
-    bool allowed = (is_cancel && cruise_engaged_prev) || ((is_resume || is_set || is_gap || r_pad || l_pad) && controls_allowed);
-    if (!allowed) {
-      tx = false;
-    }
-  }
+  //   bool allowed = (is_cancel && cruise_engaged_prev) || ((is_resume || is_set || is_gap || r_pad || l_pad) && controls_allowed);
+  //   if (!allowed) {
+  //     tx = false;
+  //   }
+  // }
 
   // UDS: only tester present ("\x02\x3E\x80\x00\x00\x00\x00\x00") allowed on diagnostics address
   if (((addr == 0x730) && hyundai_canfd_lka_steering) || ((addr == 0x7D0) && !hyundai_camera_scc)) {
