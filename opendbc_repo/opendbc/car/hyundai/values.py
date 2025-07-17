@@ -801,11 +801,6 @@ class CAR(Platforms):
     CarSpecs(mass=1930, wheelbase=2.815, steerRatio=14.26, tireStiffnessFactor=0.65),
     flags=HyundaiFlags.HYBRID,
   )
-  KIA_EV3 = HyundaiCanFDPlatformConfig(
-    [HyundaiCarDocs("KIA EV3 2024", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
-    CarSpecs(mass=1750, wheelbase=2.68, steerRatio=14.14),
-    flags=HyundaiFlags.EV,
-  )
   GRANDEUR_GN7 = HyundaiCanFDPlatformConfig(
     [HyundaiCarDocs("Hyundai GRANDEUR_GN7 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m]))],
     CarSpecs(mass=1620, wheelbase=2.895, steerRatio=14.2),
