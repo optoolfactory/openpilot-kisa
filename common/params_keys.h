@@ -321,4 +321,5 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"LFAButtonEngagement", PERSISTENT},
     {"TimeFactorModHours", PERSISTENT},
     {"TimeFactorModMinutes", PERSISTENT},
+    {"CanFdHda2", PERSISTENT},
 };
