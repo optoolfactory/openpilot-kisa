@@ -74,16 +74,23 @@ def create_steering_messages(packer, CP, CAN, enabled, lat_active, apply_torque,
       lkas_values["NEW_SIGNAL_3"] = 9
     ret.append(packer.make_can_msg(lkas_msg, CAN.ACAN, lkas_values))
   elif CP.isAngleControl: # non-hda2 angle control or adas direct connected.
+    ang_values = {
+      "LKAS_ANGLE_ACTIVE": 2 if lat_active else 1,
+      "LKAS_ANGLE_CMD": apply_angle if lat_active else 0,
+      "LKAS_ANGLE_MAX_TORQUE": max_torque if lat_active else 0,
+    }
+    ret.append(packer.make_can_msg("LFA_ALT", CAN.ECAN, ang_values))
     lfa_values["LKA_MODE"] = 0
     lfa_values["NEW_SIGNAL_1"] = 3 if lat_active else 0
     lfa_values["TORQUE_REQUEST"] = -1024
+    lfa_values["LKA_ASSIST"] = 1
     lfa_values["STEER_REQ"] = 0
     lfa_values["NEW_SIGNAL_3"] = 0
-    lfa_values["NEW_SIGNAL_4"] = 1
     lfa_values["NEW_SIGNAL_5"] = 1
-    lfa_values["NEW_SIGNAL_8"] = 2
-    lfa_values["NEW_SIGNAL_9"] = 1
-    lfa_values["NEW_SIGNAL_10"] = 1
+    if CP.adrvControl:
+      lfa_values["NEW_SIGNAL_8"] = 2
+      lfa_values["NEW_SIGNAL_9"] = 1
+      lfa_values["NEW_SIGNAL_10"] = 1
     ret.append(packer.make_can_msg("LFA", CAN.ECAN, lfa_values))
 
     if CP.adrvControl:
@@ -94,14 +101,6 @@ def create_steering_messages(packer, CP, CAN, enabled, lat_active, apply_torque,
       if frame % 5 == 0:
         adrv_1ea_values = copy.copy(adrv_1ea)
         ret.append(packer.make_can_msg("ADRV_0x1ea", CAN.ECAN, adrv_1ea_values))
-
-    # stock angle max 119.9
-    ang_values = {
-      "LKAS_ANGLE_ACTIVE": 2 if lat_active else 1,
-      "LKAS_ANGLE_CMD": np.clip(apply_angle, -110, 110) if lat_active else 0,
-      "LKAS_ANGLE_MAX_TORQUE": max_torque if lat_active else 0,
-    }
-    ret.append(packer.make_can_msg("LFA_ALT", CAN.ECAN, ang_values))
   else:
     lfa_values["LKA_MODE"] = 0
     lfa_values["NEW_SIGNAL_1"] = 3 if lat_active else 0
@@ -152,11 +151,12 @@ def create_buttons(packer, CP, CAN, cnt, btn, regen = None, r_pad = None, l_pad 
     "CRUISE_BUTTONS": btn,
   }
 
-  if regen:
-    if r_pad:
-      values["RIGHT_PADDLE"] = r_pad
-    if l_pad:
-      values["LEFT_PADDLE"] = l_pad
+  if regen is True:
+    values["CRUISE_BUTTONS"] = 0
+    if r_pad is True:
+      values["RIGHT_PADDLE"] = 1
+    if l_pad is True:
+      values["LEFT_PADDLE"] = 1
 
   bus = CAN.ECAN if CP.flags & HyundaiFlags.CANFD_LKA_STEERING else CAN.CAM
   return packer.make_can_msg("CRUISE_BUTTONS", bus, values)
@@ -337,7 +337,6 @@ def create_ccnc(packer, CAN, frame, ccnc_161, ccnc_162, adrv_1ea):
 
 
 def create_steering_wheel(packer, CP, CAN, cnt):
-  steering_wheel_msg = "STEERING_WHEEL" if CP.capacitiveSteeringWheel else "STEERING_WHEEL_ALT"
   values = {
     "COUNTER": cnt,
     "WHEEL_TOUCH_LEVEL": 3,
@@ -346,4 +345,4 @@ def create_steering_wheel(packer, CP, CAN, cnt):
   }
 
   bus = CAN.ECAN if CP.flags & HyundaiFlags.CANFD_LKA_STEERING else CAN.CAM
-  return packer.make_can_msg(steering_wheel_msg, bus, values)
+  return packer.make_can_msg("STEERING_WHEEL", bus, values)

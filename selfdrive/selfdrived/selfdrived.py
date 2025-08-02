@@ -329,6 +329,9 @@ class SelfdriveD:
         self.donotdisturb_mode_alert_prev = True
       self.second = 0.0
 
+      if self.sm['controlsState'].standStillTimer != 0 and self.sm['controlsState'].standStillTimer % 60 == 0:
+        self.events.add(EventName.dingding)
+
     # Handle HW and system malfunctions
     # Order is very intentional here. Be careful when modifying this.
     # All events here should at least have NO_ENTRY and SOFT_DISABLE.
@@ -414,8 +417,8 @@ class SelfdriveD:
       clipped_speed = max(CS.vEgo, 0.3)
       actual_lateral_accel = controlstate.curvature * (clipped_speed**2)
       desired_lateral_accel = self.sm['modelV2'].action.desiredCurvature * (clipped_speed**2)
-      undershooting = abs(desired_lateral_accel) / abs(1e-3 + actual_lateral_accel) > 1.2
-      turning = abs(desired_lateral_accel) > 1.0
+      undershooting = abs(desired_lateral_accel) / abs(1e-3 + actual_lateral_accel) > 1.6
+      turning = abs(desired_lateral_accel) > 1.4
       # TODO: lac.saturated includes speed and other checks, should be pulled out
       if undershooting and turning and lac.saturated:
         self.events.add(EventName.steerSaturated)
@@ -427,16 +430,16 @@ class SelfdriveD:
     #if (planner_fcw or model_fcw) and not self.CP.notCar:
     #  self.events.add(EventName.fcw)
 
+    # GPS checks
+    gps_ok = self.sm.recv_frame[self.gps_location_service] > 0 and (self.sm.frame - self.sm.recv_frame[self.gps_location_service]) * DT_CTRL < 2.0
+    if not gps_ok and self.sm['livePose'].inputsOK and (self.distance_traveled > 1500):
+      self.events.add(EventName.noGps)
+    if gps_ok:
+      self.distance_traveled = 0
+    self.distance_traveled += abs(CS.vEgo) * DT_CTRL
+
     # TODO: fix simulator
     if not SIMULATION or REPLAY:
-      # Not show in first 1.5 km to allow for driving out of garage. This event shows after 5 minutes
-      gps_ok = self.sm.recv_frame[self.gps_location_service] > 0 and (self.sm.frame - self.sm.recv_frame[self.gps_location_service]) * DT_CTRL < 2.0
-      #if not gps_ok and self.sm['livePose'].inputsOK and (self.distance_traveled > 1500):
-        #self.events.add(EventName.noGps)
-      if gps_ok:
-        self.distance_traveled = 0
-      self.distance_traveled += abs(CS.vEgo) * DT_CTRL
-
       if self.sm['modelV2'].frameDropPerc > 20:
         self.events.add(EventName.modeldLagging)
 
