@@ -696,7 +696,7 @@ class CarState(CarStateBase):
     ret.brakePressed = cp.vl["TCS"]["DriverBraking"] == 1
     ret.brakeLights = bool(cp.vl["TCS"]["BRAKE_LIGHT"] or ret.brakePressed or self.auto_hold)
 
-    if self.CP.carFingerprint not in (CAR.KIA_EV3,):
+    if self.CP.carFingerprint not in (CAR.KIA_EV3, CAR.KIA_EV4):
       ret.doorOpen = cp.vl["DOORS_SEATBELTS"]["DRIVER_DOOR"] == 1
       ret.seatbeltUnlatched = cp.vl["DOORS_SEATBELTS"]["DRIVER_SEATBELT"] == 0
 
@@ -744,7 +744,7 @@ class CarState(CarStateBase):
     left_blinker_sig, right_blinker_sig = "LEFT_LAMP", "RIGHT_LAMP"
     if self.CP.carFingerprint in (CAR.HYUNDAI_KONA_EV_2ND_GEN, CAR.HYUNDAI_IONIQ_5_PE, CAR.KIA_EV9, CAR.KIA_EV6_2025, CAR.GENESIS_GV70_1ST_GEN_PE):
       left_blinker_sig, right_blinker_sig = "LEFT_LAMP_ALT", "RIGHT_LAMP_ALT"
-    if self.CP.carFingerprint not in (CAR.KIA_EV3,):
+    if self.CP.carFingerprint not in (CAR.KIA_EV3, CAR.KIA_EV4):
       ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_lamp(50, cp.vl["BLINKERS"][left_blinker_sig],
                                                                         cp.vl["BLINKERS"][right_blinker_sig])
     if self.CP.enableBsm and not self.CP.adrvControl:
@@ -981,7 +981,7 @@ class CarState(CarStateBase):
         ("ESP_STATUS", 100),
       ]
 
-    if CP.carFingerprint in (CAR.KIA_EV3,):
+    if CP.carFingerprint in (CAR.KIA_EV3, CAR.KIA_EV4):
       pt_messages.remove(("BLINKERS", 4))
       pt_messages.remove(("DOORS_SEATBELTS", 4))
       pt_messages.remove(("ACCELERATOR", 100))
