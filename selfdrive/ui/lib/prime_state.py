@@ -6,6 +6,7 @@ import time
 from openpilot.common.api import Api, api_get
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
+from openpilot.system.athena.registration import UNREGISTERED_DONGLE_ID
 
 
 class PrimeType(IntEnum):
@@ -34,7 +35,7 @@ class PrimeState:
     self.start()
 
   def _load_initial_state(self) -> PrimeType:
-    prime_type_str = os.getenv("PRIME_TYPE") or self._params.get("PrimeType", encoding='utf8')
+    prime_type_str = os.getenv("PRIME_TYPE") or self._params.get("PrimeType")
     try:
       if prime_type_str is not None:
         return PrimeType(int(prime_type_str))
@@ -43,8 +44,8 @@ class PrimeState:
     return PrimeType.UNKNOWN
 
   def _fetch_prime_status(self) -> None:
-    dongle_id = self._params.get("DongleId", encoding='utf8')
-    if not dongle_id:
+    dongle_id = self._params.get("DongleId")
+    if not dongle_id or dongle_id == UNREGISTERED_DONGLE_ID:
       return
 
     try:
@@ -62,7 +63,7 @@ class PrimeState:
     with self._lock:
       if prime_type != self.prime_type:
         self.prime_type = prime_type
-        self._params.put("PrimeType", str(int(prime_type)))
+        self._params.put("PrimeType", int(prime_type))
         cloudlog.info(f"Prime type updated to {prime_type}")
 
   def _worker_thread(self) -> None:

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from enum import Enum
 from openpilot.common.params import Params
-from decimal import Decimal
 
 class LatTunes(Enum):
   INDI = 0
@@ -31,25 +30,23 @@ def set_lat_tune(tune, name, max_lat_accel=2.5, FRICTION=.1):
     tune.init('atom')
 
     # 1. TORQUE
-    TorqueKp = float(Decimal(params.get("TorqueKp", encoding="utf8")) * Decimal('0.1'))
-    TorqueKf = float(Decimal(params.get("TorqueKf", encoding="utf8")) * Decimal('0.1'))
-    TorqueKi = float(Decimal(params.get("TorqueKi", encoding="utf8")) * Decimal('0.1'))
-    TorqueFriction = float(Decimal(params.get("TorqueFriction", encoding="utf8")) * Decimal('0.001'))
-    TorqueUseAngle = params.get_bool('TorqueUseAngle')
-    max_lat_accel = float(Decimal(params.get("TorqueMaxLatAccel", encoding="utf8")) * Decimal('0.1'))
-    steer_ang_deadzone = float(Decimal(params.get("TorqueAngDeadZone", encoding="utf8")) * Decimal('0.1'))
+    TorqueKp = params.get("TorqueKp") * 0.1
+    TorqueKf = params.get("TorqueKf") * 0.1
+    TorqueKi = params.get("TorqueKi") * 0.1
+    TorqueFriction = params.get("TorqueFriction") * 0.001
+    max_lat_accel = params.get("TorqueMaxLatAccel") * 0.1
+    steer_ang_deadzone = params.get("TorqueAngDeadZone") * 0.1
 
-    tune.atom.torque.useSteeringAngle = TorqueUseAngle  # True
     tune.atom.torque.kp = TorqueKp        # 1.0
     tune.atom.torque.kf = TorqueKf        # 1.0
-    tune.atom.torque.ki = TorqueKi        # 0.1
+    tune.atom.torque.ki = TorqueKi        # 0.3
     tune.atom.torque.friction = TorqueFriction
     tune.atom.torque.steeringAngleDeadzoneDeg = steer_ang_deadzone
 
     # 2. LQR
-    Scale = float(Decimal(params.get("Scale", encoding="utf8")) * Decimal('1.0'))
-    LqrKi = float(Decimal(params.get("LqrKi", encoding="utf8")) * Decimal('0.001'))
-    DcGain = float(Decimal(params.get("DcGain", encoding="utf8")) * Decimal('0.00001'))
+    Scale = params.get("Scale") * 1.0
+    LqrKi = params.get("LqrKi") * 0.001
+    DcGain = params.get("DcGain") * 0.00001
 
     tune.atom.lqr.scale = Scale     #1700.0
     tune.atom.lqr.ki = LqrKi      #0.01
@@ -61,10 +58,10 @@ def set_lat_tune(tune, name, max_lat_accel=2.5, FRICTION=.1):
     tune.atom.lqr.l = [0.3233671, 0.3185757]      
 
     # 3. INDI
-    InnerLoopGain = float(Decimal(params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
-    OuterLoopGain = float(Decimal(params.get("OuterLoopGain", encoding="utf8")) * Decimal('0.1'))
-    TimeConstant = float(Decimal(params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
-    ActuatorEffectiveness = float(Decimal(params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
+    InnerLoopGain = params.get("InnerLoopGain") * 0.1
+    OuterLoopGain = params.get("OuterLoopGain") * 0.1
+    TimeConstant = params.get("TimeConstant") * 0.1
+    ActuatorEffectiveness = params.get("ActuatorEffectiveness") * 0.1
 
     tune.atom.indi.innerLoopGainBP = [0.]
     tune.atom.indi.innerLoopGainV = [InnerLoopGain] # 4.0, third tune. Highest value that still gives smooth control. Effects turning into curves.
@@ -76,10 +73,10 @@ def set_lat_tune(tune, name, max_lat_accel=2.5, FRICTION=.1):
     tune.atom.indi.actuatorEffectivenessV = [ActuatorEffectiveness] # 1.0, first tune. Lowest value without oversteering. May vary with speed.
 
     # 4. PID
-    PidKp = float(Decimal(params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
-    PidKi = float(Decimal(params.get("PidKi", encoding="utf8")) * Decimal('0.001'))
-    PidKf = float(Decimal(params.get("PidKf", encoding="utf8")) * Decimal('0.00001'))
-    PidKd = float(Decimal(params.get("PidKd", encoding="utf8")) * Decimal('0.01'))
+    PidKp = params.get("PidKp") * 0.01
+    PidKi = params.get("PidKi") * 0.001
+    PidKf = params.get("PidKf") * 0.00001
+    PidKd = params.get("PidKd") * 0.01
 
     tune.atom.pid.kpBP = [0., 9.]
     tune.atom.pid.kpV = [0.1, PidKp]
@@ -89,24 +86,22 @@ def set_lat_tune(tune, name, max_lat_accel=2.5, FRICTION=.1):
     tune.atom.pid.kd = PidKd
 
   elif name == LatTunes.TORQUE:
-    TorqueKp = float(Decimal(params.get("TorqueKp", encoding="utf8")) * Decimal('0.1'))
-    TorqueKf = float(Decimal(params.get("TorqueKf", encoding="utf8")) * Decimal('0.1'))
-    TorqueKi = float(Decimal(params.get("TorqueKi", encoding="utf8")) * Decimal('0.1'))
-    TorqueFriction = float(Decimal(params.get("TorqueFriction", encoding="utf8")) * Decimal('0.001'))
-    TorqueUseAngle = params.get_bool('TorqueUseAngle')
-    max_lat_accel = float(Decimal(params.get("TorqueMaxLatAccel", encoding="utf8")) * Decimal('0.1'))
-    steer_ang_deadzone = float(Decimal(params.get("TorqueAngDeadZone", encoding="utf8")) * Decimal('0.1'))
+    TorqueKp = params.get("TorqueKp") * 0.1
+    TorqueKf = params.get("TorqueKf") * 0.1
+    TorqueKi = params.get("TorqueKi") * 0.1
+    TorqueFriction = params.get("TorqueFriction") * 0.001
+    max_lat_accel = params.get("TorqueMaxLatAccel") * 0.1
+    steer_ang_deadzone = params.get("TorqueAngDeadZone") * 0.1
     tune.init('torque')
-    tune.torque.useSteeringAngle = TorqueUseAngle
     tune.torque.kp = TorqueKp # 1.0
     tune.torque.kf = TorqueKf # 1.0
-    tune.torque.ki = TorqueKi # 0.1
+    tune.torque.ki = TorqueKi # 0.3
     tune.torque.friction = TorqueFriction
     tune.torque.steeringAngleDeadzoneDeg = steer_ang_deadzone
   elif name == LatTunes.LQR:
-    Scale = float(Decimal(params.get("Scale", encoding="utf8")) * Decimal('1.0'))
-    LqrKi = float(Decimal(params.get("LqrKi", encoding="utf8")) * Decimal('0.001'))
-    DcGain = float(Decimal(params.get("DcGain", encoding="utf8")) * Decimal('0.00001'))
+    Scale = params.get("Scale") * 1.0
+    LqrKi = params.get("LqrKi") * 0.001
+    DcGain = params.get("DcGain") * 0.00001
     tune.init('lqr')
     tune.lqr.scale = Scale
     tune.lqr.ki = LqrKi
@@ -117,10 +112,10 @@ def set_lat_tune(tune, name, max_lat_accel=2.5, FRICTION=.1):
     tune.lqr.l = [0.33, 0.318]
     tune.lqr.dcGain = DcGain
   elif name == LatTunes.INDI:
-    InnerLoopGain = float(Decimal(params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
-    OuterLoopGain = float(Decimal(params.get("OuterLoopGain", encoding="utf8")) * Decimal('0.1'))
-    TimeConstant = float(Decimal(params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
-    ActuatorEffectiveness = float(Decimal(params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
+    InnerLoopGain = params.get("InnerLoopGain") * 0.1
+    OuterLoopGain = params.get("OuterLoopGain") * 0.1
+    TimeConstant = params.get("TimeConstant") * 0.1
+    ActuatorEffectiveness = params.get("ActuatorEffectiveness") * 0.1
     tune.init('indi')
     tune.indi.innerLoopGainBP = [0.]
     tune.indi.innerLoopGainV = [InnerLoopGain] # 4.0, third tune. Highest value that still gives smooth control. Effects turning into curves.
@@ -152,10 +147,10 @@ def set_lat_tune(tune, name, max_lat_accel=2.5, FRICTION=.1):
       # Just right: crisp lane centering
   elif 'PID' in str(name):
     if name == LatTunes.PID:
-      PidKp = float(Decimal(params.get("PidKp", encoding="utf8")) * Decimal('0.01'))
-      PidKi = float(Decimal(params.get("PidKi", encoding="utf8")) * Decimal('0.001'))
-      PidKd = float(Decimal(params.get("PidKd", encoding="utf8")) * Decimal('0.01'))
-      PidKf = float(Decimal(params.get("PidKf", encoding="utf8")) * Decimal('0.00001'))
+      PidKp = params.get("PidKp") * 0.01
+      PidKi = params.get("PidKi") * 0.001
+      PidKd = params.get("PidKd") * 0.01
+      PidKf = params.get("PidKf") * 0.00001
       tune.init('pid')
       tune.pid.kpBP = [0., 9.]
       tune.pid.kpV = [0.1, PidKp]

@@ -106,7 +106,6 @@ void  CLateralControlGroup::FrameTORQUE(QVBoxLayout *layout)
     layout->addWidget(new TorqueKi());
     layout->addWidget(new TorqueFriction());
     layout->addWidget(new TorqueUseLiveFriction());
-    layout->addWidget(new TorqueUseAngle());
     layout->addWidget(new TorqueAngDeadZone());
 }
 
@@ -162,10 +161,8 @@ CLongControlGroup::CLongControlGroup() : CGroupWidget( tr("Long Control") )
   pBoxLayout->addWidget(new RadarLongHelperOption());
   pBoxLayout->addWidget(new StoppingDistAdjToggle());
   pBoxLayout->addWidget(new StoppingDist());
-  //pBoxLayout->addWidget(new E2ELongToggle());
   //pBoxLayout->addWidget(new StopAtStopSignToggle());
   pBoxLayout->addWidget(new StockDecelonCamToggle());
-  //pBoxLayout->addWidget(new RadarDisableToggle());
   pBoxLayout->addWidget(new UseRadarTrackToggle());
   pBoxLayout->addWidget(new UseRadarValue());
   pBoxLayout->addWidget(new LongAlternative());
@@ -181,7 +178,7 @@ CGitGroup::CGitGroup(void *p) : CGroupWidget( tr("Git Repository/Branch") )
   auto gitresetbtn = new ButtonControl(tr("Git Reset"), tr("RUN"));
   QObject::connect(gitresetbtn, &ButtonControl::clicked, [=]() {
     if (ConfirmationDialog::confirm2(tr("Apply the latest commitment details of Remote Git after forced initialization of local changes. Do you want to proceed?"), this)){
-      std::system("touch /data/kisa_compiling");
+      std::system("touch /data/ks");
       std::system(git_reset);
     }
   });
@@ -418,7 +415,7 @@ SwitchOpenpilot::SwitchOpenpilot() : ButtonControl(tr("Change Repo/Branch"), "",
               QString cmd1 = "mv /data/openpilot /data/openpilot_" + as;
               QString tcmd = "git clone --progress -b " + githubbranch + " --single-branch https://github.com/" + githubid + "/" + githubrepo + ".git /data/openpilot";
               QString cmd3 = "rm -f /data/openpilot_" + as + "/prebuilt";
-			        QString cmd4 = "touch /data/kisa_compiling";
+			        QString cmd4 = "touch /data/ks";
               QProcess::execute(cmd1);
               QProcess::execute(cmd3);
 			        QProcess::execute(cmd4);
@@ -537,7 +534,7 @@ OpenpilotUserEnv::OpenpilotUserEnv() : ButtonControl(tr("Get Your Params"), "", 
                 setText(tr("DONE"));
                 setEnabled(true);
                 QString tcmd = "wget https://raw.githubusercontent.com/" + githubid + "/" + githubrepo + "/" + githubbranch + "/" + githubfile + " -O /data/User_Params.txt";
-                QString cmd4 = "touch /data/kisa_compiling";
+                QString cmd4 = "touch /data/ks";
                 QProcess::execute(cmd4);
                 QObject::connect(&textMsgProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(processFinished(int, QProcess::ExitStatus)));
                 textMsgProcess.start(tcmd);
@@ -895,7 +892,7 @@ void CarSelectCombo::refresh() {
 ModelSelectCombo::ModelSelectCombo() : AbstractControl(tr("Model"), "", "") 
 {
   QStringList stringList;
-  QFile modellistfile("/data/openpilot/selfdrive/assets/addon/model/ModelList");
+  QFile modellistfile("/data/openpilot/selfdrive/modeld/models/ModelList");
   if (modellistfile.open(QIODevice::ReadOnly)) {
     QTextStream modelname(&modellistfile);
     while (!modelname.atEnd()) {
@@ -943,7 +940,7 @@ ModelSelectCombo::ModelSelectCombo() : AbstractControl(tr("Model"), "", "")
       if (selection != cur) {
         if (ConfirmationDialog::confirm2("<" + selection + "> " + tr("Driving model will be changed. Downloading(50MB) takes a time. Will be reboot if done."), this)) {
           params.put("DrivingModel", selection.toStdString());
-          QProcess::execute("touch /data/kisa_compiling");
+          QProcess::execute("touch /data/ks");
           params.put("RunCustomCommand", "4", 1);
         }
       }
@@ -955,7 +952,7 @@ ModelSelectCombo::ModelSelectCombo() : AbstractControl(tr("Model"), "", "")
   QObject::connect(&btn2, &QPushButton::clicked, [=]() {
     if (ConfirmationDialog::confirm2(tr("Do you want to restore original model?"), this)) {
       params.remove("DrivingModel");
-      QProcess::execute("touch /data/kisa_compiling");
+      QProcess::execute("touch /data/ks");
       params.put("RunCustomCommand", "5", 1);
       refresh();
     }
@@ -1018,7 +1015,7 @@ BranchSelectCombo::BranchSelectCombo() : AbstractControl("", "", "")
       if (!selection.isEmpty()) {
         if (selection != cur) {
           if (ConfirmationDialog::confirm2(tr("Now will checkout the branch") +", <" + selection + ">. " + tr("The device will be rebooted if completed."), this)) {
-            QProcess::execute("touch /data/kisa_compiling");
+            QProcess::execute("touch /data/ks");
             params.put("RunCustomCommand", selection.toStdString());
           }
         }
@@ -1033,87 +1030,6 @@ BranchSelectCombo::BranchSelectCombo() : AbstractControl("", "", "")
     btn1.setText(tr("Push to check"));
     params.put("RunCustomCommand", "3", 1);
   });
-}
-
-TimeZoneSelectCombo::TimeZoneSelectCombo() : AbstractControl("", "", "") 
-{
-  combobox.setStyleSheet(R"(
-    subcontrol-origin: padding;
-    subcontrol-position: top left;
-    selection-background-color: #111;
-    selection-color: yellow;
-    color: white;
-    background-color: #393939;
-    border-style: solid;
-    border: 0px solid #1e1e1e;
-    border-radius: 0;
-    width: 100px;
-  )");
-
-  combobox.addItem(tr("Select Your TimeZone"));
-  QFile timezonelistfile("/data/openpilot/selfdrive/assets/addon/param/TimeZone");
-  if (timezonelistfile.open(QIODevice::ReadOnly)) {
-    QTextStream timezonename(&timezonelistfile);
-    while (!timezonename.atEnd()) {
-      QString line = timezonename.readLine();
-      combobox.addItem(line);
-    }
-    timezonelistfile.close();
-  }
-
-  combobox.setFixedWidth(1055);
-
-  btn.setStyleSheet(R"(
-    padding: 0;
-    border-radius: 50px;
-    font-size: 35px;
-    font-weight: 500;
-    color: #E4E4E4;
-    background-color: #393939;
-  )");
-
-  btn.setFixedSize(150, 100);
-
-  QObject::connect(&btn, &QPushButton::clicked, [=]() {
-    if (btn.text() == tr("UNSET")) {
-      if (ConfirmationDialog::confirm2(tr("Do you want to set default?"), this)) {
-        params.put("KISATimeZone", "UTC");
-        combobox.setCurrentIndex(0);
-        refresh();
-      }
-    }
-  });
-
-  //combobox.view()->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-
-  hlayout->addWidget(&combobox, Qt::AlignLeft);
-  hlayout->addWidget(&btn, Qt::AlignRight);
-
-  QObject::connect(&combobox, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated), [=](int index)
-  {
-    combobox.itemData(combobox.currentIndex());
-    QString str = combobox.currentText();
-    if (combobox.currentIndex() != 0) {
-      if (ConfirmationDialog::confirm2(tr("Press OK to set your timezone as") + "\n" + str, this)) {
-        params.put("KISATimeZone", str.toStdString());
-      }
-    }
-    refresh();
-  });
-  refresh();
-}
-
-void TimeZoneSelectCombo::refresh() {
-  QString selected_timezonename = QString::fromStdString(params.get("KISATimeZone"));
-  int index = combobox.findText(selected_timezonename);
-  if (index >= 0) combobox.setCurrentIndex(index);
-  if (selected_timezonename.length()) {
-    btn.setEnabled(true);
-    btn.setText(tr("UNSET"));
-  } else {
-    btn.setEnabled(false);
-    btn.setText(tr("SET"));
-  }
 }
 
 //UI
@@ -1686,37 +1602,33 @@ MonitoringMode::MonitoringMode() : AbstractControl(tr("Driver Monitoring Mode"),
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("KisaMonitoringMode"));
-    int value = str.toInt();
-    value = value - 1;
-    if (value <= -1) {
-      value = 1;
+    bool stat = params.getBool("KisaMonitoringMode");
+    if (stat) {
+      params.putBool("KisaMonitoringMode", false);
+    } else {
+      params.putBool("KisaMonitoringMode", true);
     }
-    QString values = QString::number(value);
-    params.put("KisaMonitoringMode", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("KisaMonitoringMode"));
-    int value = str.toInt();
-    value = value + 1;
-    if (value >= 2) {
-      value = 0;
+    bool stat = params.getBool("KisaMonitoringMode");
+    if (stat) {
+      params.putBool("KisaMonitoringMode", false);
+    } else {
+      params.putBool("KisaMonitoringMode", true);
     }
-    QString values = QString::number(value);
-    params.put("KisaMonitoringMode", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void MonitoringMode::refresh() {
-  QString option = QString::fromStdString(params.get("KisaMonitoringMode"));
-  if (option == "0") {
-    label.setText(tr("Default"));
-  } else if (option == "1") {
+  bool param = params.getBool("KisaMonitoringMode");
+  if (param) {
     label.setText(tr("UnSleep"));
+  } else {
+    label.setText(tr("Default"));
   }
 }
 
@@ -5912,37 +5824,33 @@ SpeedLimitSignType::SpeedLimitSignType() : AbstractControl(tr("SafetyCam SignTyp
   hlayout->addWidget(&btnplus);
 
   QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("KisaSpeedLimitSignType"));
-    int value = str.toInt();
-    value = value - 1;
-    if (value <= -1) {
-      value = 1;
+    bool stat = params.getBool("KisaSpeedLimitSignType");
+    if (stat) {
+      params.putBool("KisaSpeedLimitSignType", false);
+    } else {
+      params.putBool("KisaSpeedLimitSignType", true);
     }
-    QString values = QString::number(value);
-    params.put("KisaSpeedLimitSignType", values.toStdString());
     refresh();
   });
   
   QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("KisaSpeedLimitSignType"));
-    int value = str.toInt();
-    value = value + 1;
-    if (value >= 2) {
-      value = 0;
+    bool stat = params.getBool("KisaSpeedLimitSignType");
+    if (stat) {
+      params.putBool("KisaSpeedLimitSignType", false);
+    } else {
+      params.putBool("KisaSpeedLimitSignType", true);
     }
-    QString values = QString::number(value);
-    params.put("KisaSpeedLimitSignType", values.toStdString());
     refresh();
   });
   refresh();
 }
 
 void SpeedLimitSignType::refresh() {
-  QString option = QString::fromStdString(params.get("KisaSpeedLimitSignType"));
-  if (option == "0") {
-    label.setText(tr("Circle"));
-  } else {
+  bool param = params.getBool("KisaSpeedLimitSignType");
+  if (param) {
     label.setText(tr("Rectangle"));
+  } else {
+    label.setText(tr("Circle"));
   }
 }
 
@@ -6216,104 +6124,6 @@ void OSMCustomSpeedLimit::refresh() {
   edit1.setText(QString::fromStdString(strs1.toStdString()));
   edit2.setText(QString::fromStdString(strs2.toStdString()));
   btn.setText(tr("EDIT"));
-}
-
-DesiredCurvatureLimit::DesiredCurvatureLimit() : AbstractControl(tr("DesiredCurvatureLimit"), tr("Adjust DisiredCurvatureLimit, Default is 0.05(DT_MDL), For HKG, maybe 0.2 is preferred from user's experience. If the steering digs into inside on intersection, upper the value. And then it will limit your scope of steering angle. In case of opposite situation, lower the value. this is multiplier of desired curvature rate not real limit value."), "../assets/icons/shell.png") {
-
-  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-  label.setStyleSheet("color: #e0e879");
-  hlayout->addWidget(&label);
-
-  btndigit.setStyleSheet(R"(
-    QPushButton {
-      padding: 0;
-      border-radius: 50px;
-      font-size: 35px;
-      font-weight: 500;
-      color: #E4E4E4;
-      background-color: #393939;
-    }
-    QPushButton:pressed {
-      background-color: #ababab;
-    }
-  )");
-  btnminus.setStyleSheet(R"(
-    QPushButton {
-      padding: 0;
-      border-radius: 50px;
-      font-size: 35px;
-      font-weight: 500;
-      color: #E4E4E4;
-      background-color: #393939;
-    }
-    QPushButton:pressed {
-      background-color: #ababab;
-    }
-  )");
-  btnplus.setStyleSheet(R"(
-    QPushButton {
-      padding: 0;
-      border-radius: 50px;
-      font-size: 35px;
-      font-weight: 500;
-      color: #E4E4E4;
-      background-color: #393939;
-    }
-    QPushButton:pressed {
-      background-color: #ababab;
-    }
-  )");
-  btndigit.setFixedSize(100, 100);
-  btnminus.setFixedSize(100, 100);
-  btnplus.setFixedSize(100, 100);
-  hlayout->addWidget(&btndigit);
-  hlayout->addWidget(&btnminus);
-  hlayout->addWidget(&btnplus);
-  btndigit.setText("0.01");
-  btnminus.setText("-");
-  btnplus.setText("+");
-
-  QObject::connect(&btndigit, &QPushButton::clicked, [=]() {
-    digit = digit * 10;
-    if (digit >= 2) {
-      digit = 0.01;
-    }
-    QString level = QString::number(digit);
-    btndigit.setText(level);
-  });
-
-  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("DesiredCurvatureLimit"));
-    int value = str.toInt();
-    value = value - (digit*100);
-    if (value <= 5) {
-      value = 5;
-    }
-    QString values = QString::number(value);
-    params.put("DesiredCurvatureLimit", values.toStdString());
-    refresh();
-  });
-  
-  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("DesiredCurvatureLimit"));
-    int value = str.toInt();
-    value = value + (digit*100);
-    if (value >= 1000) {
-      value = 1000;
-    }
-    QString values = QString::number(value);
-    params.put("DesiredCurvatureLimit", values.toStdString());
-    refresh();
-  });
-  refresh();
-}
-
-void DesiredCurvatureLimit::refresh() {
-  auto strs = QString::fromStdString(params.get("DesiredCurvatureLimit"));
-  int valuei = strs.toInt();
-  float valuef = valuei * 0.01;
-  QString valuefs = QString::number(valuef);
-  label.setText("＊ " + QString::fromStdString(valuefs.toStdString()));
 }
 
 DynamicTRUD::DynamicTRUD() : AbstractControl(tr("DynamicTR: [Speed] [TRs]"), tr("Set TR of each speeds. (Mid range is interpolation values)"), "../assets/icons/shell.png") {
@@ -7649,65 +7459,6 @@ void StoppingDist::refresh() {
   float valuef = valuei * 0.1;
   QString valuefs = QString::number(valuef);
   label.setText(QString::fromStdString(valuefs.toStdString()));
-}
-
-VariableCruiseLevel::VariableCruiseLevel() : AbstractControl(tr("Button Spamming Level"), tr("High values make early stopping and starting, but might be not comfortable. Low values are the opposite."), "../assets/icons/shell.png") {
-
-  label.setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-  label.setStyleSheet("color: #e0e879");
-  hlayout->addWidget(&label);
-
-  btnminus.setStyleSheet(R"(
-    padding: 0;
-    border-radius: 50px;
-    font-size: 35px;
-    font-weight: 500;
-    color: #E4E4E4;
-    background-color: #393939;
-  )");
-  btnplus.setStyleSheet(R"(
-    padding: 0;
-    border-radius: 50px;
-    font-size: 35px;
-    font-weight: 500;
-    color: #E4E4E4;
-    background-color: #393939;
-  )");
-  btnminus.setFixedSize(150, 100);
-  btnplus.setFixedSize(150, 100);
-  btnminus.setText("－");
-  btnplus.setText("＋");
-  hlayout->addWidget(&btnminus);
-  hlayout->addWidget(&btnplus);
-
-  QObject::connect(&btnminus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("VarCruiseSpeedFactor"));
-    int value = str.toInt();
-    value = value - 1;
-    if (value <= -1) {
-      value = 16;
-    }
-    QString values = QString::number(value);
-    params.put("VarCruiseSpeedFactor", values.toStdString());
-    refresh();
-  });
-  
-  QObject::connect(&btnplus, &QPushButton::clicked, [=]() {
-    auto str = QString::fromStdString(params.get("VarCruiseSpeedFactor"));
-    int value = str.toInt();
-    value = value + 1;
-    if (value >= 17) {
-      value = 0;
-    }
-    QString values = QString::number(value);
-    params.put("VarCruiseSpeedFactor", values.toStdString());
-    refresh();
-  });
-  refresh();
-}
-
-void VariableCruiseLevel::refresh() {
-  label.setText(QString::fromStdString(params.get("VarCruiseSpeedFactor")));
 }
 
 ExternalDeviceIP::ExternalDeviceIP() : AbstractControl(tr("ExternalDevIP"), tr("Set Your External Device IP to get useful data. ex. a ip:192.168.0.1 / two or more: 192.168.0.1,192.168.0.2 put comma btw IPs / range:192.168.0.1-10  192.168.0-10.254 use dash(-)"), "") {

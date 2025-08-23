@@ -1,18 +1,20 @@
 import math
 
-from cereal import car
-from opendbc.can.parser import CANParser
+from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import RadarInterfaceBase
 from opendbc.car.hyundai.values import DBC, CANFD_CAR
+
+from cereal import car
 from openpilot.common.params import Params
 
 RADAR_START_ADDR = 0x500
 RADAR_MSG_COUNT = 32
 
-USE_RADAR_TRACK = Params().get_bool("UseRadarTrack") or (Params().get_bool("AlphaLongitudinalEnabled") and int(Params().get("KISALongAlt", encoding="utf8")) not in (1, 2))
+USE_RADAR_TRACK = Params().get_bool("UseRadarTrack") or (Params().get_bool("AlphaLongitudinalEnabled") and Params().get("KISALongAlt") not in (1, 2))
 
 # POC for parsing corner radars: https://github.com/commaai/openpilot/pull/24221/
+
 
 def get_radar_can_parser(CP):
   if USE_RADAR_TRACK or CP.carFingerprint in CANFD_CAR:
@@ -57,7 +59,7 @@ class RadarInterface(RadarInterfaceBase):
       if self.radar_off_can:
         return super().update(None)
 
-    vls = self.rcp.update_strings(can_strings)
+    vls = self.rcp.update(can_strings)
     self.updated_messages.update(vls)
 
     if self.trigger_msg not in self.updated_messages:
