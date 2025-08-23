@@ -206,7 +206,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"KisaMonitoringMode", {PERSISTENT, BOOL, "0"}},
     {"KisaMonitorEyesThreshold", {PERSISTENT, STRING, "45"}},
     {"KisaMonitorBlinkThreshold", {PERSISTENT, STRING, "75"}},
-    {"UFCModeEnabled", {PERSISTENT, BOOL, "0"}},
+    {"UFCModeEnabled", {PERSISTENT, BOOL, "1"}},
     {"CommaStockUI", {PERSISTENT, INT, "0"}},
     {"KisaEnableUploader", {PERSISTENT, BOOL, "0"}},
     {"SteerWarningFix", {PERSISTENT, BOOL, "0"}},
