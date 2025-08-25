@@ -69,7 +69,7 @@ AutoResCondition:0
 KisaMonitoringMode:0
 KisaMonitorEyesThreshold:45
 KisaMonitorBlinkThreshold:75
-UFCModeEnabled:1
+UFCModeEnabled:0
 CruiseGap1:11
 CruiseGap2:12
 CruiseGap3:13
