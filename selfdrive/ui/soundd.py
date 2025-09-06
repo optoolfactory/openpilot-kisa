@@ -68,7 +68,6 @@ class Soundd:
     self.spl_filter_weighted = FirstOrderFilter(0, 2.5, FILTER_DT, initialized=False)
 
     self.params = Params()
-    self.timer = 0
 
   def load_sounds(self):
     self.loaded_sounds: dict[int, np.ndarray] = {}
@@ -129,12 +128,12 @@ class Soundd:
       self.selfdrive_timeout_alert = False
 
   def calculate_volume(self, weighted_db):
-    if int(self.params.get("CommaStockUI")) > 1 and int(self.params.get("DoNotDisturbMode")) > 1:
+    if int(self.params.get("CommaStockUI", return_default=True)) > 1 and int(self.params.get("DoNotDisturbMode", return_default=True)) > 1:
       return 0.0
-    elif int(self.params.get("KisaUIVolumeBoost")) < -5:
+    elif int(self.params.get("KisaUIVolumeBoost", return_default=True)) < -5:
       return 0.0
-    elif int(self.params.get("KisaUIVolumeBoost")) > 5:
-      return np.interp(min(int(self.params.get("KisaUIVolumeBoost")), 100), [10, 20, 30, 40, 50, 100],[0.01, 0.025, 0.05, 0.075, 0.1, 1.0])
+    elif int(self.params.get("KisaUIVolumeBoost", return_default=True)) > 5:
+      return np.interp(min(int(self.params.get("KisaUIVolumeBoost", return_default=True)), 100), [10, 20, 30, 40, 50, 100],[0.01, 0.025, 0.05, 0.075, 0.1, 1.0])
     else:
       volume = ((weighted_db - AMBIENT_DB) / DB_SCALE) * (MAX_VOLUME - MIN_VOLUME) + MIN_VOLUME
       return math.pow(10, (np.clip(volume, MIN_VOLUME, MAX_VOLUME) - 1))
@@ -150,7 +149,7 @@ class Soundd:
     # sounddevice must be imported after forking processes
     import sounddevice as sd
 
-    sm = messaging.SubMaster(['selfdriveState', 'microphone'])
+    sm = messaging.SubMaster(['selfdriveState', 'soundPressure'])
 
     with self.get_stream(sd) as stream:
       rk = Ratekeeper(20)
@@ -159,11 +158,9 @@ class Soundd:
       while True:
         sm.update(0)
 
-        self.timer += 1
-        if sm.updated['microphone'] and self.current_alert == AudibleAlert.none and self.timer > 20: # only update volume filter when not playing alert
-          self.spl_filter_weighted.update(sm["microphone"].soundPressureWeightedDb)
+        if sm.updated['soundPressure'] and self.current_alert == AudibleAlert.none: # only update volume filter when not playing alert
+          self.spl_filter_weighted.update(sm["soundPressure"].soundPressureWeightedDb)
           self.current_volume = self.calculate_volume(float(self.spl_filter_weighted.x))
-          self.timer = 0
 
         self.get_audible_alert(sm)
 

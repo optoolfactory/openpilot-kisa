@@ -157,7 +157,7 @@ def sw_update_thread(end_event, nv_queue):
                 p_order = 0
                 lcount = 0
                 result.kill()
-        elif int(params.get("RunCustomCommand", encoding="utf8")) == 1:
+        elif params.get("RunCustomCommand") == "1":
           if p_order == 0:
             command1 = "/data/openpilot/selfdrive/assets/addon/script/gitcommit.sh"
             p_order = 1
@@ -175,7 +175,7 @@ def sw_update_thread(end_event, nv_queue):
                 p_order = 0
                 lcount = 0
                 result.kill()
-        elif int(params.get("RunCustomCommand", encoding="utf8")) == 2:
+        elif params.get("RunCustomCommand") == "2":
           if p_order == 0:
             command1 = "/data/openpilot/selfdrive/assets/addon/script/gitpull.sh"
             p_order = 1
@@ -193,7 +193,7 @@ def sw_update_thread(end_event, nv_queue):
                 p_order = 0
                 lcount = 0
                 result.kill()
-        elif int(params.get("RunCustomCommand", encoding="utf8")) == 3:
+        elif params.get("RunCustomCommand") == "3":
           if p_order == 0:
             command1 = "rm -f /data/branches"
             command2 = "git -C /data/openpilot remote prune origin"
@@ -250,9 +250,9 @@ def sw_update_thread(end_event, nv_queue):
                 p_order = 0
                 lcount = 0
                 result.kill()
-        elif int(params.get("RunCustomCommand", encoding="utf8")) == 4:
+        elif params.get("RunCustomCommand") == "4":
           if p_order == 0:
-            model_name = params.get("DrivingModel", encoding="utf8")
+            model_name = params.get("DrivingModel")
             command1 = "wget -P /data/model https://raw.githubusercontent.com/kisapilot/model/main/models/" + model_name + "_driving_policy"
             command2 = "wget -P /data/model https://raw.githubusercontent.com/kisapilot/model/main/models/" + model_name + "_driving_vision"
             command3 = "rm -f /data/openpilot/selfdrive/modeld/models/driving_*"
@@ -337,7 +337,7 @@ def sw_update_thread(end_event, nv_queue):
                 p_order = 0
                 lcount = 0
                 result.kill()
-        elif int(params.get("RunCustomCommand", encoding="utf8")) == 5:
+        elif params.get("RunCustomCommand") == 5:
           if p_order == 0:
             command1 = "rm -f /data/openpilot/selfdrive/modeld/models/driving_*"
             command2 = "git -C /data/openpilot/selfdrive//modeld/models checkout driving_policy.onnx"

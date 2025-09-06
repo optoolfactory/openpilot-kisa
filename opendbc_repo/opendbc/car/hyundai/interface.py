@@ -1,4 +1,4 @@
-from opendbc.car import Bus, get_safety_config, structs
+from opendbc.car import Bus, get_safety_config, structs, uds
 from opendbc.car.hyundai.hyundaicanfd import CanBus
 from opendbc.car.hyundai.values import HyundaiFlags, CAR, DBC, \
                                                    CANFD_UNSUPPORTED_LONGITUDINAL_CAR, \
@@ -14,7 +14,6 @@ ButtonType = structs.CarState.ButtonEvent.Type
 
 from opendbc.car.hyundai.tunes import LatTunes, set_lat_tune
 from openpilot.common.params import Params
-from decimal import Decimal
 
 Ecu = structs.CarParams.Ecu
 SteerControlType = structs.CarParams.SteerControlType
@@ -41,7 +40,7 @@ class CarInterface(CarInterfaceBase):
 
     params = Params()
 
-    kisaLongAlt = int(params.get("KISALongAlt", encoding="utf8"))
+    kisaLongAlt = params.get("KISALongAlt", return_default=True)
 
     if ret.flags & HyundaiFlags.CANFD:
       # Shared configuration for CAN-FD cars
@@ -104,6 +103,8 @@ class CarInterface(CarInterfaceBase):
         ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.CANFD_ALT_BUTTONS.value
       if ret.flags & HyundaiFlags.CANFD_CAMERA_SCC:
         ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.CAMERA_SCC.value
+      if ret.adrvControl:
+        ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.CANFD_ADRV_CONTROL.value
       if ret.sccBus == 2:
         ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.LONG.value
       if params.get_bool("LFAButtonEngagement"):
@@ -186,21 +187,21 @@ class CarInterface(CarInterfaceBase):
     # Common lateral control setup
 
     ret.centerToFront = ret.wheelbase * 0.4
-    ret.steerActuatorDelay = float(Decimal(params.get("SteerActuatorDelayAdj", encoding="utf8")) * Decimal('0.01'))   #0.1
-    ret.steerLimitTimer = float(Decimal(params.get("SteerLimitTimerAdj", encoding="utf8")) * Decimal('0.01'))   #0.4
+    ret.steerActuatorDelay = params.get("SteerActuatorDelayAdj", return_default=True) * 0.01   #0.1
+    ret.steerLimitTimer = params.get("SteerLimitTimerAdj", return_default=True) * 0.01   #0.4
 
-    ret.smoothSteer.method = int( params.get("KisaSteerMethod", encoding="utf8") )   # 1
-    ret.smoothSteer.maxSteeringAngle = float( params.get("KisaMaxSteeringAngle", encoding="utf8") )   # 90
-    ret.smoothSteer.maxDriverAngleWait = float( params.get("KisaMaxDriverAngleWait", encoding="utf8") )  # 0.002
-    ret.smoothSteer.maxSteerAngleWait = float( params.get("KisaMaxSteerAngleWait", encoding="utf8") )   # 0.001  # 10 sec
-    ret.smoothSteer.driverAngleWait = float( params.get("KisaDriverAngleWait", encoding="utf8") )  #0.001
+    ret.smoothSteer.method = params.get("KisaSteerMethod", return_default=True)   # 1
+    ret.smoothSteer.maxSteeringAngle = params.get("KisaMaxSteeringAngle", return_default=True)   # 90
+    ret.smoothSteer.maxDriverAngleWait = params.get("KisaMaxDriverAngleWait", return_default=True)  # 0.002
+    ret.smoothSteer.maxSteerAngleWait = params.get("KisaMaxSteerAngleWait", return_default=True)   # 0.001  # 10 sec
+    ret.smoothSteer.driverAngleWait = params.get("KisaDriverAngleWait", return_default=True)  #0.001
 
     ret.experimentalLong = params.get_bool("AlphaLongitudinalEnabled")
     
     if ret.isAngleControl:    
       ret.steerControlType = SteerControlType.angle
     else:
-      lat_control_method = int(params.get("LateralControlMethod", encoding="utf8"))
+      lat_control_method = params.get("LateralControlMethod", return_default=True)
       if lat_control_method == 0:
         set_lat_tune(ret.lateralTuning, LatTunes.PID)
       elif lat_control_method == 1:
@@ -232,13 +233,22 @@ class CarInterface(CarInterfaceBase):
     return ret
 
   @staticmethod
-  def init(CP, can_recv, can_send):
+  def init(CP, can_recv, can_send, communication_control=None):
+    # 0x80 silences response
+    if communication_control is None:
+      communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, 0x80 | uds.CONTROL_TYPE.DISABLE_RX_DISABLE_TX, uds.MESSAGE_TYPE.NORMAL])
+
     if CP.openpilotLongitudinalControl and not (CP.flags & (HyundaiFlags.CANFD_CAMERA_SCC | HyundaiFlags.CAMERA_SCC)):
       addr, bus = 0x7d0, CanBus(CP).ECAN if CP.flags & HyundaiFlags.CANFD else 0
       if CP.flags & HyundaiFlags.CANFD_LKA_STEERING.value:
         addr, bus = 0x730, CanBus(CP).ECAN
-      disable_ecu(can_recv, can_send, bus=bus, addr=addr, com_cont_req=b'\x28\x83\x01')
+      disable_ecu(can_recv, can_send, bus=bus, addr=addr, com_cont_req=communication_control)
 
     # for blinkers
     if CP.flags & HyundaiFlags.ENABLE_BLINKERS:
-      disable_ecu(can_recv, can_send, bus=CanBus(CP).ECAN, addr=0x7B1, com_cont_req=b'\x28\x83\x01')
+      disable_ecu(can_recv, can_send, bus=CanBus(CP).ECAN, addr=0x7B1, com_cont_req=communication_control)
+
+  @staticmethod
+  def deinit(CP, can_recv, can_send):
+    communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, 0x80 | uds.CONTROL_TYPE.ENABLE_RX_ENABLE_TX, uds.MESSAGE_TYPE.NORMAL])
+    CarInterface.init(CP, can_recv, can_send, communication_control)

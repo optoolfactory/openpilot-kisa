@@ -1,7 +1,5 @@
 #include "uart_declarations.h"
 
-// IRQs: USART2, USART3, UART5
-
 // ***************************** Definitions *****************************
 
 #define UART_BUFFER(x, size_rx, size_tx, uart_ptr, callback_ptr, overwrite_mode) \
@@ -28,12 +26,7 @@
 UART_BUFFER(debug, FIFO_SIZE_INT, FIFO_SIZE_INT, USART2, debug_ring_callback, true)
 
 // SOM debug = UART7
-#ifdef STM32H7
-  UART_BUFFER(som_debug, FIFO_SIZE_INT, FIFO_SIZE_INT, UART7, NULL, true)
-#else
-  // UART7 is not available on F4
-  UART_BUFFER(som_debug, 1U, 1U, NULL, NULL, true)
-#endif
+UART_BUFFER(som_debug, FIFO_SIZE_INT, FIFO_SIZE_INT, UART7, NULL, true)
 
 uart_ring *get_ring_by_number(int a) {
   uart_ring *ring = NULL;
@@ -112,15 +105,6 @@ bool put_char(uart_ring *q, char elem) {
   return ret;
 }
 
-void clear_uart_buff(uart_ring *q) {
-  ENTER_CRITICAL();
-  q->w_ptr_tx = 0;
-  q->r_ptr_tx = 0;
-  q->w_ptr_rx = 0;
-  q->r_ptr_rx = 0;
-  EXIT_CRITICAL();
-}
-
 // ************************ High-level debug functions **********************
 void putch(const char a) {
   // misra-c2012-17.7: serial debug function, ok to ignore output
@@ -145,14 +129,14 @@ void puth(unsigned int i) {
   puthx(i, 8U);
 }
 
-#if defined(ENABLE_SPI) || defined(BOOTSTUB) || defined(DEBUG)
-void puth4(unsigned int i) {
+#if defined(DEBUG_SPI) || defined(BOOTSTUB) || defined(DEBUG)
+static void puth4(unsigned int i) {
   puthx(i, 4U);
 }
 #endif
 
-#if defined(ENABLE_SPI) || defined(BOOTSTUB) || defined(DEBUG_USB) || defined(DEBUG_COMMS)
-void hexdump(const void *a, int l) {
+#if defined(DEBUG_SPI) || defined(BOOTSTUB) || defined(DEBUG_USB) || defined(DEBUG_COMMS)
+static void hexdump(const void *a, int l) {
   if (a != NULL) {
     for (int i=0; i < l; i++) {
       if ((i != 0) && ((i & 0xf) == 0)) print("\n");

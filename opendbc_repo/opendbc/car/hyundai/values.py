@@ -2,12 +2,13 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag
 
-from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, uds, AngleSteeringLimits
+from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, uds
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.structs import CarParams
-from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column
+from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column, Device
 from opendbc.car.fw_query_definitions import FwQueryConfig, Request, p16
 
+from opendbc.car.lateral import AngleSteeringLimits
 from openpilot.common.params import Params
 
 Ecu = CarParams.Ecu
@@ -37,12 +38,12 @@ class CarControllerParams:
   )
 
   def __init__(self, CP):
-    self.STEER_DELTA_UP = int(Params().get("SteerDeltaUpAdj", encoding="utf8"))  # default 3
-    self.STEER_DELTA_DOWN = int(Params().get("SteerDeltaDownAdj", encoding="utf8"))  # default 7
+    self.STEER_DELTA_UP = Params().get("SteerDeltaUpAdj", return_default=True)  # default 3
+    self.STEER_DELTA_DOWN = Params().get("SteerDeltaDownAdj", return_default=True)  # default 7
     self.STEER_DRIVER_ALLOWANCE = 50
     self.STEER_DRIVER_MULTIPLIER = 2
     self.STEER_DRIVER_FACTOR = 1
-    self.STEER_THRESHOLD = int(Params().get("SteerThreshold", encoding="utf8"))  # default 150
+    self.STEER_THRESHOLD = Params().get("SteerThreshold", return_default=True)  # default 150
     self.STEER_STEP = 1  # 100 Hz
 
     if CP.flags & HyundaiFlags.CANFD:
@@ -61,7 +62,7 @@ class CarControllerParams:
 
     # Default for most HKG
     else:
-      self.STEER_MAX = int(Params().get("SteerMaxAdj", encoding="utf8"))  # default 384
+      self.STEER_MAX = Params().get("SteerMaxAdj", return_default=True)  # default 384
 
 
 class HyundaiSafetyFlags(IntFlag):
@@ -75,6 +76,7 @@ class HyundaiSafetyFlags(IntFlag):
   CANFD_LKA_STEERING_ALT = 128
   FCEV_GAS = 256
   ALT_LIMITS_2 = 512
+  CANFD_ADRV_CONTROL = 1024
 
 
 class HyundaiFlags(IntFlag):
@@ -265,7 +267,7 @@ class CAR(Platforms):
     flags=HyundaiFlags.CLUSTER_GEARS | HyundaiFlags.ALT_LIMITS,
   )
   HYUNDAI_KONA_2022 = HyundaiPlatformConfig(
-    [HyundaiCarDocs("Hyundai Kona 2022", car_parts=CarParts.common([CarHarness.hyundai_o]))],
+    [HyundaiCarDocs("Hyundai Kona 2022-23", car_parts=CarParts.common([CarHarness.hyundai_o]))],
     CarSpecs(mass=1491, wheelbase=2.6, steerRatio=13.42, tireStiffnessFactor=0.385),
     flags=HyundaiFlags.CAMERA_SCC | HyundaiFlags.ALT_LIMITS_2,
   )
@@ -323,6 +325,10 @@ class CAR(Platforms):
     CarSpecs(mass=1513, wheelbase=2.84, steerRatio=13.27 * 1.15, tireStiffnessFactor=0.65),  # 15% higher at the center seems reasonable
     flags=HyundaiFlags.MANDO_RADAR | HyundaiFlags.CHECKSUM_CRC8,
   )
+  HYUNDAI_SONATA_2025 = HyundaiCanFDPlatformConfig(
+    [HyundaiCarDocs("Hyundai Sonata 2025", "All", car_parts=CarParts.common([CarHarness.hyundai_a]))],
+    CarSpecs(mass=1550, wheelbase=2.84, steerRatio=13.27 * 1.15, tireStiffnessFactor=0.65),  # 15% higher at the center seems reasonable
+  )
   HYUNDAI_SONATA_LF = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Sonata 2018-19", car_parts=CarParts.common([CarHarness.hyundai_e]))],
     CarSpecs(mass=1536, wheelbase=2.804, steerRatio=13.27 * 1.15),  # 15% higher at the center seems reasonable
@@ -343,7 +349,7 @@ class CAR(Platforms):
   HYUNDAI_PALISADE = HyundaiPlatformConfig(
     [
       HyundaiCarDocs("Hyundai Palisade 2020-22", "All", video="https://youtu.be/TAnDqjF4fDY?t=456", car_parts=CarParts.common([CarHarness.hyundai_h])),
-      HyundaiCarDocs("Kia Telluride 2020-22", "All", car_parts=CarParts.common([CarHarness.hyundai_h])),
+      HyundaiCarDocs("Kia Telluride 2020-22", "All", car_parts=CarParts([Device.threex_angled_mount, CarHarness.hyundai_h])),
     ],
     CarSpecs(mass=1999, wheelbase=2.9, steerRatio=15.6 * 1.15, tireStiffnessFactor=0.63),
     flags=HyundaiFlags.MANDO_RADAR | HyundaiFlags.CHECKSUM_CRC8,
@@ -465,7 +471,7 @@ class CAR(Platforms):
   )
   KIA_NIRO_PHEV = HyundaiPlatformConfig(
     [
-      HyundaiCarDocs("Kia Niro Hybrid 2018", "All", min_enable_speed=10. * CV.MPH_TO_MS, car_parts=CarParts.common([CarHarness.hyundai_c])),
+      HyundaiCarDocs("Kia Niro Hybrid 2018", min_enable_speed=10. * CV.MPH_TO_MS, car_parts=CarParts.common([CarHarness.hyundai_c])),
       HyundaiCarDocs("Kia Niro Plug-in Hybrid 2018-19", "All", min_enable_speed=10. * CV.MPH_TO_MS, car_parts=CarParts.common([CarHarness.hyundai_c])),
       HyundaiCarDocs("Kia Niro Plug-in Hybrid 2020", car_parts=CarParts.common([CarHarness.hyundai_d])),
     ],

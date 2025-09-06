@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import math
-import numpy as np
-from typing import SupportsFloat
+from numbers import Number
 
 from cereal import car, log
 import cereal.messaging as messaging
-from openpilot.common.conversions import Conversions as CV
+from openpilot.common.constants import CV
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper, DT_CTRL
 from openpilot.common.swaglog import cloudlog
@@ -23,11 +22,11 @@ from openpilot.selfdrive.controls.lib.latcontrol_atom import LatControlATOM
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
 
-
-from decimal import Decimal
+import numpy as np
 import openpilot.common.log as trace1
 
-USE_LEGACY_LANE_MODEL = int(Params().get("UseLegacyLaneModel", encoding="utf8")) if Params().get("UseLegacyLaneModel", encoding="utf8") is not None else 0
+
+USE_LEGACY_LANE_MODEL = Params().get("UseLegacyLaneModel", return_default=True) if Params().get("UseLegacyLaneModel", return_default=True) is not None else 0
 
 State = log.SelfdriveState.OpenpilotState
 if USE_LEGACY_LANE_MODEL:
@@ -54,7 +53,7 @@ class Controls:
                                    'driverMonitoringState', 'onroadEvents', 'driverAssistance', 'liveDelay', 'lateralPlan', 'radarState', 'liveENaviData', 'liveMapData'], poll='selfdriveState')
     self.pm = messaging.PubMaster(['carControl', 'controlsState'])
 
-    self.steer_limited_by_controls = False
+    self.steer_limited_by_safety = False
     self.curvature = 0.0
     self.desired_curvature = 0.0
 
@@ -89,25 +88,25 @@ class Controls:
       self.LaC = LatControlATOM(self.CP, self.CI)
       self.lateral_control_method = 4
 
-    self.new_steerRatio = float(Decimal(self.params.get("SteerRatioAdj", encoding="utf8"))*Decimal('0.01'))
+    self.new_steerRatio = self.params.get("SteerRatioAdj", return_default=True) * 0.01
     self.steerRatio_to_send = 0
     self.live_sr = self.params.get_bool("KisaLiveSteerRatio")
-    self.live_sr_percent = int(self.params.get("LiveSteerRatioPercent", encoding="utf8"))
+    self.live_sr_percent = self.params.get("LiveSteerRatioPercent", return_default=True)
 
     self.ready_timer = 0
     self.osm_speedlimit_enabled = self.params.get_bool("OSMSpeedLimitEnable")
     try:
-      self.roadname_and_slc = self.params.get("RoadList", encoding="utf8").strip().splitlines()[1].split(',')
+      self.roadname_and_slc = self.params.get("RoadList", return_default=True).strip().splitlines()[1].split(',')
     except:
       self.roadname_and_slc = ""
       pass
 
     self.var_cruise_speed_factor = 0
-    self.cruise_spamming_level = list(map(int, self.params.get("CruiseSpammingLevel", encoding="utf8").split(',')))
-    self.cruise_spamming_spd = list(map(int, self.params.get("CruiseSpammingSpd", encoding="utf8").split(',')))
+    self.cruise_spamming_level = list(map(int, self.params.get("CruiseSpammingLevel", return_default=True).split(',')))
+    self.cruise_spamming_spd = list(map(int, self.params.get("CruiseSpammingSpd", return_default=True).split(',')))
     self.desired_angle_deg = 0
-    self.navi_selection = int(self.params.get("KISANaviSelect", encoding="utf8"))
-    self.legacy_lane_mode = int(self.params.get("UseLegacyLaneModel", encoding="utf8"))
+    self.navi_selection = self.params.get("KISANaviSelect", return_default=True)
+    self.legacy_lane_mode = self.params.get("UseLegacyLaneModel", return_default=True)
     self.standstill_elapsed_time = 0.0
     self.timer = 0.0
 
@@ -123,7 +122,7 @@ class Controls:
     if self.timer > 1.0:
       self.timer = 0.0
       self.live_sr = self.params.get_bool("KisaLiveSteerRatio")
-      self.live_sr_percent = int(self.params.get("LiveSteerRatioPercent", encoding="utf8"))
+      self.live_sr_percent = self.params.get("LiveSteerRatioPercent", return_default=True)
 
   def state_control(self):
     CS = self.sm['carState']
@@ -184,32 +183,30 @@ class Controls:
     actuators.accel, actuators.oaccel = float(result[0]), float(result[1])
 
     # Steering PID loop and lateral MPC
-    if self.legacy_lane_mode == 2:
+    if self.legacy_lane_mode == 2: # Mix
       model_speed = self.sm['lateralPlan'].modelSpeed
       desired_curvature1, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates, self.sm['liveDelay'].lateralDelay)
       new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
       desired_curvature2, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
-      desired_curvature3 = np.interp(CS.vEgo, [0.3, 1.0], [desired_curvature1, desired_curvature2])
-      self.desired_curvature = np.interp(model_speed, [30, 80], [desired_curvature3, desired_curvature1])
+      desired_curvature3 = np.interp(model_speed, [150, 210], [desired_curvature2, desired_curvature1])
+      self.desired_curvature = np.interp(CS.vEgo, [5.5, 8.3], [desired_curvature2, desired_curvature3])
       if lat_plan.laneChangeState != LaneChangeState.off:
         self.desired_curvature = desired_curvature2
-    elif self.legacy_lane_mode == 1:
-      model_speed = self.sm['lateralPlan'].modelSpeed
+    elif self.legacy_lane_mode == 1: # MPC
       desired_curvature1, self.desired_curvature_rate = get_lag_adjusted_curvature(self.CP, CS.vEgo, lat_plan.psis, lat_plan.curvatures, lat_plan.curvatureRates, self.sm['liveDelay'].lateralDelay)
       new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
       desired_curvature2, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
-      desired_curvature3 = np.interp(CS.vEgo, [0.3, 1.0], [desired_curvature1, desired_curvature2])
-      self.desired_curvature = np.interp(model_speed, [29, 30], [desired_curvature3, desired_curvature1])
+      self.desired_curvature = desired_curvature1
       if lat_plan.laneChangeState != LaneChangeState.off:
         self.desired_curvature = desired_curvature2
-    else:
+    else: # Model
       new_desired_curvature = model_v2.action.desiredCurvature if CC.latActive else self.curvature
       self.desired_curvature, curvature_limited = clip_curvature(CS.vEgo, self.desired_curvature, new_desired_curvature, lp.roll)
       self.desired_curvature_rate = 0.0
     actuators.curvature = float(self.desired_curvature)
     steer, steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
-                                                       self.steer_limited_by_controls, self.desired_curvature,
-                                                       self.calibrated_pose, curvature_limited, self.desired_curvature_rate)  # TODO what if not available
+                                                       self.steer_limited_by_safety, self.desired_curvature,
+                                                       curvature_limited, self.desired_curvature_rate)  # TODO what if not available
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
     self.desired_angle_deg = actuators.steeringAngleDeg
@@ -217,7 +214,7 @@ class Controls:
     # Ensure no NaNs/Infs
     for p in ACTUATOR_FIELDS:
       attr = getattr(actuators, p)
-      if not isinstance(attr, SupportsFloat):
+      if not isinstance(attr, Number):
         continue
 
       if not math.isfinite(attr):
@@ -238,10 +235,7 @@ class Controls:
 
     CC.cruiseControl.override = CC.enabled and not CC.longActive and self.CP.openpilotLongitudinalControl
     CC.cruiseControl.cancel = CS.cruiseState.enabled and (not CC.enabled or not self.CP.pcmCruise)
-
-    speeds = self.sm['longitudinalPlan'].speeds
-    if len(speeds):
-      CC.cruiseControl.resume = CC.enabled and CS.cruiseState.standstill and speeds[-1] > 0.1
+    CC.cruiseControl.resume = CC.enabled and CS.cruiseState.standstill and not self.sm['longitudinalPlan'].shouldStop
 
     hudControl = CC.hudControl
     hudControl.setSpeed = float(CS.vCruiseCluster * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS))
@@ -258,6 +252,7 @@ class Controls:
       hudControl.rightLaneDepart = self.sm['driverAssistance'].rightLaneDeparture
 
     m_unit = CV.MS_TO_KPH if self.is_metric else CV.MS_TO_MPH
+    speeds = self.sm['longitudinalPlan'].speeds
     if len(speeds):
       try:
         if CS.vEgo*m_unit < self.cruise_spamming_spd[0]:
@@ -283,10 +278,10 @@ class Controls:
     CO = self.sm['carOutput']
     if self.sm['selfdriveState'].active:
       if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
-        self.steer_limited_by_controls = abs(CC.actuators.steeringAngleDeg - CO.actuatorsOutput.steeringAngleDeg) > \
+        self.steer_limited_by_safety = abs(CC.actuators.steeringAngleDeg - CO.actuatorsOutput.steeringAngleDeg) > \
                                               STEER_ANGLE_SATURATION_THRESHOLD
       else:
-        self.steer_limited_by_controls = abs(CC.actuators.torque - CO.actuatorsOutput.torque) > 1e-2
+        self.steer_limited_by_safety = abs(CC.actuators.torque - CO.actuatorsOutput.torque) > 1e-2
 
     # TODO: both controlsState and carControl valids should be set by
     #       sm.all_checks(), but this creates a circular dependency
@@ -345,7 +340,7 @@ class Controls:
     cs.btnPressing = int(CO.actuatorsOutput.btnPressing)
     cs.autoResvCruisekph = float(CO.actuatorsOutput.autoResvCruisekph)
     cs.resSpeed = float(CO.actuatorsOutput.resSpeed)
-    cs.roadLimitSpeedOnTemp = bool(CO.actuatorsOutput.roadLimitSpeedOnTemp)
+    cs.setLoadspeedTempStop = bool(CO.actuatorsOutput.setLoadspeedTempStop)
     cs.standStill = bool(CO.actuatorsOutput.standStill)
     if cs.standStill:
       self.standstill_elapsed_time += DT_CTRL

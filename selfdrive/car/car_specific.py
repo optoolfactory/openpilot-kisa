@@ -39,8 +39,8 @@ class CarSpecificEvents:
 
     self.ufc_mode = Params().get_bool("UFCModeEnabled")
     self.steer_warning_fix_enabled = Params().get_bool("SteerWarningFix")
-    self.user_specific_feature = int(Params().get("UserSpecificFeature", encoding="utf8"))
-    self.long_alt = int(Params().get("KISALongAlt", encoding="utf8"))
+    self.user_specific_feature = Params().get("UserSpecificFeature", return_default=True)
+    self.long_alt = Params().get("KISALongAlt", return_default=True)
     self.exp_long = self.CP.sccBus <= 0 and self.CP.openpilotLongitudinalControl and self.long_alt not in (1, 2)
     self.no_mdps_mods = Params().get_bool("NoSmartMDPS")
     self.lfa_button_eng = Params().get_bool("LFAButtonEngagement")
@@ -67,7 +67,7 @@ class CarSpecificEvents:
         events.add(EventName.belowSteerSpeed)
 
     elif self.CP.brand == 'honda':
-      events = self.create_common_events(CS, CS_prev, pcm_enable=False)
+      events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.sport], pcm_enable=False)
 
       if self.CP.pcmCruise and CS.vEgo < self.CP.minEnableSpeed:
         events.add(EventName.belowEngageSpeed)
@@ -88,7 +88,8 @@ class CarSpecificEvents:
         events.add(EventName.manualRestart)
 
     elif self.CP.brand == 'toyota':
-      events = self.create_common_events(CS, CS_prev)
+      # TODO: when we check for unexpected disengagement, check gear not S1, S2, S3
+      events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.sport])
 
       if self.CP.openpilotLongitudinalControl:
         if CS.cruiseState.standstill and not CS.brakePressed:

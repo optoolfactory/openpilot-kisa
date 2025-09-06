@@ -586,18 +586,6 @@ public:
   }
 };
 
-class E2ELongToggle : public ToggleControl {
-  Q_OBJECT
-
-public:
-  E2ELongToggle() : ToggleControl(tr("Enable E2E Long"), tr("Activate E2E Long. It may work unexpectedly. Be careful."), "../assets/icons/shell.png", Params().getBool("E2ELong")) {
-    QObject::connect(this, &E2ELongToggle::toggleFlipped, [=](int state) {
-      bool status = state ? true : false;
-      Params().putBool("E2ELong", status);
-    });
-  }
-};
-
 class StopAtStopSignToggle : public ToggleControl {
   Q_OBJECT
 
@@ -718,18 +706,6 @@ public:
   }
 };
 
-class RadarDisableToggle : public ToggleControl {
-  Q_OBJECT
-
-public:
-  RadarDisableToggle() : ToggleControl(tr("Disable Radar"), tr("This is pre-requisite for LongControl of HKG. It seems that this affects AEB. So do not use this if you have any concern."), "../assets/icons/shell.png", Params().getBool("RadarDisable")) {
-    QObject::connect(this, &RadarDisableToggle::toggleFlipped, [=](int state) {
-      bool status = state ? true : false;
-      Params().putBool("RadarDisable", status);
-    });
-  }
-};
-
 class C2WithCommaPowerToggle : public ToggleControl {
   Q_OBJECT
 
@@ -786,18 +762,6 @@ public:
     QObject::connect(this, &ToAvoidLKASFaultToggle::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("AvoidLKASFaultEnabled", status);
-    });
-  }
-};
-
-class ToAvoidLKASFaultBeyondToggle : public ToggleControl {
-  Q_OBJECT
-
-public:
-  ToAvoidLKASFaultBeyondToggle() : ToggleControl(tr("To Avoid LKAS Fault with More Steer"), tr("This is just in case you are using other panda setting.(delta updown, maxsteer, rtdelta and etc)."), "../assets/icons/shell.png", Params().getBool("AvoidLKASFaultBeyond")) {
-    QObject::connect(this, &ToAvoidLKASFaultBeyondToggle::toggleFlipped, [=](int state) {
-      bool status = state ? true : false;
-      Params().putBool("AvoidLKASFaultBeyond", status);
     });
   }
 };
@@ -870,18 +834,6 @@ public:
     QObject::connect(this, &KISAEarlyStoppingToggle::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("KISAEarlyStop", status);
-    });
-  }
-};
-
-class TorqueUseAngle : public ToggleControl {
-  Q_OBJECT
-
-public:
-  TorqueUseAngle() : ToggleControl(tr("UseAngle"), tr("Use Steer Angle On/Off"), "../assets/icons/shell.png", Params().getBool("TorqueUseAngle")) {
-    QObject::connect(this, &TorqueUseAngle::toggleFlipped, [=](int state) {
-      bool status = state ? true : false;
-      Params().putBool("TorqueUseAngle", status);
     });
   }
 };
@@ -1545,21 +1497,6 @@ class PidKf : public AbstractControl {
 
 public:
   PidKf();
-
-private:
-  QPushButton btnplus;
-  QPushButton btnminus;
-  QLabel label;
-  Params params;
-  
-  void refresh();
-};
-
-class IgnoreZone : public AbstractControl {
-  Q_OBJECT
-
-public:
-  IgnoreZone();
 
 private:
   QPushButton btnplus;
@@ -2284,23 +2221,6 @@ private:
   void refresh();
 };
 
-class DesiredCurvatureLimit : public AbstractControl {
-  Q_OBJECT
-
-public:
-  DesiredCurvatureLimit();
-
-private:
-  QPushButton btndigit;
-  QPushButton btnminus;
-  QPushButton btnplus;
-  QLabel label;
-  Params params;
-  float digit = 0.01;
-  
-  void refresh();
-};
-
 class DynamicTRBySpeed : public AbstractControl {
   Q_OBJECT
 
@@ -2528,21 +2448,6 @@ class StoppingDist : public AbstractControl {
 
 public:
   StoppingDist();
-
-private:
-  QPushButton btnplus;
-  QPushButton btnminus;
-  QLabel label;
-  Params params;
-  
-  void refresh();
-};
-
-class VariableCruiseLevel : public AbstractControl {
-  Q_OBJECT
-
-public:
-  VariableCruiseLevel();
 
 private:
   QPushButton btnplus;

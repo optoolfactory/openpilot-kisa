@@ -6,7 +6,6 @@ from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.common.params import Params
-from decimal import Decimal
 
 
 class LatControlINDI(LatControl):
@@ -64,10 +63,10 @@ class LatControlINDI(LatControl):
   def live_tune(self):
     self.mpc_frame += 1
     if self.mpc_frame % 300 == 0:
-      self.outerLoopGain = float(Decimal(self.params.get("OuterLoopGain", encoding="utf8")) * Decimal('0.1'))
-      self.innerLoopGain = float(Decimal(self.params.get("InnerLoopGain", encoding="utf8")) * Decimal('0.1'))
-      self.timeConstant = float(Decimal(self.params.get("TimeConstant", encoding="utf8")) * Decimal('0.1'))
-      self.actuatorEffectiveness = float(Decimal(self.params.get("ActuatorEffectiveness", encoding="utf8")) * Decimal('0.1'))
+      self.outerLoopGain = self.params.get("OuterLoopGain", return_default=True) * 0.1
+      self.innerLoopGain = self.params.get("InnerLoopGain", return_default=True) * 0.1
+      self.timeConstant = self.params.get("TimeConstant", return_default=True) * 0.1
+      self.actuatorEffectiveness = self.params.get("ActuatorEffectiveness", return_default=True) * 0.1
       self.RC = np.interp(self.speed, [0.], [self.timeConstant]) 
       self.G = np.interp(self.speed, [0.], [self.actuatorEffectiveness])
       self.outer_loop_gain = np.interp(self.speed, [0.], [self.outerLoopGain])
@@ -75,7 +74,7 @@ class LatControlINDI(LatControl):
         
       self.mpc_frame = 0
 
-  def update(self, active, CS, VM, params, steer_limited_by_controls, desired_curvature, calibrated_pose, curvature_limited, desired_curvature_rate):
+  def update(self, active, CS, VM, params, steer_limited_by_safety, desired_curvature, curvature_limited, desired_curvature_rate):
     self.speed = CS.vEgo
 
     self.li_timer += 1
@@ -129,6 +128,6 @@ class LatControlINDI(LatControl):
       indi_log.delayedOutput = float(self.steer_filter.x)
       indi_log.delta = float(delta_u)
       indi_log.output = float(output_steer)
-      indi_log.saturated = bool(self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited_by_controls, curvature_limited))
+      indi_log.saturated = bool(self._check_saturation(self.steer_max - abs(output_steer) < 1e-3, CS, steer_limited_by_safety, curvature_limited))
 
     return float(output_steer), float(steers_des), indi_log

@@ -8,10 +8,6 @@
         <translation>닫기</translation>
     </message>
     <message>
-        <source>Snooze Update</source>
-        <translation>업데이트 일시 중지</translation>
-    </message>
-    <message>
         <source>Reboot and Update</source>
         <translation>업데이트 및 재부팅</translation>
     </message>
@@ -312,27 +308,35 @@
     </message>
     <message>
         <source>openpilot requires the device to be mounted within 4° left or right and within 5° up or 9° down.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering lag calibration is %1% complete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering lag calibration is complete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering torque response calibration is %1% complete.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Steering torque response calibration is complete.</source>
-        <translation type="unfinished"></translation>
+        <translation>오픈파일럿 장치는 좌우측으로는 4° 또는 위로는 5° 아래로는 9° 이내에 장착해야합니다.</translation>
     </message>
     <message>
         <source>openpilot is continuously calibrating, resetting is rarely required. Resetting calibration will restart openpilot if the car is powered on.</source>
-        <translation type="unfinished"></translation>
+        <translation>오픈파일럿은 지속적으로 갤리브레이션되어 재설정이 거의 필요하지 않습니다. 차량과 연결된 경우 캘리브레이션 재설정이 오픈파일럿을 재시작합니다.</translation>
+    </message>
+    <message>
+        <source>
+
+Steering lag calibration is %1% complete.</source>
+        <translation>
+
+조향 지연 캘리브레이션이 %1% 진행되었습니다.</translation>
+    </message>
+    <message>
+        <source>
+
+Steering lag calibration is complete.</source>
+        <translation>
+
+조향 지연 캘리브레이션이 완료되었습니다.</translation>
+    </message>
+    <message>
+        <source> Steering torque response calibration is %1% complete.</source>
+        <translation> 조향 토크 응답 캘리브레이션이 %1% 진행되었습니다.</translation>
+    </message>
+    <message>
+        <source> Steering torque response calibration is complete.</source>
+        <translation> 조향 토크 응답 캘리브레이션이 완료되었습니다.</translation>
     </message>
     <message>
         <source>Refresh</source>
@@ -399,7 +403,7 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     </message>
     <message>
         <source>Firehose Mode</source>
-        <translation type="unfinished"></translation>
+        <translation>파이어호스 모드</translation>
     </message>
 </context>
 <context>
@@ -485,16 +489,8 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
         <translation>백그라운드에서 운영 체제에 대한 업데이트가 다운로드되고 있습니다. 설치가 준비되면 업데이트 메시지가 표시됩니다.</translation>
     </message>
     <message>
-        <source>Device failed to register. It will not connect to or upload to comma.ai servers, and receives no support from comma.ai. If this is an official device, visit https://comma.ai/support.</source>
-        <translation>장치를 등록하지 못했습니다. comma.ai 서버에 연결하거나 데이터를 업로드하지 않으며 comma.ai에서 지원을 받지 않습니다. 공식 장치인 경우 https://comma.ai/support 에 방문하여 문의하세요.</translation>
-    </message>
-    <message>
         <source>NVMe drive not mounted.</source>
         <translation>NVMe 드라이브가 마운트되지 않았습니다.</translation>
-    </message>
-    <message>
-        <source>Unsupported NVMe drive detected. Device may draw significantly more power and overheat due to the unsupported NVMe.</source>
-        <translation>지원되지 않는 NVMe 드라이브가 감지되었습니다. 지원되지 않는 NVMe 드라이브는 많은 전력을 소비하고 장치를 과열시킬 수 있습니다.</translation>
     </message>
     <message>
         <source>openpilot was unable to identify your car. Your car is either unsupported or its ECUs are not recognized. Please submit a pull request to add the firmware versions to the proper vehicle. Need help? Join discord.comma.ai.</source>
@@ -507,6 +503,22 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     <message>
         <source>Device temperature too high. System cooling down before starting. Current internal component temperature: %1</source>
         <translation>장치 온도가 너무 높습니다. 시작하기 전에 시스템을 냉각하고 있습니다. 현재 내부 구성 요소 온도: %1</translation>
+    </message>
+    <message>
+        <source>Device failed to register with the comma.ai backend. It will not connect or upload to comma.ai servers, and receives no support from comma.ai. If this is a device purchased at comma.ai/shop, open a ticket at https://comma.ai/support.</source>
+        <translation>장치를 comma.ai 백엔드에 등록하지 못했습니다. comma.ai 서버에 연결하거나 업로드하지 않으며 comma.ai로부터 지원을받지 않습니다. comma.ai shop에서 구매 한 장치 인 경우 https://comma.ai/support에서 티켓을 여십시오.</translation>
+    </message>
+    <message>
+        <source>Acknowledge Excessive Actuation</source>
+        <translation>과도한 작동을 인정하십시오</translation>
+    </message>
+    <message>
+        <source>Snooze Update</source>
+        <translation>업데이트 일시 중지</translation>
+    </message>
+    <message>
+        <source>openpilot detected excessive %1 actuation on your last drive. Please contact support at https://comma.ai/support and share your device&apos;s Dongle ID for troubleshooting.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -653,47 +665,6 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
     </message>
 </context>
 <context>
-    <name>Reset</name>
-    <message>
-        <source>Reset failed. Reboot to try again.</source>
-        <translation>초기화 실패. 재부팅 후 다시 시도하세요.</translation>
-    </message>
-    <message>
-        <source>Are you sure you want to reset your device?</source>
-        <translation>장치를 초기화하시겠습니까?</translation>
-    </message>
-    <message>
-        <source>System Reset</source>
-        <translation>장치 초기화</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>취소</translation>
-    </message>
-    <message>
-        <source>Reboot</source>
-        <translation>재부팅</translation>
-    </message>
-    <message>
-        <source>Confirm</source>
-        <translation>확인</translation>
-    </message>
-    <message>
-        <source>Unable to mount data partition. Partition may be corrupted. Press confirm to erase and reset your device.</source>
-        <translation>데이터 파티션을 마운트할 수 없습니다. 파티션이 손상되었을 수 있습니다. 모든 설정을 삭제하고 장치를 초기화하려면 확인을 누르세요.</translation>
-    </message>
-    <message>
-        <source>Resetting device...
-This may take up to a minute.</source>
-        <translation>장치를 초기화하는 중...
-최대 1분이 소요될 수 있습니다.</translation>
-    </message>
-    <message>
-        <source>System reset triggered. Press confirm to erase all content and settings. Press cancel to resume boot.</source>
-        <translation>시스템 재설정이 시작되었습니다. 모든 콘텐츠와 설정을 지우려면 확인을 누르시고 부팅을 재개하려면 취소를 누르세요.</translation>
-    </message>
-</context>
-<context>
     <name>SettingsWindow</name>
     <message>
         <source>×</source>
@@ -734,111 +705,6 @@ This may take up to a minute.</source>
     <message>
         <source>Tuning</source>
         <translation>튜닝메뉴</translation>
-    </message>
-</context>
-<context>
-    <name>Setup</name>
-    <message>
-        <source>WARNING: Low Voltage</source>
-        <translation>경고: 전압이 낮습니다</translation>
-    </message>
-    <message>
-        <source>Power your device in a car with a harness or proceed at your own risk.</source>
-        <translation>장치를 하네스를 통해 차량 전원에 연결하세요. USB 전원에서는 예상치 못한 문제가 생길 수 있습니다.</translation>
-    </message>
-    <message>
-        <source>Power off</source>
-        <translation>전원 끄기</translation>
-    </message>
-    <message>
-        <source>Continue</source>
-        <translation>계속</translation>
-    </message>
-    <message>
-        <source>Getting Started</source>
-        <translation>시작하기</translation>
-    </message>
-    <message>
-        <source>Before we get on the road, let’s finish installation and cover some details.</source>
-        <translation>출발 전 설정을 완료하고 세부 사항을 살펴봅니다.</translation>
-    </message>
-    <message>
-        <source>Connect to Wi-Fi</source>
-        <translation>Wi-Fi 연결</translation>
-    </message>
-    <message>
-        <source>Back</source>
-        <translation>뒤로</translation>
-    </message>
-    <message>
-        <source>Continue without Wi-Fi</source>
-        <translation>Wi-Fi 연결 없이 진행</translation>
-    </message>
-    <message>
-        <source>Waiting for internet</source>
-        <translation>인터넷 연결 대기 중</translation>
-    </message>
-    <message>
-        <source>Enter URL</source>
-        <translation>URL 입력</translation>
-    </message>
-    <message>
-        <source>for Custom Software</source>
-        <translation>커스텀 소프트웨어</translation>
-    </message>
-    <message>
-        <source>Downloading...</source>
-        <translation>다운로드 중...</translation>
-    </message>
-    <message>
-        <source>Download Failed</source>
-        <translation>다운로드 실패</translation>
-    </message>
-    <message>
-        <source>Ensure the entered URL is valid, and the device’s internet connection is good.</source>
-        <translation>입력된 URL이 유효하고 인터넷 연결이 원활한지 확인하세요.</translation>
-    </message>
-    <message>
-        <source>Reboot device</source>
-        <translation>장치 재부팅</translation>
-    </message>
-    <message>
-        <source>Start over</source>
-        <translation>다시 시작</translation>
-    </message>
-    <message>
-        <source>Something went wrong. Reboot the device.</source>
-        <translation>문제가 발생했습니다. 장치를 재부팅하세요.</translation>
-    </message>
-    <message>
-        <source>No custom software found at this URL.</source>
-        <translation>이 URL에서 커스텀 소프트웨어를 찾을 수 없습니다.</translation>
-    </message>
-    <message>
-        <source>Select a language</source>
-        <translation>언어를 선택하세요</translation>
-    </message>
-    <message>
-        <source>Choose Software to Install</source>
-        <translation>설치할 소프트웨어 선택</translation>
-    </message>
-    <message>
-        <source>openpilot</source>
-        <translation>오픈파일럿</translation>
-    </message>
-    <message>
-        <source>Custom Software</source>
-        <translation>커스텀 소프트웨어</translation>
-    </message>
-    <message>
-        <source>WARNING: Custom Software</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Use caution when installing third-party software. Third-party software has not been tested by comma, and may cause damage to your device and/or vehicle.
-
-If you&apos;d like to proceed, use https://flash.comma.ai to restore your device to a factory state later.</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1189,40 +1055,23 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
         <source> Changing this setting will restart openpilot if the car is powered on.</source>
         <translation> 이 설정을 변경하면 차량이 재가동된후 오픈파일럿이 시작됩니다.</translation>
     </message>
-</context>
-<context>
-    <name>Updater</name>
     <message>
-        <source>Update Required</source>
-        <translation>업데이트 필요</translation>
+        <source>Record and Upload Microphone Audio</source>
+        <translation>마이크 오디오 녹음 및 업로드</translation>
     </message>
     <message>
-        <source>An operating system update is required. Connect your device to Wi-Fi for the fastest update experience. The download size is approximately 1GB.</source>
-        <translation>OS 업데이트가 필요합니다. 장치를 Wi-Fi에 연결하면 가장 빠르게 업데이트할 수 있습니다. 다운로드 크기는 약 1GB입니다.</translation>
+        <source>Record and store microphone audio while driving. The audio will be included in the dashcam video in comma connect.</source>
+        <translation>운전 중에 마이크 오디오를 녹음하고 저장하십시오. 오디오는 comma connect의 대시캠 비디오에 포함됩니다.</translation>
     </message>
     <message>
-        <source>Connect to Wi-Fi</source>
-        <translation>Wi-Fi 연결</translation>
+        <source>Record Audio Feedback with LKAS button</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Install</source>
-        <translation>설치</translation>
-    </message>
-    <message>
-        <source>Back</source>
-        <translation>뒤로</translation>
-    </message>
-    <message>
-        <source>Loading...</source>
-        <translation>로딩 중...</translation>
-    </message>
-    <message>
-        <source>Reboot</source>
-        <translation>재부팅</translation>
-    </message>
-    <message>
-        <source>Update failed</source>
-        <translation>업데이트 실패</translation>
+        <source>Press the LKAS button to record and share driving feedback with the openpilot team. When this toggle is disabled, the button acts as a bookmark button. The event will be highlighted in comma connect and the segment will be preserved on your device&apos;s storage.
+
+Note that this feature is only compatible with select cars.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2888,17 +2737,6 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     </message>
 </context>
 <context>
-    <name>DesiredCurvatureLimit</name>
-    <message>
-        <source>DesiredCurvatureLimit</source>
-        <translation>DesiredCurvatureLimit</translation>
-    </message>
-    <message>
-        <source>Adjust DisiredCurvatureLimit, Default is 0.05(DT_MDL), For HKG, maybe 0.2 is preferred from user&apos;s experience. If the steering digs into inside on intersection, upper the value. And then it will limit your scope of steering angle. In case of opposite situation, lower the value. this is multiplier of desired curvature rate not real limit value.</source>
-        <translation>DisiredCurvatureLimit 조정합니다. 기본값은 0.05(DT_MDL)입니다. HKG의 경우 사용자의 경험에 의해 0.2가 선호됩니다. 스티어링이 교차로에서 안쪽으로 파고들면 값을 높입니다. 그러면 스티어링 각도의 범위가 제한될 것입니다. 반대의 경우 값을 낮춥니다. 이것은 실제 제한값이 아닌 원하는 곡률 속도의 승수입니다.</translation>
-    </message>
-</context>
-<context>
     <name>DynamicTRUD</name>
     <message>
         <source>DynamicTR: [Speed] [TRs]</source>
@@ -3114,17 +2952,6 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     <message>
         <source>Car starts to stop under the value.</source>
         <translation>차간거리가 해당값 이하로 되면 차가 멈추기 시작합니다.</translation>
-    </message>
-</context>
-<context>
-    <name>VariableCruiseLevel</name>
-    <message>
-        <source>Button Spamming Level</source>
-        <translation>크루즈 가감속 레벨</translation>
-    </message>
-    <message>
-        <source>High values make early stopping and starting, but might be not comfortable. Low values are the opposite.</source>
-        <translation>값이 높으면 가감속 수치 변화가 빨라 이른 가감속이 가능할수도 있지만 사용에 불편할 수 있습니다. 낮은 값은 그 반대입니다.</translation>
     </message>
 </context>
 <context>
@@ -3442,17 +3269,6 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     </message>
 </context>
 <context>
-    <name>E2ELongToggle</name>
-    <message>
-        <source>Enable E2E Long</source>
-        <translation>E2E 롱 사용</translation>
-    </message>
-    <message>
-        <source>Activate E2E Long. It may work unexpectedly. Be careful.</source>
-        <translation>E2E 롱을 활성화합니다. 예기치 않게 작동할 수 있습니다. 조심하세요.</translation>
-    </message>
-</context>
-<context>
     <name>StopAtStopSignToggle</name>
     <message>
         <source>Stop at Stop Sign</source>
@@ -3563,17 +3379,6 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     </message>
 </context>
 <context>
-    <name>RadarDisableToggle</name>
-    <message>
-        <source>Disable Radar</source>
-        <translation>레이더 사용 안 함</translation>
-    </message>
-    <message>
-        <source>This is pre-requisite for LongControl of HKG. It seems that this affects AEB. So do not use this if you have any concern.</source>
-        <translation>이것은 HKG의 Long Control을 위한 전제 조건입니다. 이것은 AEB에 영향을 미치는 것 같습니다. 해당 부분이 우려가 된다면 이것을 사용하지 마세요.</translation>
-    </message>
-</context>
-<context>
     <name>C2WithCommaPowerToggle</name>
     <message>
         <source>C2 with CommaPower</source>
@@ -3626,17 +3431,6 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     <message>
         <source>to avoid LKAS fault above max angle limit(car specific). This is live value. Find out your maxframe while driving.</source>
         <translation>최대 조향각(MaxAngle)을 초과시 LKAS Fault를 방지합니다. 이것은 라이브 밸류입니다. 운전하면서 LKAS Fault가 발생하지 않는 차량의 MaxFrame을 찾아보십시오.</translation>
-    </message>
-</context>
-<context>
-    <name>ToAvoidLKASFaultBeyondToggle</name>
-    <message>
-        <source>To Avoid LKAS Fault with More Steer</source>
-        <translation>LKAS Fault 방지와 변경 판다값 적용 </translation>
-    </message>
-    <message>
-        <source>This is just in case you are using other panda setting.(delta updown, maxsteer, rtdelta and etc).</source>
-        <translation>판다 설정을 기본값에서 높여서 쓸경우를 대비해서입니다. (델타 업다운, MAX스티어, RT델다 등)</translation>
     </message>
 </context>
 <context>
@@ -3703,17 +3497,6 @@ If you&apos;d like to proceed, use https://flash.comma.ai to restore your device
     <message>
         <source>This feature may help your vehicle to stop early using Cruise Gap with value 4 when your car start to stop from model.</source>
         <translation>크루즈 갭을 이용해 모델 감속 신호 시 갭간격 4단계를 이용하여 조금 더 일찍 브레이킹을 시도할 수 있도록 합니다. 화면에 빨간색 신호가 들어오는 동안은 적용되며 상황 해제시 일정 조건에 의해 원래 갭으로 돌아갑니다.</translation>
-    </message>
-</context>
-<context>
-    <name>TorqueUseAngle</name>
-    <message>
-        <source>UseAngle</source>
-        <translation>스티어각 기반 제어</translation>
-    </message>
-    <message>
-        <source>Use Steer Angle On/Off</source>
-        <translation>토크 사용시 스티어링 각도 기반 제어를 사용합니다.</translation>
     </message>
 </context>
 <context>

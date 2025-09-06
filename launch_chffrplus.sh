@@ -6,8 +6,8 @@ source "$DIR/launch_env.sh"
 
 function agnos_init {
   # prebuilt recreate
-  if [ -f "/data/kisa_compiling" ]; then
-    sudo rm /data/kisa_compiling
+  if [ -f "/data/ks" ]; then
+    sudo rm /data/ks
     if [ -f "$DIR/prebuilt" ]; then
       sudo rm $DIR/prebuilt
     fi
@@ -73,6 +73,10 @@ function agnos_init {
 }
 
 function launch {
+
+  # one touch git pull
+  KILINE="alias gi='git pull && touch /data/ks && sudo reboot'"; KIFILE="$HOME/.bashrc"; grep -qxF "$KILINE" "$KIFILE" || echo "$KILINE" >> "$KIFILE"
+
   # Remove orphaned git lock if it exists on boot
   [ -f "$DIR/.git/index.lock" ] && rm -f $DIR/.git/index.lock
 
@@ -94,7 +98,7 @@ function launch {
         if [ ! -d /data/safe_staging/old_openpilot ]; then
           echo "Valid overlay update found, installing"
           
-          touch /data/kisa_compiling
+          touch /data/ks
 
           LAUNCHER_LOCATION="${BASH_SOURCE[0]}"
 
@@ -137,16 +141,16 @@ function launch {
     $1 == p && $2 == v && $4 == ph && $5 == vh {
       print $3;
     }
-  ' /data/openpilot/selfdrive/assets/addon/model/ModelList)
+  ' /data/openpilot/selfdrive/modeld/models/ModelList)
 
   if [ -z "$MODEL_NAME" ]; then
     MODEL_NAME=$(awk -v p="$Model_P" -v v="$Model_V" '
       $1 == p && $2 == v {
         print $3;
       }
-    ' /data/openpilot/selfdrive/assets/addon/model/ModelList)
+    ' /data/openpilot/selfdrive/modeld/models/ModelList)
   fi
-  if [ -z "$MODEL_NAME" ]; then MODEL_NAME=$(head -n 1 /data/openpilot/selfdrive/assets/addon/model/ModelList | awk '{print $3}'); fi
+  if [ -z "$MODEL_NAME" ]; then MODEL_NAME=$(head -n 1 /data/openpilot/selfdrive/modeld/models/ModelList | awk '{print $3}'); fi
   echo -en "$MODEL_NAME" > /data/params/d/DrivingModel
 
   # start manager
