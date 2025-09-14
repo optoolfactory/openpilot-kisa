@@ -99,6 +99,10 @@ legend = ["LAT_ACCEL_FACTOR", "MAX_LAT_ACCEL_MEASURED", "FRICTION"]
 "HYUNDAI_IONIQ_9" = [1.75, 1.75, 0.15]
 "KIA_CARNIVAL_4TH_GEN_PE" = [nan, 1.5, nan]
 "KIA_CARNIVAL_4TH_GEN_HEV_PE" = [nan, 1.5, nan]
+"GRANDEUR_GN7" = [1.8, 1.8, 0.1]
+"GRANDEUR_GN7_HEV" = [1.8, 1.8, 0.1]
+"GRANDEUR_GN7_2025" = [1.8, 1.8, 0.1]
+"GRANDEUR_GN7_HEV_2025" = [1.8, 1.8, 0.1]
 
 # Dashcam or fallback configured as ideal car
 "MOCK" = [10.0, 10, 0.0]
