@@ -264,6 +264,11 @@ class CAR(Platforms):
     CarSpecs(mass=1275, wheelbase=2.6, steerRatio=13.42, tireStiffnessFactor=0.385),
     flags=HyundaiFlags.CLUSTER_GEARS | HyundaiFlags.ALT_LIMITS,
   )
+  HYUNDAI_KONA_N = HyundaiPlatformConfig(
+    [HyundaiCarDocs("Hyundai Kona N 2022", min_enable_speed=6 * CV.MPH_TO_MS, car_parts=CarParts.common([CarHarness.hyundai_b]))],
+    CarSpecs(mass=1275, wheelbase=2.6, steerRatio=13.42, tireStiffnessFactor=0.385),
+    flags=HyundaiFlags.CLUSTER_GEARS | HyundaiFlags.ALT_LIMITS,
+  )
   HYUNDAI_KONA_2022 = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Kona 2022", car_parts=CarParts.common([CarHarness.hyundai_o]))],
     CarSpecs(mass=1491, wheelbase=2.6, steerRatio=13.42, tireStiffnessFactor=0.385),
