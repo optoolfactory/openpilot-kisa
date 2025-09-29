@@ -234,6 +234,11 @@ class CAR(Platforms):
     CarSpecs(mass=1490, wheelbase=2.7, steerRatio=13.73, tireStiffnessFactor=0.385),
     flags=HyundaiFlags.HYBRID | HyundaiFlags.MIN_STEER_32_MPH,
   )
+  HYUNDAI_IONIQ_HEV = HyundaiPlatformConfig(
+    [HyundaiCarDocs("Hyundai Ioniq Hybrid 2016-19", car_parts=CarParts.common([CarHarness.hyundai_h]))],
+    CarSpecs(mass=1490, wheelbase=2.7, steerRatio=13.73, tireStiffnessFactor=0.385),
+    flags=HyundaiFlags.HYBRID | HyundaiFlags.LEGACY,
+  )
   HYUNDAI_IONIQ_HEV_2022 = HyundaiPlatformConfig(
     [HyundaiCarDocs("Hyundai Ioniq Hybrid 2020-22", car_parts=CarParts.common([CarHarness.hyundai_h]))],
     CarSpecs(mass=1490, wheelbase=2.7, steerRatio=13.73, tireStiffnessFactor=0.385),
