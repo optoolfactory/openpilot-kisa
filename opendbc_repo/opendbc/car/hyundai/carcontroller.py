@@ -1581,8 +1581,9 @@ class CarController(CarControllerBase):
         elif self.CP.lateralTuning.which() == 'lqr':
           self.str_log3 = 'T={:04.0f}/{:05.3f}/{:07.5f}'.format(self.c_params.get("Scale", return_default=True)*1.0, self.c_params.get("LqrKi", return_default=True)*0.001, self.c_params.get("DcGain", return_default=True)*0.00001)
         elif self.CP.lateralTuning.which() == 'torque':
-          self.str_log3 = 'T={:0.1f}/{:0.1f}/{:0.1f}/{:0.1f}/{:0.3f}'.format(self.c_params.get("TorqueMaxLatAccel", return_default=True)*0.1, \
-          self.c_params.get("TorqueKp", return_default=True)*0.1, self.c_params.get("TorqueKf", return_default=True)*0.1, self.c_params.get("TorqueKi", return_default=True)*0.1, self.c_params.get("TorqueFriction", return_default=True)*0.001)
+          self.str_log3 = 'T={:0.1f}/{:0.1f}/{:0.1f}/{:0.1f}/{:0.1f}/{:0.3f}'.format(self.c_params.get("TorqueMaxLatAccel", return_default=True)*0.1, \
+          self.c_params.get("TorqueKp", return_default=True)*0.1, self.c_params.get("TorqueKf", return_default=True)*0.1, self.c_params.get("TorqueKi", return_default=True)*0.1, \
+           self.c_params.get("TorqueKd", return_default=True)*0.1, self.c_params.get("TorqueFriction", return_default=True)*0.001)
       elif self.CP.lateralTuning.which() == 'torque' and self.live_torque_params:
         torque_params = self.sm['liveTorqueParameters']
         self.str_log3 = 'T={:0.2f}/{:0.2f}/{:0.3f}'.format(torque_params.latAccelFactorFiltered, torque_params.latAccelOffsetFiltered, torque_params.frictionCoefficientFiltered)
