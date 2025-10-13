@@ -2,6 +2,7 @@ import os
 import json
 import math
 import threading
+import subprocess
 
 from cereal import messaging, log
 from openpilot.common.basedir import BASEDIR
@@ -110,12 +111,19 @@ class DeviceLayout(Widget):
     gui_app.set_modal_overlay(self._driver_camera, callback=lambda result: setattr(self, '_driver_camera', None))
 
   def _show_onroad_camera(self):
-    current = self._params.get_bool("IsOpenpilotViewEnabled")
-    new_state = not current
-    self._params.put_bool_nonblocking("IsOpenpilotViewEnabled", new_state)
+    current = getattr(self, "_onroad_running", False)
 
-    if hasattr(self, "_onroad_btn"):
-      self._onroad_btn.action_item.set_text("CLOSE" if new_state else "PREVIEW")
+    if not current:
+      self._ui_view_proc = subprocess.Popen(["python3", "/data/openpilot/selfdrive/debug/uiview.py"])
+      self._onroad_running = True
+      self._onroad_btn.action_item.set_text("CLOSE")
+      self._params.put_bool_nonblocking("IsOpenpilotViewEnabled", True)
+    else:
+      self._ui_view_proc.terminate()
+      self._ui_view_proc.wait()
+      self._onroad_running = False
+      self._onroad_btn.action_item.set_text("PREVIEW")
+      self._params.put_bool_nonblocking("IsOpenpilotViewEnabled", False)
 
   def _reset_calibration_prompt(self):
     if ui_state.engaged:
