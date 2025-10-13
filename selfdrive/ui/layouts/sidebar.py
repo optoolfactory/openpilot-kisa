@@ -209,8 +209,8 @@ class Sidebar(Widget):
 
     # IP text
     ip_text_y = text_y + FONT_SIZE + 5
-    ip_text_pos = rl.Vector2(rect.x + 30, ip_text_y)
-    rl.draw_text_ex(self._font_regular, self._ip_address, ip_text_pos, FONT_SIZE, 0, Colors.YELLOW)
+    ip_text_pos = rl.Vector2(rect.x + 32, ip_text_y)
+    rl.draw_text_ex(self._font_regular, self._ip_address, ip_text_pos, FONT_SIZE-1, 0, Colors.YELLOW)
 
   def _draw_metrics(self, rect: rl.Rectangle):
     metrics = [(self._temp_status, 338), (self._panda_status, 496), (self._connect_status, 654)]

@@ -1,6 +1,7 @@
 import os
 import json
 import math
+import threading
 
 from cereal import messaging, log
 from openpilot.common.basedir import BASEDIR
@@ -15,7 +16,7 @@ from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.widgets import Widget, DialogResult
 from openpilot.system.ui.widgets.confirm_dialog import ConfirmDialog, alert_dialog
 from openpilot.system.ui.widgets.html_render import HtmlModal
-from openpilot.system.ui.widgets.list_view import text_item, button_item, dual_button_item
+from openpilot.system.ui.widgets.list_view import text_item, button_item, triple_button_item
 from openpilot.system.ui.widgets.option_dialog import MultiOptionDialog
 from openpilot.system.ui.widgets.scroller import Scroller
 
@@ -23,6 +24,7 @@ from openpilot.system.ui.widgets.scroller import Scroller
 DESCRIPTIONS = {
   'pair_device': "Pair your device with comma connect (connect.comma.ai) and claim your comma prime offer.",
   'driver_camera': "Preview the driver facing camera to ensure that driver monitoring has good visibility. (vehicle must be off)",
+  'onroad_camera': "Preview the onroad camera to check ui and visibility. (vehicle must be off)",
   'reset_calibration': "openpilot requires the device to be mounted within 4° left or right and within 5° up or 9° down.",
   'review_guide': "Review the rules, features, and limitations of openpilot",
 }
@@ -54,13 +56,16 @@ class DeviceLayout(Widget):
     self._reset_calib_btn = button_item("Reset Calibration", "RESET", DESCRIPTIONS['reset_calibration'], callback=self._reset_calibration_prompt)
     self._reset_calib_btn.set_description_opened_callback(self._update_calib_description)
 
-    self._power_off_btn = dual_button_item("Reboot", "Power Off", left_callback=self._reboot_prompt, right_callback=self._power_off_prompt)
+    self._power_off_btn = triple_button_item("Refresh", "Reboot", "Power Off", left_callback=self._refresh_prompt, mid_callback=self._reboot_prompt, right_callback=self._power_off_prompt)
+
+    self._onroad_btn = button_item("Onroad Camera", "PREVIEW", DESCRIPTIONS['onroad_camera'], callback=self._show_onroad_camera, enabled=True)
 
     items = [
       text_item("Dongle ID", dongle_id),
       text_item("Serial", serial),
       self._pair_device_btn,
       button_item("Driver Camera", "PREVIEW", DESCRIPTIONS['driver_camera'], callback=self._show_driver_camera, enabled=ui_state.is_offroad),
+      self._onroad_btn,
       self._reset_calib_btn,
       button_item("Review Training Guide", "REVIEW", DESCRIPTIONS['review_guide'], self._on_review_training_guide, enabled=ui_state.is_offroad),
       regulatory_btn := button_item("Regulatory", "VIEW", callback=self._on_regulatory, enabled=ui_state.is_offroad),
@@ -103,6 +108,14 @@ class DeviceLayout(Widget):
       self._driver_camera = DriverCameraDialog()
 
     gui_app.set_modal_overlay(self._driver_camera, callback=lambda result: setattr(self, '_driver_camera', None))
+
+  def _show_onroad_camera(self):
+    current = self._params.get_bool("IsOpenpilotViewEnabled")
+    new_state = not current
+    self._params.put_bool_nonblocking("IsOpenpilotViewEnabled", new_state)
+
+    if hasattr(self, "_onroad_btn"):
+      self._onroad_btn.action_item.set_text("CLOSE" if new_state else "PREVIEW")
 
   def _reset_calibration_prompt(self):
     if ui_state.engaged:
@@ -171,6 +184,23 @@ class DeviceLayout(Widget):
              "Resetting calibration will restart openpilot if the car is powered on.")
 
     self._reset_calib_btn.set_description(desc)
+
+  def _refresh_prompt(self):
+    if ui_state.engaged:
+      gui_app.set_modal_overlay(alert_dialog("Disengage to Refresh"))
+      return
+
+    dialog = ConfirmDialog("Are you sure you want to refresh?", "Refresh")
+    gui_app.set_modal_overlay(dialog, callback=self._perform_refresh)
+
+  def _perform_refresh(self, result: int):
+    if not ui_state.engaged and result == DialogResult.CONFIRM:
+      self._params.put_bool_nonblocking("OnRoadRefresh", True)
+      try:
+        t = threading.Timer(3.0, lambda: self._params.put_bool_nonblocking("OnRoadRefresh", False))
+        t.start()
+      except Exception:
+        pass
 
   def _reboot_prompt(self):
     if ui_state.engaged:

@@ -203,6 +203,121 @@ class DualButtonAction(ItemAction):
     self.right_button.render(right_rect)
 
 
+class TripleButtonAction(ItemAction):
+  def __init__(self, left_text: str, mid_text: str, right_text: str,
+               left_callback: Callable = None, mid_callback: Callable = None, right_callback: Callable = None,
+               enabled: bool | Callable[[], bool] = True):
+    super().__init__(width=0, enabled=enabled)
+    self.left_text = left_text
+    self.mid_text = mid_text
+    self.right_text = right_text
+
+    self.left_button = Button(left_text, click_callback=left_callback, button_style=ButtonStyle.PRIMARY)
+    self.mid_button = Button(mid_text, click_callback=mid_callback, button_style=ButtonStyle.LIST_ACTION)
+    self.right_button = Button(right_text, click_callback=right_callback, button_style=ButtonStyle.DANGER)
+
+  def set_touch_valid_callback(self, touch_callback: Callable[[], bool]) -> None:
+    super().set_touch_valid_callback(touch_callback)
+    self.left_button.set_touch_valid_callback(touch_callback)
+    self.mid_button.set_touch_valid_callback(touch_callback)
+    self.right_button.set_touch_valid_callback(touch_callback)
+
+  def _render(self, rect: rl.Rectangle):
+    # spacing between buttons
+    button_spacing = 20
+    button_height = 120
+
+    # compute available width and each button's width (default equal)
+    # leave small spacing between three buttons: 2 * spacing
+    total_spacing = button_spacing * 2
+    base_width = (rect.width - total_spacing) / 3
+    button_y = rect.y + (rect.height - button_height) / 2
+
+    # initial rects
+    left_rect = rl.Rectangle(rect.x, button_y, base_width, button_height)
+    mid_rect = rl.Rectangle(rect.x + base_width + button_spacing, button_y, base_width, button_height)
+    right_rect = rl.Rectangle(rect.x + 2 * (base_width + button_spacing), button_y, base_width, button_height)
+
+    # Adjust for visibility:
+    # If one of the buttons is not visible, expand the remaining buttons to occupy space.
+    vis_left = self.left_button.is_visible
+    vis_mid = self.mid_button.is_visible
+    vis_right = self.right_button.is_visible
+
+    visible_count = int(bool(vis_left)) + int(bool(vis_mid)) + int(bool(vis_right))
+    if visible_count == 0:
+      return  # nothing to draw
+
+    # If only one visible -> take full width
+    if visible_count == 1:
+      if vis_left:
+        left_rect.x = rect.x
+        left_rect.width = rect.width
+      elif vis_mid:
+        mid_rect.x = rect.x
+        mid_rect.width = rect.width
+      else:
+        right_rect.x = rect.x
+        right_rect.width = rect.width
+    # If two visible -> split width between them
+    elif visible_count == 2:
+      # find which two and place them side by side with one spacing
+      pair_width = (rect.width - button_spacing) / 2
+      if not vis_left:
+        # mid + right
+        mid_rect.x = rect.x
+        mid_rect.width = pair_width
+        right_rect.x = rect.x + pair_width + button_spacing
+        right_rect.width = pair_width
+      elif not vis_mid:
+        # left + right
+        left_rect.x = rect.x
+        left_rect.width = pair_width
+        right_rect.x = rect.x + pair_width + button_spacing
+        right_rect.width = pair_width
+      else:
+        # left + mid
+        left_rect.x = rect.x
+        left_rect.width = pair_width
+        mid_rect.x = rect.x + pair_width + button_spacing
+        mid_rect.width = pair_width
+    else:
+      # all three visible: use computed base widths (already set)
+      # but fix small rounding issues so they exactly fill rect.width
+      left_rect.x = rect.x
+      left_rect.width = base_width
+      mid_rect.x = rect.x + base_width + button_spacing
+      mid_rect.width = base_width
+      right_rect.x = rect.x + 2 * (base_width + button_spacing)
+      # last one take remaining width to avoid subpixel gaps
+      right_rect.width = rect.x + rect.width - right_rect.x
+
+    # set enabled state on buttons (ItemAction.enabled may be a bool or callable)
+    enabled_flag = _resolve_value(self.enabled, True)
+    try:
+      # if enabled is a tuple/list of per-button flags, support that
+      if isinstance(enabled_flag, (tuple, list)):
+        left_enabled = bool(enabled_flag[0]) if len(enabled_flag) > 0 else True
+        mid_enabled = bool(enabled_flag[1]) if len(enabled_flag) > 1 else True
+        right_enabled = bool(enabled_flag[2]) if len(enabled_flag) > 2 else True
+      else:
+        left_enabled = mid_enabled = right_enabled = bool(enabled_flag)
+    except Exception:
+      left_enabled = mid_enabled = right_enabled = True
+
+    self.left_button.set_enabled(left_enabled)
+    self.mid_button.set_enabled(mid_enabled)
+    self.right_button.set_enabled(right_enabled)
+
+    # Render (only render visible ones)
+    if vis_left:
+      self.left_button.render(left_rect)
+    if vis_mid:
+      self.mid_button.render(mid_rect)
+    if vis_right:
+      self.right_button.render(right_rect)
+
+
 class MultipleButtonAction(ItemAction):
   def __init__(self, buttons: list[str], button_width: int, selected_index: int = 0, callback: Callable = None):
     super().__init__(width=len(buttons) * button_width + (len(buttons) - 1) * RIGHT_ITEM_PADDING, enabled=True)
@@ -446,6 +561,14 @@ def text_item(title: str, value: str | Callable[[], str], description: str | Cal
 def dual_button_item(left_text: str, right_text: str, left_callback: Callable = None, right_callback: Callable = None,
                      description: str | Callable[[], str] | None = None, enabled: bool | Callable[[], bool] = True) -> ListItem:
   action = DualButtonAction(left_text, right_text, left_callback, right_callback, enabled)
+  return ListItem(title="", description=description, action_item=action)
+
+
+def triple_button_item(left_text: str, mid_text: str, right_text: str,
+                       left_callback: Callable = None, mid_callback: Callable = None, right_callback: Callable = None,
+                       description: str | Callable[[], str] | None = None,
+                       enabled: bool | Callable[[], bool] = True) -> ListItem:
+  action = TripleButtonAction(left_text, mid_text, right_text, left_callback, mid_callback, right_callback, enabled)
   return ListItem(title="", description=description, action_item=action)
 
 
