@@ -204,7 +204,7 @@ class Controls:
 
     lat_delay = self.sm["liveDelay"].lateralDelay + LAT_SMOOTH_SECONDS
 
-    actuators.curvature = self.desired_curvature
+    actuators.curvature = float(self.desired_curvature)
     steer, steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
                                                        self.steer_limited_by_safety, self.desired_curvature,
                                                        curvature_limited, lat_delay, self.desired_curvature_rate)
@@ -295,8 +295,8 @@ class Controls:
     cs.curvature = self.curvature
     cs.longitudinalPlanMonoTime = self.sm.logMonoTime['longitudinalPlan']
     cs.lateralPlanMonoTime = self.sm.logMonoTime['lateralPlan'] if self.legacy_lane_mode else self.sm.logMonoTime['modelV2']
-    cs.desiredCurvature = self.desired_curvature
-    cs.desiredCurvatureRate = self.desired_curvature_rate
+    cs.desiredCurvature = float(self.desired_curvature)
+    cs.desiredCurvatureRate = float(self.desired_curvature_rate)
     cs.longControlState = self.LoC.long_control_state
     cs.upAccelCmd = float(self.LoC.pid.p)
     cs.uiAccelCmd = float(self.LoC.pid.i)

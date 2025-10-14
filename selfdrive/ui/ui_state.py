@@ -51,6 +51,8 @@ class UIState:
         "selfdriveState",
         "longitudinalPlan",
         "rawAudioData",
+        "liveENaviData",
+        "liveMapData",
       ]
     )
 
@@ -74,6 +76,91 @@ class UIState:
     self.CP: car.CarParams | None = None
     self.light_sensor: float = -1.0
     self._param_update_time: float = 0.0
+
+    # Kisa state variables
+    self.lateralControlMethod: int = -1
+    self.output_scale: float = 0.0
+    self.alertTextMsg1: str = ""
+    self.alertTextMsg2: str = ""
+    self.alertTextMsg3: str = ""
+    self.limitSpeedCamera: float = 0
+    self.limitSpeedCameraDist: float = 0
+    self.mapSign: str = ""
+    self.steerRatio: float = 0.0
+    self.dynamic_tr_mode: int = 0
+    self.dynamic_tr_value: float = 0.0
+    self.accel: float = 0.0
+    self.ctrl_speed: float = 0
+    self.desired_angle_steers: float = 0.0
+    self.gap_by_speed_on: bool = False
+    self.exp_mode_temp: bool = False
+    self.btn_pressing: int = 0
+    self.standStill: bool = False
+    self.standstillElapsedTime: int = 0
+
+    self.brakePress: bool = False
+    self.gasPress: bool = False
+    self.brakeLights: bool = False
+    self.getGearShifter: int = 0
+    self.leftBlinker: bool = False
+    self.rightBlinker: bool = False
+    self.leftblindspot: bool = False
+    self.rightblindspot: bool = False
+    self.tpmsUnit: int = 0
+    self.tpmsPressureFl: float = 0
+    self.tpmsPressureFr: float = 0
+    self.tpmsPressureRl: float = 0
+    self.tpmsPressureRr: float = 0
+    self.radarDRel: float = 0.0
+    self.radarVRel: float = 0.0
+    self.vSetDis: float = 0
+    self.cruiseAccStatus: bool = False
+    self.driverAcc: bool = False
+    self.angleSteers: float = 0.0
+    self.cruise_gap: int = 0
+    self.autoHold: bool = False
+    self.steer_warning: bool = False
+    self.a_req_value: float = 0.0
+    self.engine_rpm: float = 0.0
+    self.gear_step: int = 0
+    self.charge_meter: float = 0.0
+    self.pause_spdlimit: bool = False
+
+    self.op_long_enabled: bool = False
+
+    self.navi_select: int = self.params.get("KISANaviSelect")
+    self.road_spdlimit_offset: int = self.params.get("CruiseSetwithRoadLimitSpeedOffset")
+    self.ekisaspeedlimit: int = 0
+    self.ekisasafetydist: float = 0
+    self.ekisasafetysign: str = ""
+    self.ekisaturninfo: str = ""
+    self.ekisadisttoturn: float = 0
+    self.ekisaconalive: bool = False
+    self.ekisaroadlimitspeed: int = 0
+    self.ekisalinklength: int = 0
+    self.ekisacurrentlinkangle: int = 0
+    self.ekisanextlinkangle: int = 0
+    self.ekisaroadname: str = ""
+    self.ekisaishighway: bool = False
+    self.ekisaistunnel: bool = False
+    self.ewazealertid: int = 0
+    self.ewazealertdistance: int = 0
+    self.ewazeroadspeedlimit: int = 0
+    self.ewazecurrentspeed: int = 0
+    self.ewazeroadname: str = ""
+    self.ewazenavsign: int = 0
+    self.ewazenavdistance: int = 0
+    self.ewazealerttype: str = ""
+    self.ewazealertextend: bool = False
+    self.ewazealertdistanceraw: str = ""
+    self.ospeedLimit: float = 0
+    self.ospeedLimitAhead: float = 0
+    self.ospeedLimitAheadDistance: float = 0
+    self.oturnSpeedLimit: float = 0
+    self.oturnSpeedLimitEndDistance: float = 0
+    self.oturnSpeedLimitSign: int = 0
+    self.ocurrentRoadName: str = ""
+    self.oref: str = ""
 
     # Callbacks
     self._offroad_transition_callbacks: list[Callable[[], None]] = []
@@ -133,6 +220,104 @@ class UIState:
     self.recording_audio = self.params.get_bool("RecordAudio") and self.started
 
     self.is_metric = self.params.get_bool("IsMetric")
+
+    # Kisa states update
+    if self.sm.updated["controlsState"]:
+      controls_state = self.sm["controlsState"]
+      self.lateralControlMethod = controls_state.lateralControlMethod
+      if self.lateralControlMethod == 0:
+        self.output_scale = controls_state.lateralControlState.pidState.output
+      elif self.lateralControlMethod == 1:
+        self.output_scale = controls_state.lateralControlState.indiState.output
+      elif self.lateralControlMethod == 2:
+        self.output_scale = controls_state.lateralControlState.lqrState.output
+      elif self.lateralControlMethod == 3:
+        self.output_scale = controls_state.lateralControlState.torqueState.output
+      self.alertTextMsg1 = controls_state.alertTextMsg1  # debug1
+      self.alertTextMsg2 = controls_state.alertTextMsg2  # debug2
+      self.alertTextMsg3 = controls_state.alertTextMsg3  # debug3
+      self.limitSpeedCamera = controls_state.limitSpeedCamera
+      self.limitSpeedCameraDist = controls_state.limitSpeedCameraDist
+      self.mapSign = controls_state.mapSign
+      self.steerRatio = controls_state.steerRatio
+      self.dynamic_tr_mode = controls_state.dynamicTRMode
+      self.dynamic_tr_value = controls_state.dynamicTRValue
+      self.accel = controls_state.accel
+      self.ctrl_speed = controls_state.safetySpeed
+      self.desired_angle_steers = controls_state.steeringAngleDesiredDeg
+      self.gap_by_speed_on = controls_state.gapBySpeedOn
+      self.exp_mode_temp = controls_state.expModeTemp
+      self.btn_pressing = controls_state.btnPressing
+      self.standStill = controls_state.standStill
+      self.standstillElapsedTime = controls_state.standStillTimer
+
+    if self.sm.updated["carState"]:
+      car_state = self.sm["carState"]
+      self.brakePress = car_state.brakePressed
+      self.gasPress = car_state.gasPressed
+      self.brakeLights = car_state.brakeLights
+      self.getGearShifter = car_state.gearShifter
+      self.leftBlinker = car_state.leftBlinker
+      self.rightBlinker = car_state.rightBlinker
+      self.leftblindspot = car_state.leftBlindspot
+      self.rightblindspot = car_state.rightBlindspot
+      self.tpmsUnit = car_state.tpms.unit
+      self.tpmsPressureFl = car_state.tpms.fl
+      self.tpmsPressureFr = car_state.tpms.fr
+      self.tpmsPressureRl = car_state.tpms.rl
+      self.tpmsPressureRr = car_state.tpms.rr
+      self.radarDRel = car_state.radarDRel
+      self.radarVRel = car_state.radarVRel
+      self.vSetDis = car_state.vSetDis
+      self.cruiseAccStatus = car_state.cruiseAccStatus
+      self.driverAcc = car_state.driverAcc
+      self.angleSteers = car_state.steeringAngleDeg
+      self.cruise_gap = car_state.cruiseGapSet
+      self.autoHold = car_state.autoHold
+      self.steer_warning = car_state.steerFaultTemporary
+      self.a_req_value = car_state.aReqValue
+      self.engine_rpm = car_state.engineRpm
+      self.gear_step = car_state.gearStep
+      self.charge_meter = car_state.chargeMeter
+      self.pause_spdlimit = car_state.pauseSpdLimit
+
+    if self.sm.updated["liveENaviData"]:
+      live_enavi_data = self.sm["liveENaviData"]
+      self.ekisaspeedlimit = live_enavi_data.speedLimit
+      self.ekisasafetydist = live_enavi_data.safetyDistance
+      self.ekisasafetysign = live_enavi_data.safetySign
+      self.ekisaturninfo = live_enavi_data.turnInfo
+      self.ekisadisttoturn = live_enavi_data.distanceToTurn
+      self.ekisaconalive = live_enavi_data.connectionAlive
+      self.ekisaroadlimitspeed = live_enavi_data.roadLimitSpeed
+      self.ekisalinklength = live_enavi_data.linkLength
+      self.ekisacurrentlinkangle = live_enavi_data.currentLinkAngle
+      self.ekisanextlinkangle = live_enavi_data.nextLinkAngle
+      self.ekisaroadname = live_enavi_data.roadName
+      self.ekisaishighway = live_enavi_data.isHighway
+      self.ekisaistunnel = live_enavi_data.isTunnel
+      if self.navi_select == 2 or self.navi_select == 4:
+        self.ewazealertid = live_enavi_data.wazeAlertId
+        self.ewazealertdistance = live_enavi_data.wazeAlertDistance
+        self.ewazeroadspeedlimit = live_enavi_data.wazeRoadSpeedLimit
+        self.ewazecurrentspeed = live_enavi_data.wazeCurrentSpeed
+        self.ewazeroadname = live_enavi_data.wazeRoadName
+        self.ewazenavsign = live_enavi_data.wazeNavSign
+        self.ewazenavdistance = live_enavi_data.wazeNavDistance
+        self.ewazealerttype = live_enavi_data.wazeAlertType
+        self.ewazealertextend = live_enavi_data.wazeAlertExtend
+        self.ewazealertdistanceraw = live_enavi_data.wazeAlertDistanceRaw
+
+    if self.sm.updated["liveMapData"]:
+      live_map_data = self.sm["liveMapData"]
+      self.ospeedLimit = live_map_data.speedLimit
+      self.ospeedLimitAhead = live_map_data.speedLimitAhead
+      self.ospeedLimitAheadDistance = live_map_data.speedLimitAheadDistance
+      self.oturnSpeedLimit = live_map_data.turnSpeedLimit
+      self.oturnSpeedLimitEndDistance = live_map_data.turnSpeedLimitEndDistance
+      self.oturnSpeedLimitSign = live_map_data.turnSpeedLimitSign
+      self.ocurrentRoadName = live_map_data.currentRoadName
+      self.oref = live_map_data.ref
 
   def _update_status(self) -> None:
     if self.started and self.sm.updated["selfdriveState"]:
