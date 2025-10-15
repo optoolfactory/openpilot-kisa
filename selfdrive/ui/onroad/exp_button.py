@@ -44,7 +44,7 @@ class ExpButton(Widget):
 
   def _render(self, rect: rl.Rectangle) -> None:
     center_x = int(self._rect.x + self._rect.width // 2)
-    center_y = int(self._rect.y + self._rect.height // 2)
+    center_y = int(self._rect.y + self._rect.height // 2) - 765
 
     self._white_color.a = 180 if self.is_pressed or not self._engageable else 255
 

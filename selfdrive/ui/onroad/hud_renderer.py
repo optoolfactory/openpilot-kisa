@@ -7,6 +7,8 @@ from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.widgets import Widget
 
+import math
+
 # Constants
 SET_SPEED_NA = 255
 KM_TO_MILE = 0.621371
@@ -76,6 +78,11 @@ class HudRenderer(Widget):
 
     self._exp_button: ExpButton = ExpButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
 
+    self.img_width = 200
+
+    self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
+    self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
+
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
     sm = ui_state.sm
@@ -120,6 +127,9 @@ class HudRenderer(Widget):
       self._draw_set_speed(rect)
 
     self._draw_current_speed(rect)
+
+    self._draw_blinkers(rect)
+    self._draw_speed_limit_sign(rect)
 
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + 1020 - UI_CONFIG.border_size - UI_CONFIG.button_size
@@ -209,3 +219,128 @@ class HudRenderer(Widget):
     # unit_text_size = measure_text_cached(self._font_medium, unit_text, FONT_SIZES.speed_unit)
     # unit_pos = rl.Vector2(rect.x + rect.width / 2 - unit_text_size.x / 2, 290 - unit_text_size.y / 2)
     # rl.draw_text_ex(self._font_medium, unit_text, unit_pos, FONT_SIZES.speed_unit, 0, COLORS.white_translucent)
+
+  def _draw_blinkers(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style blinkers."""
+    if not ui_state.leftBlinker and not ui_state.rightBlinker:
+      return
+
+    t = rl.get_time()
+    center_x = rect.x + rect.width // 2
+    center_y = rect.y + 200
+    size, thickness, freq, sway_amp = 100, 40, 6, 20
+    sway = sway_amp * math.sin(t * freq)
+    count, spacing = 5, 90
+    base_color = rl.Color(230, 165, 0, 230)
+    overlap = 0.25
+
+    def draw_chevron(x, y, direction="right", alpha=255):
+      delta = size * overlap
+      if direction == "right":
+        points = [(x - size + delta, y - size + delta), (x, y), (x - size + delta, y + size - delta)]
+      else:
+        points = [(x + size - delta, y - size + delta), (x, y), (x + size - delta, y + size - delta)]
+      color = rl.Color(base_color.r, base_color.g, base_color.b, alpha)
+      for i in range(2):
+        rl.draw_line_ex(points[i], points[i+1], thickness, color)
+        rl.draw_circle(int(points[i][0]), int(points[i][1]), thickness/2, color)
+        rl.draw_circle(int(points[i+1][0]), int(points[i+1][1]), thickness/2, color)
+
+    def draw_sequence(x, y, direction="right"):
+      for i in range(count):
+        offset = i * spacing
+        alpha = int(((math.sin(t * freq - (count - 1 - i) * 0.5) + 1) / 2) * base_color.a)
+        pos_x = x - offset if direction == "right" else x + offset
+        draw_chevron(pos_x, y, direction, alpha)
+
+    if ui_state.leftBlinker:
+      draw_sequence(center_x - 700 + sway, center_y, "left")
+    if ui_state.rightBlinker:
+      draw_sequence(center_x + 700 - sway, center_y, "right")
+
+  def _draw_speed_limit_sign(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style speed limit sign."""
+    s_center_x = rect.x + UI_CONFIG.border_size + 340
+    s_center_y = rect.y + 1020 - 335
+    d_center_y = s_center_y - 160
+
+    diameters = (200, 180, 202)
+    rects = {
+      "inner": rl.Rectangle(s_center_x - diameters[1]//2, s_center_y - diameters[1]//2, diameters[1], diameters[1]),
+      "main":  rl.Rectangle(s_center_x - diameters[0]//2, s_center_y - diameters[0]//2, diameters[0], diameters[0]),
+      "outer": rl.Rectangle(s_center_x - diameters[2]//2, s_center_y - diameters[2]//2, diameters[2], diameters[2]),
+      "dist":  rl.Rectangle(s_center_x - 110, d_center_y - 35, 220, 70),
+    }
+
+    sl_opacity = 3 if ui_state.sl_decel_off else (2 if ui_state.pause_spdlimit else 1)
+    limit_spd, dist = ui_state.limitSpeedCamera, ui_state.limitSpeedCameraDist
+
+    if limit_spd <= 21 and (dist == 0 or ui_state.navi_select not in [2, 4]):
+      return
+
+    alpha = lambda v: int(255 / sl_opacity * v)
+
+    visual_offset = 1.2
+
+    if ui_state.speedlimit_signtype:
+      rl.draw_rectangle_rounded(rects["inner"], 0.2, 8, rl.Color(255, 255, 255, alpha(1)))
+      rl.draw_rectangle_rounded_lines_ex(rects["main"], 0.2, 8, 12, rl.Color(0, 0, 0, alpha(1)))
+      rl.draw_rectangle_rounded_lines_ex(rects["outer"], 0.2, 8, 10, rl.Color(255, 255, 255, alpha(1)))
+
+      cx, cy = rects["outer"].x + rects["outer"].width / 2, rects["outer"].y
+      rl.draw_text_ex(self._font_bold, "SPEED", rl.Vector2(cx - 70, cy + 10), 42, 0, rl.BLACK)
+      rl.draw_text_ex(self._font_bold, "LIMIT", rl.Vector2(cx - 60, cy + 48), 42, 0, rl.BLACK)
+      font_size = 110 if limit_spd < 100 else 90
+      text = str(limit_spd)
+      text_size = rl.measure_text_ex(self._font_bold, text, font_size, 0)
+      text_x = rects["outer"].x + (rects["outer"].width - text_size.x*visual_offset) / 2
+      text_y = rects["outer"].y + (rects["outer"].height - text_size.y*visual_offset) / 2
+      rl.draw_text_ex(self._font_bold, text, rl.Vector2(text_x-4, text_y+40), font_size, 0, rl.BLACK)
+
+    else:
+      cx, cy = int(rects["inner"].x + rects["inner"].width / 2), int(rects["inner"].y + rects["inner"].height / 2)
+      rl.draw_circle(cx, cy, int(diameters[0] / 2), rl.RED)
+      rl.draw_circle(cx, cy, int(diameters[1] / 2), rl.WHITE)
+      text = str(limit_spd)
+      font_size = 110 if limit_spd < 100 else 90
+      text_size = rl.measure_text_ex(self._font_bold, text, font_size, 0)
+      text_x = rects["inner"].x + (rects["inner"].width - text_size.x*visual_offset) / 2
+      text_y = rects["inner"].y + (rects["inner"].height - text_size.y*visual_offset) / 2
+      rl.draw_text_ex(self._font_bold, text, rl.Vector2(text_x, text_y), font_size, 0, rl.BLACK)
+
+    alert_images = {1: self.img_speed_cam, 2: self.img_police_car}
+    if ui_state.ewazealertid in alert_images:
+      img = alert_images[ui_state.ewazealertid]
+      icon_x = s_center_x - self.img_width // 2 + 210
+      icon_y = s_center_y - self.img_width // 2
+      icon_rect = rl.Rectangle(icon_x, icon_y, self.img_width, self.img_width)
+      source_rect = rl.Rectangle(0, 0, img.width, img.height)
+      rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.WHITE)
+
+    if dist == 0:
+      return
+
+    opacity = max(0, min(255, int(((600 - dist) * 0.425) / sl_opacity))) if dist <= 600 else 0
+    rl.draw_rectangle_rounded(rects["dist"], 0.35, 32, rl.Color(255, 0, 0, opacity))
+    rl.draw_rectangle_rounded_lines_ex(rects["dist"], 0.35, 32, 6, COLORS.white_translucent)
+
+    if ui_state.is_metric:
+      dist_text = (
+        f"{dist:.0f}m" if dist < 1000 else
+        f"{dist/1000:.2f}km" if dist < 10000 else
+        f"{dist/1000:.1f}km"
+      )
+    else:
+      if getattr(ui_state, "ewazealertextend", False):
+        dist_text = "Limit"
+      else:
+        dist_ft = dist * 3.28084
+        dist_text = f"{dist_ft:.0f}ft" if dist_ft < 1000 else f"{dist * 0.000621:.2f}mi"
+
+    font_size = 55
+    text_size = rl.measure_text_ex(self._font_bold, dist_text, font_size, 0)
+    text_x = rects["dist"].x + (rects["dist"].width - text_size.x*visual_offset) / 2
+    text_y = rects["dist"].y + (rects["dist"].height - text_size.y*visual_offset) / 2
+    rl.draw_text_ex(self._font_bold, dist_text, rl.Vector2(text_x, text_y), font_size, 0, rl.WHITE)
+
+

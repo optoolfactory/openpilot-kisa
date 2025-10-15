@@ -51,6 +51,7 @@ class UIState:
         "selfdriveState",
         "longitudinalPlan",
         "rawAudioData",
+        "lateralPlan",
         "liveENaviData",
         "liveMapData",
       ]
@@ -126,6 +127,7 @@ class UIState:
     self.charge_meter: float = 0.0
     self.pause_spdlimit: bool = False
 
+    self.lanelessModeStatus: bool = False
     self.op_long_enabled: bool = False
 
     self.navi_select: int = self.params.get("KISANaviSelect")
@@ -161,6 +163,11 @@ class UIState:
     self.oturnSpeedLimitSign: int = 0
     self.ocurrentRoadName: str = ""
     self.oref: str = ""
+
+    self.enabled: bool = False
+
+    self.speedlimit_signtype: bool = self.params.get_bool("KisaSpeedLimitSignType")
+    self.sl_decel_off: bool = self.params.get_bool("SpeedLimitDecelOff")
 
     # Callbacks
     self._offroad_transition_callbacks: list[Callable[[], None]] = []
@@ -281,6 +288,10 @@ class UIState:
       self.charge_meter = car_state.chargeMeter
       self.pause_spdlimit = car_state.pauseSpdLimit
 
+    if self.sm.updated["lateralPlan"]:
+      lateral_plan = self.sm["lateralPlan"]
+      self.lanelessModeStatus = lateral_plan.lanelessMode
+
     if self.sm.updated["liveENaviData"]:
       live_enavi_data = self.sm["liveENaviData"]
       self.ekisaspeedlimit = live_enavi_data.speedLimit
@@ -328,6 +339,8 @@ class UIState:
         self.status = UIStatus.OVERRIDE
       else:
         self.status = UIStatus.ENGAGED if ss.enabled else UIStatus.DISENGAGED
+
+      self.enabled = ss.enabled
 
     # Check for engagement state changes
     if self.engaged != self._engaged_prev:

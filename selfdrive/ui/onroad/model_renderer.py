@@ -29,6 +29,18 @@ NO_THROTTLE_COLORS = [
   rl.Color(242, 242, 242, 0),   # HSLF(112/360, 0.0, 0.95, 0.0)
 ]
 
+# kisa
+LL_THROTTLE_COLORS = [
+  rl.Color(64, 200, 255, 102),
+  rl.Color(90, 220, 255, 89),
+  rl.Color(90, 220, 255, 0),
+]
+
+LL_NO_THROTTLE_COLORS = [
+  rl.Color(200, 230, 255, 102),
+  rl.Color(200, 230, 255, 89),
+  rl.Color(200, 230, 255, 0),
+]
 
 @dataclass
 class ModelPoints:
@@ -107,7 +119,7 @@ class ModelRenderer(Widget):
     model = sm['modelV2']
     radar_state = sm['radarState'] if sm.valid['radarState'] else None
     lead_one = radar_state.leadOne if radar_state else None
-    render_lead_indicator = self._longitudinal_control and radar_state is not None
+    render_lead_indicator = radar_state is not None
 
     # Update model data when needed
     model_updated = sm.updated['modelV2']
@@ -256,12 +268,30 @@ class ModelRenderer(Widget):
   def _draw_lane_lines(self):
     """Draw lane lines and road edges"""
     for i, lane_line in enumerate(self._lane_lines):
-      if lane_line.projected_points.size == 0:
+      pts = lane_line.projected_points
+      if pts.size == 0:
         continue
 
       alpha = np.clip(self._lane_line_probs[i], 0.0, 0.7)
-      color = rl.Color(255, 255, 255, int(alpha * 255))
-      draw_polygon(self._rect, lane_line.projected_points, color)
+      draw_polygon(self._rect, pts, rl.Color(0, 255, 100, int(alpha * 255)))
+
+      for side, ui_flag, outer_idx, lane_indices in (
+          ('left', ui_state.leftblindspot, 0, [0, 1]),
+          ('right', ui_state.rightblindspot, 3, [2, 3])
+      ):
+        if not ui_flag or i not in lane_indices:
+          continue
+
+        offset_pts = np.zeros_like(pts)
+        for j in range(pts.shape[0]):
+          d = pts[j+1] - pts[j-1] if 0 < j < pts.shape[0]-1 else (pts[1]-pts[0] if j==0 else pts[-1]-pts[-2])
+          normal = np.array([-d[1], d[0]], dtype=np.float32)
+          normal /= np.linalg.norm(normal) if np.linalg.norm(normal) > 1e-6 else 1.0
+
+          edge_x = self._lane_lines[outer_idx].projected_points[j,0] if self._lane_lines[outer_idx].projected_points.size > 0 else pts[j,0]
+          offset_pts[j] = pts[j] + normal * abs(edge_x - pts[j,0])
+
+        draw_polygon(self._rect, np.vstack([pts, offset_pts[::-1]]), rl.Color(255, 50, 50, 150))
 
     for i, road_edge in enumerate(self._road_edges):
       if road_edge.projected_points.size == 0:
@@ -286,16 +316,22 @@ class ModelRenderer(Widget):
       else:
         draw_polygon(self._rect, self._path.projected_points, rl.Color(255, 255, 255, 30))
     else:
-      # Blend throttle/no throttle colors based on transition
-      blend_factor = round(self._blend_filter.x * 100) / 100
-      blended_colors = self._blend_colors(NO_THROTTLE_COLORS, THROTTLE_COLORS, blend_factor)
-      gradient = Gradient(
-        start=(0.0, 1.0),  # Bottom of path
-        end=(0.0, 0.0),  # Top of path
-        colors=blended_colors,
-        stops=[0.0, 0.5, 1.0],
-      )
-      draw_polygon(self._rect, self._path.projected_points, gradient=gradient)
+      if not ui_state.enabled:
+        draw_polygon(self._rect, self._path.projected_points, rl.Color(255, 255, 255, 30))
+      else:
+        # Blend throttle/no throttle colors based on transition
+        blend_factor = round(self._blend_filter.x * 100) / 100
+        if not ui_state.lanelessModeStatus:
+          blended_colors = self._blend_colors(NO_THROTTLE_COLORS, THROTTLE_COLORS, blend_factor)
+        else:
+          blended_colors = self._blend_colors(LL_NO_THROTTLE_COLORS, LL_THROTTLE_COLORS, blend_factor)
+        gradient = Gradient(
+          start=(0.0, 1.0),  # Bottom of path
+          end=(0.0, 0.0),  # Top of path
+          colors=blended_colors,
+          stops=[0.0, 0.5, 1.0],
+        )
+        draw_polygon(self._rect, self._path.projected_points, gradient=gradient)
 
   def _draw_lead_indicator(self):
     # Draw lead vehicles if available
@@ -303,8 +339,12 @@ class ModelRenderer(Widget):
       if not lead.glow or not lead.chevron:
         continue
 
-      rl.draw_triangle_fan(lead.glow, len(lead.glow), rl.Color(218, 202, 37, 255))
-      rl.draw_triangle_fan(lead.chevron, len(lead.chevron), rl.Color(201, 34, 49, lead.fill_alpha))
+      if 0 < ui_state.radarDRel < 149:
+        rl.draw_triangle_fan(lead.glow, len(lead.glow), rl.Color(218, 202, 37, 255))
+        rl.draw_triangle_fan(lead.chevron, len(lead.chevron), rl.Color(201, 34, 49, lead.fill_alpha))
+      else:
+        rl.draw_triangle_fan(lead.glow, len(lead.glow), rl.Color(100, 255, 100, 255))
+        rl.draw_triangle_fan(lead.chevron, len(lead.chevron), rl.Color(50, 200, 50, lead.fill_alpha))
 
   @staticmethod
   def _get_path_length_idx(pos_x_array: np.ndarray, path_height: float) -> int:
