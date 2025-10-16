@@ -413,11 +413,11 @@ class HudRenderer(Widget):
   def _draw_tpms(self, rect: rl.Rectangle) -> None:
     """Draw  KisaPilot-style TPMS."""
     img = self.img_car
-    x_center = rect.x + UI_CONFIG.border_size + 30 + img.width // 2
-    y_center = rect.y + 300
+    x_center = rect.x + UI_CONFIG.border_size + 60 + img.width // 2
+    y_center = rect.y + 450
     icon_x = x_center - img.width // 2
     icon_y = y_center - img.height // 2
-    icon_rect = rl.Rectangle(icon_x, icon_y, img.width, img.width)
+    icon_rect = rl.Rectangle(icon_x, icon_y, 150, 220)
     source_rect = rl.Rectangle(0, 0, img.width, img.height)
     rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 100))
 
