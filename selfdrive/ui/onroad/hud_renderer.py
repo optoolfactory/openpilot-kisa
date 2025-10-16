@@ -438,28 +438,28 @@ class HudRenderer(Widget):
 
     def fmt_val(v):
       if v is None or v > 50:
-        return "N/A"
+        return ""
       return f"{v:.1f}" if unit != 0 else f"{int(round(v))}"
 
     def draw_value(offset_x, offset_y, value):
       if value is None:
-        col = rl.Color(255, 255, 255, 255)
-        text = "N/A"
+        col = rl.Color(255, 255, 255, 230)
+        text = ""
       else:
         if (value < 32 and unit != 2) or (value < 2.2 and unit == 2):
-          col = rl.Color(255, 200, 0, 255)  # yellow
+          col = rl.Color(255, 200, 0, 230)  # yellow
         elif (value > 45 and unit != 2) or (value > 2.8 and unit == 2):
-          col = rl.Color(255, 0, 0, 255)    # red
+          col = rl.Color(255, 0, 0, 230)    # red
         else:
-          col = rl.Color(0, 200, 0, 255)    # green
+          col = rl.Color(255, 255, 255, 230)    # white
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
-                      rl.Vector2(offset_x - tsz / 2, offset_y),
+                      rl.Vector2(offset_x - tsz, offset_y),
                       font_size, 0, col)
 
-    x_offset = img.width // 3.5  # left_right wheel distance
-    y_offset_front = -img.height // 4.2  # front
+    x_offset = img.width // 1.5  # left_right wheel distance
+    y_offset_front = -img.height // 4.0  # front
     y_offset_rear = img.height // 4.5    # rear
 
     # offset based on tire loc
