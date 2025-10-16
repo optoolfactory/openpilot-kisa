@@ -443,23 +443,23 @@ class HudRenderer(Widget):
 
     def draw_value(offset_x, offset_y, value):
       if value is None:
-        col = rl.Color(255, 255, 255, 230)
+        col = rl.Color(255, 255, 255, 210)
         text = ""
       else:
         if (value < 32 and unit != 2) or (value < 2.2 and unit == 2):
-          col = rl.Color(255, 200, 0, 230)  # yellow
+          col = rl.Color(255, 200, 0, 210)  # yellow
         elif (value > 45 and unit != 2) or (value > 2.8 and unit == 2):
-          col = rl.Color(255, 0, 0, 230)    # red
+          col = rl.Color(255, 0, 0, 210)    # red
         else:
-          col = rl.Color(255, 255, 255, 230)    # white
+          col = rl.Color(255, 255, 255, 210)    # white
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
-                      rl.Vector2(offset_x - (tsz / 2)*0.2, offset_y),
+                      rl.Vector2(offset_x - (tsz / 2)*0.25, offset_y),
                       font_size, 0, col)
 
-    x_offset = img.width // 1.7  # left_right wheel distance
-    y_offset_front = -img.height // 2.0  # front
+    x_offset = img.width // 1.5  # left_right wheel distance
+    y_offset_front = -img.height // 2.5  # front
     y_offset_rear = img.height // 4.5    # rear
 
     # offset based on tire loc
