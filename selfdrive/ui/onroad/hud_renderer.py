@@ -387,7 +387,7 @@ class HudRenderer(Widget):
 
   def _draw_standstill_timer(self, rect: rl.Rectangle) -> None:
     """Draw standstill timer."""
-    if ui_state.standStill or True:
+    if ui_state.standStill:
       minute = int(ui_state.standstillElapsedTime // 60)
       second = int(ui_state.standstillElapsedTime % 60)
       time_text = f"{minute:02d}:{second:02d}"
