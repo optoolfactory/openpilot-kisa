@@ -303,10 +303,10 @@ class HudRenderer(Widget):
   def _draw_speed_limit_sign(self, rect: rl.Rectangle) -> None:
     """Draw KisaPilot-style speed limit sign."""
     s_center_x = rect.x + UI_CONFIG.border_size + 340
-    s_center_y = rect.y + 1020 - 335
+    s_center_y = rect.y + 1020 - 333
     d_center_y = s_center_y - 160
 
-    diameters = (210, 180, 202)
+    diameters = (220, 180, 202)
     rects = {
       "inner": rl.Rectangle(s_center_x - diameters[1]//2, s_center_y - diameters[1]//2, diameters[1], diameters[1]),
       "main":  rl.Rectangle(s_center_x - diameters[0]//2, s_center_y - diameters[0]//2, diameters[0], diameters[0]),
