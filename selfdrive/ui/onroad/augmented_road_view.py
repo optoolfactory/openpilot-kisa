@@ -115,6 +115,22 @@ class AugmentedRoadView(CameraView):
     border_color = BORDER_COLORS.get(ui_state.status, BORDER_COLORS[UIStatus.DISENGAGED])
     rl.draw_rectangle_lines_ex(rect, UI_BORDER_SIZE, border_color)
 
+    # Kisa Status
+    texts = []
+    if ui_state.ekisaconalive:
+      texts.append("NAV")
+
+    font_size = 28
+    padding = 10
+
+    y = self._content_rect.y + self._content_rect.height
+    x = self._content_rect.x
+
+    for text in texts:
+      rl.draw_text(text, int(x), int(y), font_size, rl.WHITE)
+      text_width = rl.measure_text(text, font_size)
+      x += text_width + padding
+
   def _switch_stream_if_needed(self, sm):
     if sm['selfdriveState'].experimentalMode and WIDE_CAM in self.available_streams:
       v_ego = sm['carState'].vEgo

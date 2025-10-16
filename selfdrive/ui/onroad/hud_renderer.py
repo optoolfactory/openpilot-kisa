@@ -333,7 +333,7 @@ class HudRenderer(Widget):
       rl.draw_text_ex(self._font_bold, "SPEED", rl.Vector2(cx - 70, cy + 10), 42, 0, rl.BLACK)
       rl.draw_text_ex(self._font_bold, "LIMIT", rl.Vector2(cx - 60, cy + 48), 42, 0, rl.BLACK)
       font_size = 110 if limit_spd < 100 else 90
-      text = str(limit_spd)
+      text = str(int(limit_spd))
       text_size = rl.measure_text_ex(self._font_bold, text, font_size, 0)
       text_x = rects["outer"].x + (rects["outer"].width - text_size.x*visual_offset) / 2
       text_y = rects["outer"].y + (rects["outer"].height - text_size.y*visual_offset) / 2
@@ -343,7 +343,7 @@ class HudRenderer(Widget):
       cx, cy = int(rects["inner"].x + rects["inner"].width / 2), int(rects["inner"].y + rects["inner"].height / 2)
       rl.draw_circle(cx, cy, int(diameters[0] / 2), rl.RED)
       rl.draw_circle(cx, cy, int(diameters[1] / 2), rl.WHITE)
-      text = str(limit_spd)
+      text = str(int(limit_spd))
       font_size = 110 if limit_spd < 100 else 90
       text_size = rl.measure_text_ex(self._font_bold, text, font_size, 0)
       text_x = rects["inner"].x + (rects["inner"].width - text_size.x*visual_offset) / 2

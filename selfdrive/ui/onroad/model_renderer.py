@@ -269,7 +269,7 @@ class ModelRenderer(Widget):
     """Draw lane lines and road edges"""
     for i, lane_line in enumerate(self._lane_lines):
       pts = lane_line.projected_points
-      if pts.size == 0:
+      if pts.size == 0 or pts.shape[0] < 2:
         continue
 
       alpha = np.clip(self._lane_line_probs[i], 0.0, 0.7)
@@ -288,7 +288,8 @@ class ModelRenderer(Widget):
           normal = np.array([-d[1], d[0]], dtype=np.float32)
           normal /= np.linalg.norm(normal) if np.linalg.norm(normal) > 1e-6 else 1.0
 
-          edge_x = self._lane_lines[outer_idx].projected_points[j,0] if self._lane_lines[outer_idx].projected_points.size > 0 else pts[j,0]
+          edge_x = self._lane_lines[outer_idx].projected_points[min(j, self._lane_lines[outer_idx].projected_points.shape[0]-1), 0] if (0 <= outer_idx < len(self._lane_lines) and self._lane_lines[outer_idx].projected_points.size > 0) else pts[j, 0]
+
           offset_pts[j] = pts[j] + normal * abs(edge_x - pts[j,0])
 
         draw_polygon(self._rect, np.vstack([pts, offset_pts[::-1]]), rl.Color(255, 50, 50, 150))
