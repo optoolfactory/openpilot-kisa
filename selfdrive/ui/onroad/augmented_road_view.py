@@ -120,7 +120,7 @@ class AugmentedRoadView(CameraView):
     if ui_state.ekisaconalive:
       texts.append("NAV")
 
-    font_size = 28
+    font_size = 30
     padding = 10
 
     y = self._content_rect.y + self._content_rect.height

@@ -306,7 +306,7 @@ class HudRenderer(Widget):
     s_center_y = rect.y + 1020 - 335
     d_center_y = s_center_y - 160
 
-    diameters = (200, 180, 202)
+    diameters = (210, 180, 202)
     rects = {
       "inner": rl.Rectangle(s_center_x - diameters[1]//2, s_center_y - diameters[1]//2, diameters[1], diameters[1]),
       "main":  rl.Rectangle(s_center_x - diameters[0]//2, s_center_y - diameters[0]//2, diameters[0], diameters[0]),
@@ -315,7 +315,8 @@ class HudRenderer(Widget):
     }
 
     sl_opacity = 3 if ui_state.sl_decel_off else (2 if ui_state.pause_spdlimit else 1)
-    limit_spd, dist = ui_state.limitSpeedCamera, ui_state.limitSpeedCameraDist
+    # limit_spd, dist = ui_state.limitSpeedCamera, ui_state.limitSpeedCameraDist
+    limit_spd, dist = 30, 300
 
     if limit_spd <= 21 and (dist == 0 or ui_state.navi_select not in [2, 4]):
       return
@@ -328,7 +329,6 @@ class HudRenderer(Widget):
       rl.draw_rectangle_rounded(rects["inner"], 0.2, 8, rl.Color(255, 255, 255, alpha(1)))
       rl.draw_rectangle_rounded_lines_ex(rects["main"], 0.2, 8, 12, rl.Color(0, 0, 0, alpha(1)))
       rl.draw_rectangle_rounded_lines_ex(rects["outer"], 0.2, 8, 10, rl.Color(255, 255, 255, alpha(1)))
-
       cx, cy = rects["outer"].x + rects["outer"].width / 2, rects["outer"].y
       rl.draw_text_ex(self._font_bold, "SPEED", rl.Vector2(cx - 70, cy + 10), 42, 0, rl.BLACK)
       rl.draw_text_ex(self._font_bold, "LIMIT", rl.Vector2(cx - 60, cy + 48), 42, 0, rl.BLACK)
@@ -338,7 +338,6 @@ class HudRenderer(Widget):
       text_x = rects["outer"].x + (rects["outer"].width - text_size.x*visual_offset) / 2
       text_y = rects["outer"].y + (rects["outer"].height - text_size.y*visual_offset) / 2
       rl.draw_text_ex(self._font_bold, text, rl.Vector2(text_x-4, text_y+40), font_size, 0, rl.BLACK)
-
     else:
       cx, cy = int(rects["inner"].x + rects["inner"].width / 2), int(rects["inner"].y + rects["inner"].height / 2)
       rl.draw_circle(cx, cy, int(diameters[0] / 2), rl.RED)
