@@ -82,9 +82,10 @@ class HudRenderer(Widget):
 
     self._kisa_button: KisaButton = KisaButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
     self.img_width = 200
+    self.img_car_width, self.img_car_height = 120, 210
     self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
     self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
-    self.img_car = gui_app.texture("addon/img/car.png")
+    self.img_car = gui_app.texture("addon/img/car.png", self.img_car_width, self.img_car_height)
 
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
@@ -417,7 +418,7 @@ class HudRenderer(Widget):
     y_center = rect.y + 400
     icon_x = x_center - img.width // 2
     icon_y = y_center - img.height // 2
-    icon_rect = rl.Rectangle(icon_x, icon_y, 120, 210)
+    icon_rect = rl.Rectangle(icon_x, icon_y, self.img_car_width, self.img_car_height)
     source_rect = rl.Rectangle(0, 0, img.width, img.height)
     rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 100))
 
