@@ -84,6 +84,7 @@ class HudRenderer(Widget):
     self.img_width = 200
     self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
     self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
+    self.img_car = gui_app.texture("addon/img/car.png", 150, 200)
 
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
@@ -134,6 +135,8 @@ class HudRenderer(Widget):
     self._draw_speed_limit_sign(rect)
 
     self._draw_standstill_timer(rect)
+
+    self._draw_tpms(rect)
 
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + UI_CONFIG.border_size
@@ -386,7 +389,7 @@ class HudRenderer(Widget):
     rl.draw_text_ex(self._font_bold, dist_text, rl.Vector2(text_x, text_y), font_size, 0, rl.WHITE)
 
   def _draw_standstill_timer(self, rect: rl.Rectangle) -> None:
-    """Draw standstill timer."""
+    """Draw  KisaPilot-style standstill timer."""
     if ui_state.standStill:
       minute = int(ui_state.standstillElapsedTime // 60)
       second = int(ui_state.standstillElapsedTime % 60)
@@ -407,4 +410,14 @@ class HudRenderer(Widget):
       rl.draw_text_ex(self._font_bold, time_text, rl.Vector2(time_x, time_y),
                       140, 0, time_color)
 
+  def _draw_tpms(self, rect: rl.Rectangle) -> None:
+    """Draw  KisaPilot-style TPMS."""
+    img = self.img_car
+    x_center = rect.x + UI_CONFIG.border_size + 30 + img.width // 2
+    y_center = rect.y + 300
+    icon_x = x_center - img.width // 2
+    icon_y = y_center - img.height // 2
+    icon_rect = rl.Rectangle(icon_x, icon_y, img.width, img.width)
+    source_rect = rl.Rectangle(0, 0, img.width, img.height)
+    rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 100))
 
