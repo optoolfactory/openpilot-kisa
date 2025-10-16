@@ -315,8 +315,7 @@ class HudRenderer(Widget):
     }
 
     sl_opacity = 3 if ui_state.sl_decel_off else (2 if ui_state.pause_spdlimit else 1)
-    # limit_spd, dist = ui_state.limitSpeedCamera, ui_state.limitSpeedCameraDist
-    limit_spd, dist = 100, 1234
+    limit_spd, dist = ui_state.limitSpeedCamera, ui_state.limitSpeedCameraDist
 
     if limit_spd <= 21 and (dist == 0 or ui_state.navi_select not in [2, 4]):
       return
