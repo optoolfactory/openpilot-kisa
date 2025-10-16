@@ -392,7 +392,7 @@ class HudRenderer(Widget):
       second = int(ui_state.standstillElapsedTime % 60)
       time_text = f"{minute:02d}:{second:02d}"
 
-      stop_x = rect.x + rect.width - UI_CONFIG.border_size - 545
+      stop_x = rect.x + rect.width - UI_CONFIG.border_size - 645
       stop_y = rect.y + UI_CONFIG.border_size + 320
 
       time_x = stop_x
