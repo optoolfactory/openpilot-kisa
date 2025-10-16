@@ -404,7 +404,7 @@ class HudRenderer(Widget):
   def _draw_tpms(self, rect: rl.Rectangle) -> None:
     """Draw KisaPilot-style TPMS."""
     img = self.img_car
-    x_center = rect.x + UI_CONFIG.border_size + 55 + img.width // 2
+    x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
     y_center = rect.y + 450
     icon_x = x_center - img.width // 2
     icon_y = y_center - img.height // 2
@@ -445,11 +445,11 @@ class HudRenderer(Widget):
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
-                      rl.Vector2(offset_x - (tsz / 2)*0.3, offset_y),
+                      rl.Vector2(offset_x - (tsz / 2)*0.33, offset_y),
                       font_size, 0, col)
 
-    x_offset = img.width // 1.4  # left_right wheel distance
-    y_offset_front = -img.height // 2.3  # front
+    x_offset = img.width // 1.35  # left_right wheel distance
+    y_offset_front = -img.height // 2.1  # front
     y_offset_rear = img.height // 4.5    # rear
 
     # offset based on tire loc
@@ -463,21 +463,21 @@ class HudRenderer(Widget):
     if ui_state.brakeLights or True:
       brake_width = 20
       brake_height = 10
-      brake_spacing = 45  # 좌우 브레이크 등 간 간격
+      brake_spacing = 35
 
       brake_left = rl.Rectangle(
-        x_center - brake_spacing - brake_width,
-        y_center + img.height // 2 - 5,
+        x_center - brake_spacing - brake_width + 25,
+        y_center + img.height // 2 - 8,
         brake_width,
         brake_height
       )
-      rl.draw_rectangle_rounded(brake_left, 0.5, 8, rl.Color(255, 0, 0, 180))
+      rl.draw_rectangle_rounded(brake_left, 0.8, 8, rl.Color(255, 0, 0, 180))
 
       brake_right = rl.Rectangle(
-        x_center + brake_spacing,
-        y_center + img.height // 2 - 5,
+        x_center + brake_spacing - 5,
+        y_center + img.height // 2 - 8,
         brake_width,
         brake_height
       )
-      rl.draw_rectangle_rounded(brake_right, 0.5, 8, rl.Color(255, 0, 0, 180))
+      rl.draw_rectangle_rounded(brake_right, 0.8, 8, rl.Color(255, 0, 0, 180))
 
