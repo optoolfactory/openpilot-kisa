@@ -25,11 +25,6 @@ function agnos_init {
     fi
   fi
 
-  # wait longer for screen recorder
-  if [ -f "$DIR/prebuilt" ]; then
-    sleep 10
-  fi
-
   # TODO: move this to agnos
   sudo rm -f /data/etc/NetworkManager/system-connections/*.nmmeta
 
