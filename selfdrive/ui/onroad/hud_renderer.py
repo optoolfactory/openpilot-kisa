@@ -445,11 +445,11 @@ class HudRenderer(Widget):
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
-                      rl.Vector2(offset_x - (tsz / 2)*0.33, offset_y),
+                      rl.Vector2(offset_x - (tsz / 2)*0.34, offset_y),
                       font_size, 0, col)
 
-    x_offset = img.width // 1.35  # left_right wheel distance
-    y_offset_front = -img.height // 2.1  # front
+    x_offset = img.width // 1.33  # left_right wheel distance
+    y_offset_front = -img.height // 2.25  # front
     y_offset_rear = img.height // 4.5    # rear
 
     # offset based on tire loc
@@ -466,7 +466,7 @@ class HudRenderer(Widget):
       brake_spacing = 35
 
       brake_left = rl.Rectangle(
-        x_center - brake_spacing - brake_width + 25,
+        x_center - brake_spacing - brake_width + 30,
         y_center + img.height // 2 - 8,
         brake_width,
         brake_height
