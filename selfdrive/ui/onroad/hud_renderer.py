@@ -82,7 +82,7 @@ class HudRenderer(Widget):
 
     self._kisa_button: KisaButton = KisaButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
     self.img_width = 200
-    self.img_car_width, self.img_car_height = 120, 210
+    self.img_car_width, self.img_car_height = 120, 200
     self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
     self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
     self.img_car = gui_app.texture("addon/img/car.png", self.img_car_width, self.img_car_height)
@@ -390,7 +390,7 @@ class HudRenderer(Widget):
     rl.draw_text_ex(self._font_bold, dist_text, rl.Vector2(text_x, text_y), font_size, 0, rl.WHITE)
 
   def _draw_standstill_timer(self, rect: rl.Rectangle) -> None:
-    """Draw  KisaPilot-style standstill timer."""
+    """Draw KisaPilot-style standstill timer."""
     if ui_state.standStill:
       minute = int(ui_state.standstillElapsedTime // 60)
       second = int(ui_state.standstillElapsedTime % 60)
@@ -412,13 +412,62 @@ class HudRenderer(Widget):
                       140, 0, time_color)
 
   def _draw_tpms(self, rect: rl.Rectangle) -> None:
-    """Draw  KisaPilot-style TPMS."""
+    """Draw KisaPilot-style TPMS."""
     img = self.img_car
-    x_center = rect.x + UI_CONFIG.border_size + 60 + img.width // 2
-    y_center = rect.y + 400
+    x_center = rect.x + UI_CONFIG.border_size + 55 + img.width // 2
+    y_center = rect.y + 450
     icon_x = x_center - img.width // 2
     icon_y = y_center - img.height // 2
     icon_rect = rl.Rectangle(icon_x, icon_y, self.img_car_width, self.img_car_height)
     source_rect = rl.Rectangle(0, 0, img.width, img.height)
     rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 100))
+
+    # fl = ui_state.tpmsPressureFl
+    # fr = ui_state.tpmsPressureFr
+    # rl_p = ui_state.tpmsPressureRl
+    # rr = ui_state.tpmsPressureRr
+    # unit = ui_state.tpmsUnit  # 0: psi, 1: kpa, 2: bar
+
+    fl = 36.0
+    fr = 37.0
+    rl_p = 38.0
+    rr = 39.0
+    unit = 0  # 0: psi, 1: kpa, 2: bar
+
+    font_size = 43 if unit == 2 else (36 if unit != 0 else 42)
+
+    def fmt_val(v):
+      if v is None or v > 50:
+        return "N/A"
+      return f"{v:.1f}" if unit != 0 else f"{int(round(v))}"
+
+    def draw_value(offset_x, offset_y, value):
+      if value is None:
+        col = rl.Color(255, 255, 255, 255)
+        text = "N/A"
+      else:
+        if (value < 32 and unit != 2) or (value < 2.2 and unit == 2):
+          col = rl.Color(255, 200, 0, 255)  # yellow
+        elif (value > 45 and unit != 2) or (value > 2.8 and unit == 2):
+          col = rl.Color(255, 0, 0, 255)    # red
+        else:
+          col = rl.Color(0, 200, 0, 255)    # green
+        text = fmt_val(value)
+      tsz = measure_text_cached(self._font_bold, text, font_size).x
+      rl.draw_text_ex(self._font_bold, text,
+                      rl.Vector2(offset_x - tsz / 2, offset_y),
+                      font_size, 0, col)
+
+    x_offset = img.width // 3.5  # left_right wheel distance
+    y_offset_front = -img.height // 4.2  # front
+    y_offset_rear = img.height // 4.5    # rear
+
+    # offset based on tire loc
+    y_text_adjust = -10
+
+    draw_value(x_center - x_offset, y_center + y_offset_front + y_text_adjust, fl)  # Front-left
+    draw_value(x_center + x_offset, y_center + y_offset_front + y_text_adjust, fr)  # Front-right
+    draw_value(x_center - x_offset, y_center + y_offset_rear + y_text_adjust, rl_p)  # Rear-left
+    draw_value(x_center + x_offset, y_center + y_offset_rear + y_text_adjust, rr)  # Rear-right
+
 
