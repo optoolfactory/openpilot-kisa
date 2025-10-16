@@ -133,6 +133,8 @@ class HudRenderer(Widget):
     self._draw_blinkers(rect)
     self._draw_speed_limit_sign(rect)
 
+    self._draw_standstill_timer(rect)
+
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + UI_CONFIG.border_size
     self._exp_button.render(rl.Rectangle(button_x, button_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
@@ -382,5 +384,27 @@ class HudRenderer(Widget):
     text_x = rects["dist"].x + (rects["dist"].width - text_size.x*visual_offset) / 2
     text_y = rects["dist"].y + (rects["dist"].height - text_size.y*visual_offset) / 2
     rl.draw_text_ex(self._font_bold, dist_text, rl.Vector2(text_x, text_y), font_size, 0, rl.WHITE)
+
+  def _draw_standstill_timer(self, rect: rl.Rectangle) -> None:
+    """Draw standstill timer."""
+    if ui_state.standStill or True:
+      minute = int(ui_state.standstillElapsedTime // 60)
+      second = int(ui_state.standstillElapsedTime % 60)
+      time_text = f"{minute:02d}:{second:02d}"
+
+      stop_x = rect.x + rect.width - UI_BORDER_SIZE - 545
+      stop_y = rect.y + UI_BORDER_SIZE + 420
+
+      time_x = stop_x
+      time_y = rect.y + UI_BORDER_SIZE + 550
+
+      stop_color = rl.Color(204, 119, 34, 220)
+      time_color = rl.Color(255, 255, 255, 220)
+
+      rl.draw_text_ex(self._font_bold, "STOP", rl.Vector2(stop_x, stop_y),
+                      135, 0, stop_color)
+
+      rl.draw_text_ex(self._font_bold, time_text, rl.Vector2(time_x, time_y),
+                      140, 0, time_color)
 
 
