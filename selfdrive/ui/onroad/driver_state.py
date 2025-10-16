@@ -167,7 +167,7 @@ class DriverStateRenderer(Widget):
     width, height = self._rect.width, self._rect.height
     offset = UI_BORDER_SIZE + BTN_SIZE // 2
     self.position_x = self._rect.x + (width - offset if self.is_rhd else offset)
-    self.position_y = self._rect.y + height - offset
+    self.position_y = self._rect.y + offset
 
     # Pre-calculate the face lines positions
     positioned_keypoints = self.face_keypoints_transformed + np.array([self.position_x, self.position_y])
@@ -222,7 +222,7 @@ class DriverStateRenderer(Widget):
     radius_y = arc_data.height / 2
 
     x_coords = center_x + np.cos(angles) * radius_x
-    y_coords = center_y + np.sin(angles) * radius_y
+    y_coords = center_y - np.sin(angles) * radius_y
 
     arc_lines = self.h_arc_lines if is_horizontal else self.v_arc_lines
     for i, (x_coord, y_coord) in enumerate(zip(x_coords, y_coords, strict=True)):

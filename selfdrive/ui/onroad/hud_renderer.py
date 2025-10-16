@@ -7,6 +7,10 @@ from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.widgets import Widget
 
+# kisa
+from openpilot.selfdrive.ui.onroad.kisa_button import KisaButton
+import math
+
 # Constants
 SET_SPEED_NA = 255
 KM_TO_MILE = 0.621371
@@ -48,6 +52,11 @@ class Colors:
   border_translucent: rl.Color = rl.Color(255, 255, 255, 75)
   header_gradient_start: rl.Color = rl.Color(0, 0, 0, 114)
   header_gradient_end: rl.Color = rl.BLANK
+  # kisa
+  green_translucent: rl.Color = rl.Color(0, 200, 0, 100)
+  blue_translucent: rl.Color = rl.Color(0, 140, 255, 120)
+  ochre_translucent: rl.Color = rl.Color(204, 153, 0, 128)
+  orange_translucent: rl.Color = rl.Color(204, 120, 0, 128)
 
 
 UI_CONFIG = UIConfig()
@@ -60,7 +69,7 @@ class HudRenderer(Widget):
     super().__init__()
     """Initialize the HUD renderer."""
     self.is_cruise_set: bool = False
-    self.is_cruise_available: bool = False
+    self.is_cruise_available: bool = True
     self.set_speed: float = SET_SPEED_NA
     self.speed: float = 0.0
     self.v_ego_cluster_seen: bool = False
@@ -69,7 +78,14 @@ class HudRenderer(Widget):
     self._font_bold: rl.Font = gui_app.font(FontWeight.BOLD)
     self._font_medium: rl.Font = gui_app.font(FontWeight.MEDIUM)
 
-    self._exp_button = ExpButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
+    self._exp_button: ExpButton = ExpButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
+
+    self._kisa_button: KisaButton = KisaButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
+    self.img_width = 200
+    self.img_car_width, self.img_car_height = 120, 200
+    self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
+    self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
+    self.img_car = gui_app.texture("addon/img/car.png", self.img_car_width, self.img_car_height)
 
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
@@ -116,64 +132,352 @@ class HudRenderer(Widget):
 
     self._draw_current_speed(rect)
 
+    self._draw_blinkers(rect)
+    self._draw_speed_limit_sign(rect)
+
+    self._draw_standstill_timer(rect)
+
+    self._draw_tpms(rect)
+
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + UI_CONFIG.border_size
     self._exp_button.render(rl.Rectangle(button_x, button_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
-  def handle_mouse_event(self) -> bool:
-    return bool(self._exp_button.handle_mouse_event())
+    self._kisa_button.render(rl.Rectangle(button_x, button_y + 960 - UI_CONFIG.button_size, UI_CONFIG.button_size, UI_CONFIG.button_size))
+
+  def user_interacting(self) -> bool:
+    return self._exp_button.is_pressed
 
   def _draw_set_speed(self, rect: rl.Rectangle) -> None:
     """Draw the MAX speed indicator box."""
     set_speed_width = UI_CONFIG.set_speed_width_metric if ui_state.is_metric else UI_CONFIG.set_speed_width_imperial
     x = rect.x + 60 + (UI_CONFIG.set_speed_width_imperial - set_speed_width) // 2
-    y = rect.y + 45
+    y = rect.y - 45 + 1020 - UI_CONFIG.set_speed_height - 185
 
-    set_speed_rect = rl.Rectangle(x, y, set_speed_width, UI_CONFIG.set_speed_height)
-    rl.draw_rectangle_rounded(set_speed_rect, 0.2, 30, COLORS.black_translucent)
-    rl.draw_rectangle_rounded_lines_ex(set_speed_rect, 0.2, 30, 6, COLORS.border_translucent)
+    set_speed_rect = rl.Rectangle(x, y, set_speed_width, UI_CONFIG.set_speed_height + 2)
 
-    max_color = COLORS.grey
-    set_speed_color = COLORS.dark_grey
-    if self.is_cruise_set:
-      set_speed_color = COLORS.white
-      if ui_state.status == UIStatus.ENGAGED:
-        max_color = COLORS.engaged
-      elif ui_state.status == UIStatus.DISENGAGED:
-        max_color = COLORS.disengaged
-      elif ui_state.status == UIStatus.OVERRIDE:
-        max_color = COLORS.override
+    if ui_state.exp_mode_temp:
+      pen_color = COLORS.engaged
+    else:
+      pen_color = COLORS.white_translucent
 
-    max_text = "MAX"
-    max_text_width = measure_text_cached(self._font_semi_bold, max_text, FONT_SIZES.max_speed).x
-    rl.draw_text_ex(
-      self._font_semi_bold,
-      max_text,
-      rl.Vector2(x + (set_speed_width - max_text_width) / 2, y + 27),
-      FONT_SIZES.max_speed,
-      0,
-      max_color,
-    )
+    if ui_state.limitSpeedCamera > 18 and self.speed > ui_state.ctrl_speed+1.5:
+      bg_brush = COLORS.ochre_translucent
+    elif ui_state.limitSpeedCamera > 18:
+      bg_brush = COLORS.green_translucent
+    elif ui_state.cruiseAccStatus:
+      bg_brush = COLORS.blue_translucent
+    else:
+      bg_brush = COLORS.black_translucent
 
-    set_speed_text = CRUISE_DISABLED_CHAR if not self.is_cruise_set else str(round(self.set_speed))
-    speed_text_width = measure_text_cached(self._font_bold, set_speed_text, FONT_SIZES.set_speed).x
-    rl.draw_text_ex(
-      self._font_bold,
-      set_speed_text,
-      rl.Vector2(x + (set_speed_width - speed_text_width) / 2, y + 77),
-      FONT_SIZES.set_speed,
-      0,
-      set_speed_color,
-    )
+    # Draw rounded rect background + border
+    rl.draw_rectangle_rounded(set_speed_rect, 0.35, 32, bg_brush)
+    rl.draw_rectangle_rounded_lines_ex(set_speed_rect, 0.35, 32, 6, pen_color)
+
+    # mid line
+    line_y = y + UI_CONFIG.set_speed_height // 2 - 7
+    start = rl.Vector2(x + 35, line_y)
+    end = rl.Vector2(x + set_speed_width - 35, line_y)
+    try:
+      rl.draw_line(start, end, 6)
+    except Exception:
+      rl.draw_rectangle_rounded(rl.Rectangle(start.x, start.y - 3, end.x - start.x, 6), 0.1, 3, COLORS.white)
+
+    if ui_state.ekisaroadlimitspeed > 21:
+      setSpeedStr = str(int(ui_state.ekisaroadlimitspeed + ui_state.road_spdlimit_offset))
+    elif ui_state.ewazeroadspeedlimit > 19:
+      setSpeedStr = str(int(ui_state.ewazeroadspeedlimit))
+    elif ui_state.ospeedLimit > 19:
+      setSpeedStr = str(int(ui_state.ospeedLimit))
+    else:
+      setSpeedStr = str(round(self.set_speed)) if 0 < self.set_speed < 254 else CRUISE_DISABLED_CHAR
+
+    ctrl_speed = ui_state.ctrl_speed
+    top_text = str(int(ctrl_speed)) if ctrl_speed > 1 else setSpeedStr
+
+    # Draw top big text
+    top_font_size = 80
+    top_text_w = measure_text_cached(self._font_semi_bold, top_text, top_font_size).x
+    rl.draw_text_ex(self._font_semi_bold, top_text, rl.Vector2(x + (set_speed_width - top_text_w) / 2, y), top_font_size, 0, COLORS.white)
+
+    # bottom set speed indicator
+    if not ui_state.op_long_enabled:
+      bottom_text = str(int(ui_state.vSetDis)) if ui_state.cruiseAccStatus else CRUISE_DISABLED_CHAR
+    else:
+      bottom_text = setSpeedStr if ui_state.cruiseAccStatus else CRUISE_DISABLED_CHAR
+
+    bottom_font_size = FONT_SIZES.set_speed + 5
+    bottom_text_w = measure_text_cached(self._font_bold, bottom_text, bottom_font_size).x
+    rl.draw_text_ex(self._font_bold, bottom_text, rl.Vector2(x + (set_speed_width - bottom_text_w) / 2, y + 90), bottom_font_size, 0, COLORS.white)
+
+    # btn spamming indicator
+    if ui_state.btn_pressing > 0:
+      rl.draw_rectangle_rounded(rl.Rectangle((x + 22) - 8, (y + UI_CONFIG.set_speed_height // 2 + 7) - 8, 16, 16), 0.5, 8, COLORS.white)
 
   def _draw_current_speed(self, rect: rl.Rectangle) -> None:
     """Draw the current vehicle speed and unit."""
-    speed_text = str(round(self.speed))
-    speed_text_size = measure_text_cached(self._font_bold, speed_text, FONT_SIZES.current_speed)
-    speed_pos = rl.Vector2(rect.x + rect.width / 2 - speed_text_size.x / 2, 180 - speed_text_size.y / 2)
-    rl.draw_text_ex(self._font_bold, speed_text, speed_pos, FONT_SIZES.current_speed, 0, COLORS.white)
+    s = ui_state
 
-    unit_text = "km/h" if ui_state.is_metric else "mph"
-    unit_text_size = measure_text_cached(self._font_medium, unit_text, FONT_SIZES.speed_unit)
-    unit_pos = rl.Vector2(rect.x + rect.width / 2 - unit_text_size.x / 2, 290 - unit_text_size.y / 2)
-    rl.draw_text_ex(self._font_medium, unit_text, unit_pos, FONT_SIZES.speed_unit, 0, COLORS.white_translucent)
+    # speed text
+    speed_text = str(round(self.speed))
+    act_accel = s.a_req_value if (not s.has_longitudinal_control) else s.accel
+
+    def clamp(v, lo, hi):
+      return lo if v < lo else (hi if v > hi else v)
+
+    gas_opacity = clamp(act_accel * 255, 0, 255)
+    brake_opacity = clamp(abs(act_accel * 175), 0, 255)
+
+    if s.brakePress:
+      speed_color = rl.Color(255, 0, 0, 255)
+    elif s.brakeLights and speed_text == "0":
+      speed_color = rl.Color(201, 34, 49, 100)
+    elif s.gasPress:
+      speed_color = rl.Color(0, 240, 0, 255)
+    elif (act_accel < 0 and act_accel > -5.0):
+      r = clamp(255 - int(abs(act_accel * 8)), 0, 255)
+      g = clamp(255 - int(brake_opacity), 0, 255)
+      b = clamp(255 - int(brake_opacity), 0, 255)
+      speed_color = rl.Color(r, g, b, 255)
+    elif (act_accel > 0 and act_accel < 3.0):
+      r = clamp(255 - int(gas_opacity), 0, 255)
+      g = clamp(255 - int(act_accel * 10), 0, 255)
+      b = clamp(255 - int(gas_opacity), 0, 255)
+      speed_color = rl.Color(r, g, b, 255)
+    else:
+      speed_color = COLORS.white
+
+    set_speed_width = UI_CONFIG.set_speed_width_metric if ui_state.is_metric else UI_CONFIG.set_speed_width_imperial
+    x = rect.x + 50 + (UI_CONFIG.set_speed_width_imperial - set_speed_width) // 2
+    y = rect.y + 1020 - 230
+    speed_pos = rl.Vector2(x, y)
+    rl.draw_text_ex(self._font_bold, speed_text, speed_pos, FONT_SIZES.current_speed + 10, 0, speed_color)
+
+    # unit_text = "KPH" if ui_state.is_metric else "MPH"
+    # unit_text_size = measure_text_cached(self._font_medium, unit_text, FONT_SIZES.speed_unit)
+    # unit_pos = rl.Vector2(rect.x + rect.width / 2 - unit_text_size.x / 2, 290 - unit_text_size.y / 2)
+    # rl.draw_text_ex(self._font_medium, unit_text, unit_pos, FONT_SIZES.speed_unit, 0, COLORS.white_translucent)
+
+  def _draw_blinkers(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style blinkers."""
+    if not ui_state.leftBlinker and not ui_state.rightBlinker:
+      return
+
+    t = rl.get_time()
+    center_x = rect.x + rect.width // 2
+    center_y = rect.y + 200
+    size, thickness, freq, sway_amp = 100, 40, 6, 20
+    sway = sway_amp * math.sin(t * freq)
+    count, spacing = 5, 90
+    base_color = rl.Color(230, 165, 0, 230)
+    overlap = 0.25
+
+    def draw_chevron(x, y, direction="right", alpha=255):
+      delta = size * overlap
+      if direction == "right":
+        points = [(x - size + delta, y - size + delta), (x, y), (x - size + delta, y + size - delta)]
+      else:
+        points = [(x + size - delta, y - size + delta), (x, y), (x + size - delta, y + size - delta)]
+      color = rl.Color(base_color.r, base_color.g, base_color.b, alpha)
+      for i in range(2):
+        rl.draw_line_ex(points[i], points[i+1], thickness, color)
+        rl.draw_circle(int(points[i][0]), int(points[i][1]), thickness/2, color)
+        rl.draw_circle(int(points[i+1][0]), int(points[i+1][1]), thickness/2, color)
+
+    def draw_sequence(x, y, direction="right"):
+      for i in range(count):
+        offset = i * spacing
+        alpha = int(((math.sin(t * freq - (count - 1 - i) * 0.5) + 1) / 2) * base_color.a)
+        pos_x = x - offset if direction == "right" else x + offset
+        draw_chevron(pos_x, y, direction, alpha)
+
+    if ui_state.leftBlinker:
+      draw_sequence(center_x - 700 + sway, center_y, "left")
+    if ui_state.rightBlinker:
+      draw_sequence(center_x + 700 - sway, center_y, "right")
+
+  def _draw_speed_limit_sign(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style speed limit sign."""
+    s_center_x = rect.x + UI_CONFIG.border_size + 340
+    s_center_y = rect.y + 1020 - 333
+    d_center_y = s_center_y - 160
+
+    diameters = (220, 180, 202)
+    rects = {
+      "inner": rl.Rectangle(s_center_x - diameters[1]//2, s_center_y - diameters[1]//2, diameters[1], diameters[1]),
+      "main":  rl.Rectangle(s_center_x - diameters[0]//2, s_center_y - diameters[0]//2, diameters[0], diameters[0]),
+      "outer": rl.Rectangle(s_center_x - diameters[2]//2, s_center_y - diameters[2]//2, diameters[2], diameters[2]),
+      "dist":  rl.Rectangle(s_center_x - 110, d_center_y - 35, 220, 70),
+    }
+
+    sl_opacity = 3 if ui_state.sl_decel_off else (2 if ui_state.pause_spdlimit else 1)
+    limit_spd, dist = ui_state.limitSpeedCamera, ui_state.limitSpeedCameraDist
+
+    if limit_spd <= 21 and (dist == 0 or ui_state.navi_select not in [2, 4]):
+      return
+
+    alpha = lambda v: int(255 / sl_opacity * v)
+
+    visual_offset = 1.2
+
+    if ui_state.speedlimit_signtype:
+      rl.draw_rectangle_rounded(rects["inner"], 0.2, 8, rl.Color(255, 255, 255, alpha(1)))
+      rl.draw_rectangle_rounded_lines_ex(rects["main"], 0.2, 8, 12, rl.Color(0, 0, 0, alpha(1)))
+      rl.draw_rectangle_rounded_lines_ex(rects["outer"], 0.2, 8, 10, rl.Color(255, 255, 255, alpha(1)))
+      cx, cy = rects["outer"].x + rects["outer"].width / 2, rects["outer"].y
+      rl.draw_text_ex(self._font_bold, "SPEED", rl.Vector2(cx - 70, cy + 10), 42, 0, rl.BLACK)
+      rl.draw_text_ex(self._font_bold, "LIMIT", rl.Vector2(cx - 60, cy + 48), 42, 0, rl.BLACK)
+      font_size = 110 if limit_spd < 100 else 90
+      text = str(int(limit_spd))
+      text_size = rl.measure_text_ex(self._font_bold, text, font_size, 0)
+      text_x = rects["outer"].x + (rects["outer"].width - text_size.x*visual_offset) / 2
+      text_y = rects["outer"].y + (rects["outer"].height - text_size.y*visual_offset) / 2
+      rl.draw_text_ex(self._font_bold, text, rl.Vector2(text_x-4, text_y+40), font_size, 0, rl.BLACK)
+    else:
+      cx, cy = int(rects["inner"].x + rects["inner"].width / 2), int(rects["inner"].y + rects["inner"].height / 2)
+      rl.draw_circle(cx, cy, int(diameters[0] / 2), rl.RED)
+      rl.draw_circle(cx, cy, int(diameters[1] / 2), rl.WHITE)
+      text = str(int(limit_spd))
+      font_size = 110 if limit_spd < 100 else 90
+      text_size = rl.measure_text_ex(self._font_bold, text, font_size, 0)
+      text_x = rects["inner"].x + (rects["inner"].width - text_size.x*visual_offset) / 2
+      text_y = rects["inner"].y + (rects["inner"].height - text_size.y*visual_offset) / 2
+      rl.draw_text_ex(self._font_bold, text, rl.Vector2(text_x, text_y), font_size, 0, rl.BLACK)
+
+    alert_images = {1: self.img_speed_cam, 2: self.img_police_car}
+    if ui_state.ewazealertid in alert_images:
+      img = alert_images[ui_state.ewazealertid]
+      icon_x = s_center_x - self.img_width // 2 + 210
+      icon_y = s_center_y - self.img_width // 2
+      icon_rect = rl.Rectangle(icon_x, icon_y, self.img_width, self.img_width)
+      source_rect = rl.Rectangle(0, 0, img.width, img.height)
+      rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.WHITE)
+
+    if dist == 0:
+      return
+
+    opacity = max(0, min(255, int(((600 - dist) * 0.425) / sl_opacity))) if dist <= 600 else 0
+    rl.draw_rectangle_rounded(rects["dist"], 0.35, 32, rl.Color(255, 0, 0, opacity))
+    rl.draw_rectangle_rounded_lines_ex(rects["dist"], 0.35, 32, 6, COLORS.white_translucent)
+
+    if ui_state.is_metric:
+      dist_text = (
+        f"{dist:.0f}m" if dist < 1000 else
+        f"{dist/1000:.2f}km" if dist < 10000 else
+        f"{dist/1000:.1f}km"
+      )
+    else:
+      if getattr(ui_state, "ewazealertextend", False):
+        dist_text = "Limit"
+      else:
+        dist_ft = dist * 3.28084
+        dist_text = f"{dist_ft:.0f}ft" if dist_ft < 1000 else f"{dist * 0.000621:.2f}mi"
+
+    font_size = 55
+    text_size = rl.measure_text_ex(self._font_bold, dist_text, font_size, 0)
+    text_x = rects["dist"].x + (rects["dist"].width - text_size.x*visual_offset) / 2
+    text_y = rects["dist"].y + (rects["dist"].height - text_size.y*visual_offset) / 2
+    rl.draw_text_ex(self._font_bold, dist_text, rl.Vector2(text_x, text_y), font_size, 0, rl.WHITE)
+
+  def _draw_standstill_timer(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style standstill timer."""
+    if ui_state.standStill:
+      minute = int(ui_state.standstillElapsedTime // 60)
+      second = int(ui_state.standstillElapsedTime % 60)
+      time_text = f"{minute:02d}:{second:02d}"
+
+      stop_x = rect.x + rect.width - UI_CONFIG.border_size - 645
+      stop_y = rect.y + UI_CONFIG.border_size + 320
+
+      time_x = stop_x
+      time_y = rect.y + UI_CONFIG.border_size + 450
+
+      stop_color = rl.Color(204, 119, 34, 220)
+      time_color = rl.Color(255, 255, 255, 220)
+
+      rl.draw_text_ex(self._font_bold, "STOP", rl.Vector2(stop_x, stop_y),
+                      135, 0, stop_color)
+
+      rl.draw_text_ex(self._font_bold, time_text, rl.Vector2(time_x, time_y),
+                      140, 0, time_color)
+
+  def _draw_tpms(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style TPMS."""
+    img = self.img_car
+    x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
+    y_center = rect.y + 450
+    icon_x = x_center - img.width // 2
+    icon_y = y_center - img.height // 2
+    icon_rect = rl.Rectangle(icon_x, icon_y, self.img_car_width, self.img_car_height)
+    source_rect = rl.Rectangle(0, 0, img.width, img.height)
+    rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 100))
+
+    # fl = ui_state.tpmsPressureFl
+    # fr = ui_state.tpmsPressureFr
+    # rl_p = ui_state.tpmsPressureRl
+    # rr = ui_state.tpmsPressureRr
+    # unit = ui_state.tpmsUnit  # 0: psi, 1: kpa, 2: bar
+
+    fl = 36.0
+    fr = 37.0
+    rl_p = 38.0
+    rr = 39.0
+    unit = 0  # 0: psi, 1: kpa, 2: bar
+
+    font_size = 43 if unit == 2 else (36 if unit != 0 else 42)
+
+    def fmt_val(v):
+      if v is None or v > 50:
+        return ""
+      return f"{v:.1f}" if unit != 0 else f"{int(round(v))}"
+
+    def draw_value(offset_x, offset_y, value):
+      if value is None:
+        col = rl.Color(255, 255, 255, 210)
+        text = ""
+      else:
+        if (value < 32 and unit != 2) or (value < 2.2 and unit == 2):
+          col = rl.Color(255, 200, 0, 210)  # yellow
+        elif (value > 45 and unit != 2) or (value > 2.8 and unit == 2):
+          col = rl.Color(255, 0, 0, 210)    # red
+        else:
+          col = rl.Color(255, 255, 255, 210)    # white
+        text = fmt_val(value)
+      tsz = measure_text_cached(self._font_bold, text, font_size).x
+      rl.draw_text_ex(self._font_bold, text,
+                      rl.Vector2(offset_x - (tsz / 2)*0.34, offset_y),
+                      font_size, 0, col)
+
+    x_offset = img.width // 1.33  # left_right wheel distance
+    y_offset_front = -img.height // 2.25  # front
+    y_offset_rear = img.height // 4.5    # rear
+
+    # offset based on tire loc
+    y_text_adjust = -10
+
+    draw_value(x_center - x_offset, y_center + y_offset_front + y_text_adjust, fl)  # Front-left
+    draw_value(x_center + x_offset, y_center + y_offset_front + y_text_adjust, fr)  # Front-right
+    draw_value(x_center - x_offset, y_center + y_offset_rear + y_text_adjust, rl_p)  # Rear-left
+    draw_value(x_center + x_offset, y_center + y_offset_rear + y_text_adjust, rr)  # Rear-right
+
+    if ui_state.brakeLights or True:
+      brake_width = 20
+      brake_height = 10
+      brake_spacing = 35
+
+      brake_left = rl.Rectangle(
+        x_center - brake_spacing - brake_width + 30,
+        y_center + img.height // 2 - 8,
+        brake_width,
+        brake_height
+      )
+      rl.draw_rectangle_rounded(brake_left, 0.8, 8, rl.Color(255, 0, 0, 180))
+
+      brake_right = rl.Rectangle(
+        x_center + brake_spacing - 5,
+        y_center + img.height // 2 - 8,
+        brake_width,
+        brake_height
+      )
+      rl.draw_rectangle_rounded(brake_right, 0.8, 8, rl.Color(255, 0, 0, 180))
+

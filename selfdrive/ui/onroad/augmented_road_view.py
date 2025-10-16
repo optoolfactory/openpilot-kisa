@@ -1,7 +1,7 @@
+import time
 import numpy as np
 import pyray as rl
-from collections.abc import Callable
-from cereal import log
+from cereal import log, messaging
 from msgq.visionipc import VisionStreamType
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus, UI_BORDER_SIZE
 from openpilot.selfdrive.ui.onroad.alert_renderer import AlertRenderer
@@ -49,14 +49,12 @@ class AugmentedRoadView(CameraView):
     self.alert_renderer = AlertRenderer()
     self.driver_state_renderer = DriverStateRenderer()
 
-    # Callbacks
-    self._click_callback: Callable | None = None
-
-  def set_callbacks(self, on_click: Callable | None = None):
-    self._click_callback = on_click
+    # debug
+    self._pm = messaging.PubMaster(['uiDebug'])
 
   def _render(self, rect):
     # Only render when system is started to avoid invalid data access
+    start_draw = time.monotonic()
     if not ui_state.started:
       return
 
@@ -100,18 +98,38 @@ class AugmentedRoadView(CameraView):
     # End clipping region
     rl.end_scissor_mode()
 
-    # Handle click events if no HUD interaction occurred
-    if not self._hud_renderer.handle_mouse_event():
-      if self._click_callback is not None and rl.is_mouse_button_pressed(rl.MouseButton.MOUSE_BUTTON_LEFT):
-        if rl.check_collision_point_rec(rl.get_mouse_position(), self._content_rect):
-          self._click_callback()
+    # publish uiDebug
+    msg = messaging.new_message('uiDebug')
+    msg.uiDebug.drawTimeMillis = (time.monotonic() - start_draw) * 1000
+    self._pm.send('uiDebug', msg)
+
+  def _handle_mouse_press(self, _):
+    if not self._hud_renderer.user_interacting() and self._click_callback is not None:
+      self._click_callback()
 
   def _handle_mouse_release(self, _):
+    # We only call click callback on press if not interacting with HUD
     pass
 
   def _draw_border(self, rect: rl.Rectangle):
     border_color = BORDER_COLORS.get(ui_state.status, BORDER_COLORS[UIStatus.DISENGAGED])
     rl.draw_rectangle_lines_ex(rect, UI_BORDER_SIZE, border_color)
+
+    # Kisa Status
+    texts = []
+    if ui_state.ekisaconalive:
+      texts.append("NAV")
+
+    font_size = 30
+    padding = 10
+
+    y = self._content_rect.y + self._content_rect.height
+    x = self._content_rect.x
+
+    for text in texts:
+      rl.draw_text(text, int(x), int(y), font_size, rl.WHITE)
+      text_width = rl.measure_text(text, font_size)
+      x += text_width + padding
 
   def _switch_stream_if_needed(self, sm):
     if sm['selfdriveState'].experimentalMode and WIDE_CAM in self.available_streams:
