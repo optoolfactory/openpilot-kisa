@@ -253,16 +253,6 @@ class HudRenderer(Widget):
     speed_pos = rl.Vector2(x, y)
     rl.draw_text_ex(self._font_bold, speed_text, speed_pos, FONT_SIZES.current_speed + 10, 0, speed_color)
 
-    if s.brakeLights:
-      brake_x = x + 5
-      brake_y = y + 195
-      brake_rect = rl.Rectangle(brake_x, brake_y, set_speed_width, 25)
-      rl.draw_rectangle_rounded(brake_rect, 1.0, 32, rl.Color(255, 0, 0, 180))
-      text_size = rl.measure_text_ex(self._font_bold, "BRAKE LIGHT", 20, 0)
-      text_x = brake_rect.x + (brake_rect.width - text_size.x*1.2) / 2
-      text_y = brake_rect.y + (brake_rect.height - text_size.y*1.2) / 2
-      rl.draw_text_ex(self._font_bold, "BRAKE LIGHT", rl.Vector2(text_x, text_y), 20, 0, COLORS.white_translucent)
-
     # unit_text = "KPH" if ui_state.is_metric else "MPH"
     # unit_text_size = measure_text_cached(self._font_medium, unit_text, FONT_SIZES.speed_unit)
     # unit_pos = rl.Vector2(rect.x + rect.width / 2 - unit_text_size.x / 2, 290 - unit_text_size.y / 2)
@@ -455,11 +445,11 @@ class HudRenderer(Widget):
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
-                      rl.Vector2(offset_x - (tsz / 2)*0.25, offset_y),
+                      rl.Vector2(offset_x - (tsz / 2)*0.3, offset_y),
                       font_size, 0, col)
 
-    x_offset = img.width // 1.5  # left_right wheel distance
-    y_offset_front = -img.height // 2.5  # front
+    x_offset = img.width // 1.4  # left_right wheel distance
+    y_offset_front = -img.height // 2.3  # front
     y_offset_rear = img.height // 4.5    # rear
 
     # offset based on tire loc
@@ -470,4 +460,24 @@ class HudRenderer(Widget):
     draw_value(x_center - x_offset, y_center + y_offset_rear + y_text_adjust, rl_p)  # Rear-left
     draw_value(x_center + x_offset, y_center + y_offset_rear + y_text_adjust, rr)  # Rear-right
 
+    if ui_state.brakeLights or True:
+      brake_width = 20
+      brake_height = 10
+      brake_spacing = 45  # 좌우 브레이크 등 간 간격
+
+      brake_left = rl.Rectangle(
+        x_center - brake_spacing - brake_width,
+        y_center + img.height // 2 - 5,
+        brake_width,
+        brake_height
+      )
+      rl.draw_rectangle_rounded(brake_left, 0.5, 8, rl.Color(255, 0, 0, 180))
+
+      brake_right = rl.Rectangle(
+        x_center + brake_spacing,
+        y_center + img.height // 2 - 5,
+        brake_width,
+        brake_height
+      )
+      rl.draw_rectangle_rounded(brake_right, 0.5, 8, rl.Color(255, 0, 0, 180))
 
