@@ -393,10 +393,10 @@ class HudRenderer(Widget):
       time_text = f"{minute:02d}:{second:02d}"
 
       stop_x = rect.x + rect.width - UI_CONFIG.border_size - 545
-      stop_y = rect.y + UI_CONFIG.border_size + 420
+      stop_y = rect.y + UI_CONFIG.border_size + 320
 
       time_x = stop_x
-      time_y = rect.y + UI_CONFIG.border_size + 550
+      time_y = rect.y + UI_CONFIG.border_size + 450
 
       stop_color = rl.Color(204, 119, 34, 220)
       time_color = rl.Color(255, 255, 255, 220)
