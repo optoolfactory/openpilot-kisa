@@ -84,7 +84,7 @@ class HudRenderer(Widget):
     self.img_width = 200
     self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
     self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
-    self.img_car = gui_app.texture("addon/img/car.png", 150, 200)
+    self.img_car = gui_app.texture("addon/img/car.png", 82, 175)
 
   def _update_state(self) -> None:
     """Update HUD state based on car state and controls state."""
