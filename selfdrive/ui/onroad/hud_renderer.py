@@ -206,14 +206,52 @@ class HudRenderer(Widget):
 
   def _draw_current_speed(self, rect: rl.Rectangle) -> None:
     """Draw the current vehicle speed and unit."""
+    s = ui_state
+
+    # speed text
     speed_text = str(round(self.speed))
-    speed_text_size = measure_text_cached(self._font_bold, speed_text, FONT_SIZES.current_speed + 10)
+    act_accel = s.a_req_value if (not s.has_longitudinal_control) else s.accel
+
+    def clamp(v, lo, hi):
+      return lo if v < lo else (hi if v > hi else v)
+
+    gas_opacity = clamp(act_accel * 255, 0, 255)
+    brake_opacity = clamp(abs(act_accel * 175), 0, 255)
+
+    if s.brakePress:
+      speed_color = rl.Color(255, 0, 0, 255)
+    elif s.brakeLights and speed_text == "0":
+      speed_color = rl.Color(201, 34, 49, 100)
+    elif s.gasPress:
+      speed_color = rl.Color(0, 240, 0, 255)
+    elif (act_accel < 0 and act_accel > -5.0):
+      r = clamp(255 - int(abs(act_accel * 8)), 0, 255)
+      g = clamp(255 - int(brake_opacity), 0, 255)
+      b = clamp(255 - int(brake_opacity), 0, 255)
+      speed_color = rl.Color(r, g, b, 255)
+    elif (act_accel > 0 and act_accel < 3.0):
+      r = clamp(255 - int(gas_opacity), 0, 255)
+      g = clamp(255 - int(act_accel * 10), 0, 255)
+      b = clamp(255 - int(gas_opacity), 0, 255)
+      speed_color = rl.Color(r, g, b, 255)
+    else:
+      speed_color = COLORS.white
 
     set_speed_width = UI_CONFIG.set_speed_width_metric if ui_state.is_metric else UI_CONFIG.set_speed_width_imperial
     x = rect.x + 50 + (UI_CONFIG.set_speed_width_imperial - set_speed_width) // 2
     y = rect.y + 1020 - 230
     speed_pos = rl.Vector2(x, y)
-    rl.draw_text_ex(self._font_bold, speed_text, speed_pos, FONT_SIZES.current_speed + 10, 0, COLORS.white)
+    rl.draw_text_ex(self._font_bold, speed_text, speed_pos, FONT_SIZES.current_speed + 10, 0, speed_color)
+
+    if s.brakeLights:
+      brake_x = x + 5
+      brake_y = y + 195
+      brake_rect = rl.Rectangle(brake_x, brake_y, set_speed_width, 25)
+      rl.draw_rectangle_rounded(brake_rect, 1.0, 32, rl.Color(255, 0, 0, 180))
+      text_size = rl.measure_text_ex(self._font_bold, "BRAKE LIGHT", 20, 0)
+      text_x = brake_rect.x + (brake_rect.width - text_size.x*1.2) / 2
+      text_y = brake_rect.y + (brake_rect.height - text_size.y*1.2) / 2
+      rl.draw_text_ex(self._font_bold, "BRAKE LIGHT", rl.Vector2(text_x, text_y), 20, 0, COLORS.white_translucent)
 
     # unit_text = "KPH" if ui_state.is_metric else "MPH"
     # unit_text_size = measure_text_cached(self._font_medium, unit_text, FONT_SIZES.speed_unit)
