@@ -4,6 +4,7 @@ from openpilot.common.params import Params
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.widgets import Widget
+from openpilot.common.params import Params
 
 
 class KisaButton(Widget):
@@ -38,14 +39,25 @@ class KisaButton(Widget):
       self._held_mode = new_mode
       self._hold_end_time = time.monotonic() + self._hold_duration
 
+      ui_state.rec_status = not ui_state.rec_status
+      if ui_state.rec_status:
+        Params().put_bool_nonblocking("RecordingRunning", True)
+      else:
+        Params().put_bool_nonblocking("RecordingRunning", False)
+
   def _render(self, rect: rl.Rectangle) -> None:
     center_x = int(self._rect.x + self._rect.width // 2)
     center_y = int(self._rect.y + self._rect.height // 2)
 
     self._white_color.a = 180 if self.is_pressed else 255
 
+    if ui_state.rec_status:
+      bg_color = rl.Color(255, 0, 0, 100)
+    else:
+      bg_color = self._black_bg
+
     texture = self._txt_kisa if self._held_or_actual_mode() else self._txt_kisa
-    rl.draw_circle(center_x, center_y, self._rect.width / 2, self._black_bg)
+    rl.draw_circle(center_x, center_y, self._rect.width / 2, bg_color)
     rl.draw_texture(texture, center_x - texture.width // 2, center_y - texture.height // 2, self._white_color)
 
   def _held_or_actual_mode(self):
@@ -59,7 +71,7 @@ class KisaButton(Widget):
     return self._kisa_mode
 
   def _is_toggle_allowed(self):
-    return False
+    return True
     # if not self._params.get_bool("Test"):
     #   return False
 

@@ -137,7 +137,7 @@ class HudRenderer(Widget):
 
     self._draw_standstill_timer(rect)
 
-    self._draw_tpms(rect)
+    self._draw_car_stat(rect)
 
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + UI_CONFIG.border_size
@@ -146,7 +146,7 @@ class HudRenderer(Widget):
     self._kisa_button.render(rl.Rectangle(button_x, button_y + 960 - UI_CONFIG.button_size, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
   def user_interacting(self) -> bool:
-    return self._exp_button.is_pressed
+    return self._exp_button.is_pressed or self._kisa_button.is_pressed
 
   def _draw_set_speed(self, rect: rl.Rectangle) -> None:
     """Draw the MAX speed indicator box."""
@@ -279,9 +279,9 @@ class HudRenderer(Widget):
     blinker_width = 20
     blinker_height = 10
     blinker_spacing = 45
-    alpha = int(((math.sin(t * freq) + 1) / 2) * 255)
+    alpha = int(((math.sin(t * freq) + 1) / 2) * 230)
 
-    def draw_chevron(x, y, direction="right", alpha=255):
+    def draw_chevron(x, y, direction="right", alpha=230):
       delta = size * overlap
       if direction == "right":
         points = [(x - size + delta, y - size + delta), (x, y), (x - size + delta, y + size - delta)]
@@ -414,8 +414,8 @@ class HudRenderer(Widget):
       rl.draw_text_ex(self._font_bold, time_text, rl.Vector2(time_x, time_y),
                       140, 0, time_color)
 
-  def _draw_tpms(self, rect: rl.Rectangle) -> None:
-    """Draw KisaPilot-style TPMS."""
+  def _draw_car_stat(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style CAR Status."""
     img = self.img_car
     x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
     y_center = rect.y + 450
@@ -434,7 +434,7 @@ class HudRenderer(Widget):
     font_size = 36 if unit == 2 else (32 if unit != 0 else 37)
 
     def fmt_val(v):
-      if v is None or v == 0:
+      if v is None or v == 0 or v == 255:
         return ""
       return f"{int(round(v))}" if unit != 2 else f"{v:.1f}"
 
@@ -449,7 +449,7 @@ class HudRenderer(Widget):
         elif (value > 45 and unit != 2) or (value > 2.8 and unit == 2):
           col = rl.Color(255, 0, 0, 210)    # red
         else:
-          col = rl.Color(255, 255, 255, 210)    # white
+          col = rl.Color(0, 255, 0, 210)    # green
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
@@ -483,9 +483,22 @@ class HudRenderer(Widget):
       rl.draw_rectangle_rounded(brake_left, 0.9, 8, rl.Color(255, 0, 0, 180))
 
       brake_right = rl.Rectangle(
-        x_center + brake_spacing - 5,
+        x_center + brake_spacing - 6,
         y_center + img.height // 2 - 12,
         brake_width,
         brake_height
       )
       rl.draw_rectangle_rounded(brake_right, 0.9, 8, rl.Color(255, 0, 0, 180))
+
+    if ui_state.autoHold:
+      center_text = "AUTO\nHOLD"
+      font = self._font_bold
+      font_size = 27
+      color = rl.Color(0, 255, 0, 230)
+      lines = center_text.split("\n")
+      line_height = font_size + 3
+      total_height = line_height * len(lines)
+
+      for i, line in enumerate(lines):
+        tsz = measure_text_cached(font, line, font_size).x
+        rl.draw_text_ex(font, line, rl.Vector2(x_center - tsz / 2 + 14, y_center - total_height / 2 + i * line_height), font_size, 0, color)

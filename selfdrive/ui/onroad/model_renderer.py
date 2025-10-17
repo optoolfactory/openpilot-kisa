@@ -266,33 +266,14 @@ class ModelRenderer(Widget):
     return LeadVehicle(glow=glow, chevron=chevron, fill_alpha=int(fill_alpha))
 
   def _draw_lane_lines(self):
-    """Draw lane lines and road edges"""
+    """Draw lane lines, road edges and bsm alert"""
     for i, lane_line in enumerate(self._lane_lines):
-      pts = lane_line.projected_points
-      if pts.size == 0 or pts.shape[0] < 2:
+      if lane_line.projected_points.size == 0:
         continue
 
       alpha = np.clip(self._lane_line_probs[i], 0.0, 0.7)
-      draw_polygon(self._rect, pts, rl.Color(0, 255, 100, int(alpha * 255)))
-
-      for side, ui_flag, outer_idx, lane_indices in (
-          ('left', ui_state.leftblindspot, 0, [0, 1]),
-          ('right', ui_state.rightblindspot, 3, [2, 3])
-      ):
-        if not ui_flag or i not in lane_indices:
-          continue
-
-        offset_pts = np.zeros_like(pts)
-        for j in range(pts.shape[0]):
-          d = pts[j+1] - pts[j-1] if 0 < j < pts.shape[0]-1 else (pts[1]-pts[0] if j==0 else pts[-1]-pts[-2])
-          normal = np.array([-d[1], d[0]], dtype=np.float32)
-          normal /= np.linalg.norm(normal) if np.linalg.norm(normal) > 1e-6 else 1.0
-
-          edge_x = self._lane_lines[outer_idx].projected_points[min(j, self._lane_lines[outer_idx].projected_points.shape[0]-1), 0] if (0 <= outer_idx < len(self._lane_lines) and self._lane_lines[outer_idx].projected_points.size > 0) else pts[j, 0]
-
-          offset_pts[j] = pts[j] + normal * abs(edge_x - pts[j,0])
-
-        draw_polygon(self._rect, np.vstack([pts, offset_pts[::-1]]), rl.Color(255, 50, 50, 150))
+      color = rl.Color(0, 255, 100, int(alpha * 255))
+      draw_polygon(self._rect, lane_line.projected_points, color)
 
     for i, road_edge in enumerate(self._road_edges):
       if road_edge.projected_points.size == 0:
@@ -301,6 +282,40 @@ class ModelRenderer(Widget):
       alpha = np.clip(1.0 - self._road_edge_stds[i], 0.0, 1.0)
       color = rl.Color(255, 0, 0, int(alpha * 255))
       draw_polygon(self._rect, road_edge.projected_points, color)
+
+    if ui_state.leftblindspot:
+      if len(self._lane_lines) >= 2:
+        # 0 ~ 1
+        left_pts = self._lane_lines[0].projected_points
+        mid_pts  = self._lane_lines[1].projected_points
+        if left_pts.size > 0 and mid_pts.size > 0:
+          polygon_pts = np.vstack([left_pts, mid_pts])
+          draw_polygon(self._rect, polygon_pts, rl.Color(230, 50, 50, 125))
+        # e0 ~ 1
+        elif len(self._road_edges) >= 1:
+          road_edge_pts = self._road_edges[0].projected_points
+          if mid_pts.size > 0 and road_edge_pts.size > 0:
+            polygon_pts = np.vstack([mid_pts, road_edge_pts])
+            draw_polygon(self._rect, polygon_pts, rl.Color(230, 50, 50, 125))
+
+    if ui_state.rightblindspot:
+      if len(self._lane_lines) >= 4:
+        # 2 ~ 3
+        right_bsm = False
+        mid_pts = self._lane_lines[2].projected_points
+        right_pts = self._lane_lines[3].projected_points
+        if mid_pts.size > 0 and right_pts.size > 0:
+          right_bsm = True
+          polygon_pts = np.vstack([mid_pts, right_pts])
+          draw_polygon(self._rect, polygon_pts, rl.Color(230, 50, 50, 125))
+          return
+      # 2 ~ e1
+      if len(self._lane_lines) >= 3 and len(self._road_edges) >= 2 and not right_bsm:
+        mid_pts = self._lane_lines[2].projected_points
+        road_edge_pts = self._road_edges[1].projected_points
+        if mid_pts.size > 0 and road_edge_pts.size > 0:
+          polygon_pts = np.vstack([mid_pts, road_edge_pts])
+          draw_polygon(self._rect, polygon_pts, rl.Color(230, 50, 50, 125))
 
   def _draw_path(self, sm):
     """Draw path with dynamic coloring based on mode and throttle state."""
