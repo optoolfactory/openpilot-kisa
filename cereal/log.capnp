@@ -883,6 +883,7 @@ struct SelfdriveState {
     normal @0;
     userPrompt @1;
     critical @2;
+    clear @3;
   }
 
   enum AlertSize @0xe98bb99d6e985f64 {

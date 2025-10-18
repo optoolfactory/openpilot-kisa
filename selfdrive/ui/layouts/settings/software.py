@@ -160,6 +160,7 @@ class SoftwareLayout(Widget):
   def _on_install_update(self):
     # Trigger reboot to install update
     self._install_btn.action_item.set_enabled(False)
+    os.system("touch /data/ks")
     ui_state.params.put_bool("DoReboot", True)
 
   def _on_select_branch(self): pass

@@ -162,7 +162,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TorqueFriction", {PERSISTENT, INT, "80"}},
     {"TorqueMaxLatAccel", {PERSISTENT, INT, "30"}},
     {"TorqueAngDeadZone", {PERSISTENT, INT, "10"}},
-    {"CameraOffsetAdj", {PERSISTENT, INT, "40"}},
+    {"CameraOffsetAdj", {PERSISTENT, FLOAT, "0.04"}},
     {"PathOffsetAdj", {PERSISTENT, INT, "0"}},
     {"SteerRatioAdj", {PERSISTENT, INT, "1375"}},
     {"SteerActuatorDelayAdj", {PERSISTENT, INT, "15"}},

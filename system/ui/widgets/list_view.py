@@ -10,6 +10,9 @@ from openpilot.system.ui.widgets.toggle import Toggle, WIDTH as TOGGLE_WIDTH, HE
 from openpilot.system.ui.widgets.label import gui_label
 from openpilot.system.ui.widgets.html_render import HtmlRenderer, ElementType
 
+import time
+from openpilot.common.params import Params
+
 ITEM_BASE_WIDTH = 600
 ITEM_BASE_HEIGHT = 170
 ITEM_PADDING = 20
@@ -533,6 +536,220 @@ class ListItem(Widget):
     right_x = item_rect.x + item_rect.width - right_width
     right_y = item_rect.y
     return rl.Rectangle(right_x, right_y, right_width, ITEM_BASE_HEIGHT)
+
+
+class NumericStepperAction(ItemAction):
+  def __init__(self, param_key: str, value_type: str = "STR", step: float = 1,
+               min_value: float | None = None, max_value: float | None = None,
+               decimals: int = 0, button_width: int = 120, enabled: bool | Callable[[], bool] = True):
+    total_width = button_width * 2 + 140
+    super().__init__(width=total_width, enabled=enabled)
+
+    self.param_key = param_key
+    self.value_type = (value_type or "STR").upper()
+    self.step = step
+    self.min_value = min_value
+    self.max_value = max_value
+    self.decimals = int(decimals)
+    self.button_width = button_width
+
+    self.params = Params()
+    self._cached_value = None
+
+    self._last_update_left = 0
+    self._last_update_right = 0
+    self._repeat_interval = 0.005
+    self._left_handled = False
+    self._right_handled = False
+
+    def _left_cb():
+      pass
+
+    def _right_cb():
+      pass
+
+    self.left_button = Button("-", click_callback=_left_cb, button_style=ButtonStyle.LIST_ACTION)
+    self.right_button = Button("+", click_callback=_right_cb, button_style=ButtonStyle.LIST_ACTION)
+    self._font = gui_app.font(FontWeight.MEDIUM)
+
+  def _read_raw(self):
+    try:
+      if self.value_type == "BOOL":
+        return self.params.get_bool(self.param_key)
+      raw = self.params.get(self.param_key)
+      if raw is None:
+        return None
+      if self.value_type == "INT":
+        return int(float(raw))
+      if self.value_type == "FLOAT":
+        return float(raw)
+      return raw
+    except Exception:
+      return None
+
+  def _write_raw(self, value):
+    if value is not None:
+      if self.min_value is not None:
+        value = max(value, self.min_value)
+      if self.max_value is not None:
+        value = min(value, self.max_value)
+    try:
+      if self.value_type == "BOOL":
+        if hasattr(self.params, "put_bool"):
+          self.params.put_bool(self.param_key, bool(value))
+        else:
+          self.params.put(self.param_key, "1" if bool(value) else "0")
+      elif self.value_type == "INT":
+        self.params.put(self.param_key, int(round(value)))
+      elif self.value_type == "FLOAT":
+        fval = round(float(value), self.decimals)
+        self.params.put(self.param_key, fval)
+      else:
+        self.params.put(self.param_key, str(value))
+      return value
+    except Exception as e:
+      print(f"[NumericStepperAction] write error for {self.param_key}: {e}")
+      return None
+
+  def _get_value_for_display(self):
+    if self._cached_value is not None:
+      return self._cached_value
+    raw = self._read_raw()
+    self._cached_value = raw
+    if raw is None:
+      if self.value_type == "BOOL":
+        return False
+      if self.value_type == "INT":
+        return 0
+      if self.value_type == "FLOAT":
+        return 0.0
+      return ""
+    if self.value_type == "BOOL":
+      return bool(raw)
+    if self.value_type == "INT":
+      return int(raw)
+    if self.value_type == "FLOAT":
+      return float(raw)
+    return raw
+
+  def _format_display(self, v):
+    if self.value_type in ("INT", "BOOL"):
+      return str(int(v))
+    if self.value_type == "FLOAT":
+      if self.decimals > 0:
+        return f"{v:.{self.decimals}f}"
+      return repr(float(v))
+    return str(v)
+
+  def _render(self, rect: rl.Rectangle) -> bool:
+    spacing = 12
+    btn_h = BUTTON_HEIGHT if BUTTON_HEIGHT < rect.height else int(rect.height * 0.7)
+    btn_y = rect.y + (rect.height - btn_h) / 2
+
+    right_rect = rl.Rectangle(rect.x + rect.width - self.button_width, btn_y, self.button_width, btn_h)
+    left_rect = rl.Rectangle(right_rect.x - spacing - self.button_width, btn_y, self.button_width, btn_h)
+
+    value_area_right = left_rect.x - spacing
+    value_area_left = rect.x + ITEM_PADDING
+    value_area_w = max(20, value_area_right - value_area_left)
+    value_area = rl.Rectangle(value_area_left, rect.y, value_area_w, rect.height)
+
+    enabled_flag = _resolve_value(self.enabled, True)
+    self.left_button.set_enabled(enabled_flag)
+    self.right_button.set_enabled(enabled_flag)
+
+    self.left_button.render(left_rect)
+    self.right_button.render(right_rect)
+
+    now = time.time()
+
+    if self.left_button.is_pressed:
+      if not self._left_handled:
+        cur = self._get_value_for_display()
+        if self.value_type == "BOOL":
+          newv = not bool(cur)
+        elif self.value_type == "INT":
+          newv = int(cur) - int(self.step)
+        elif self.value_type == "FLOAT":
+          newv = float(cur) - float(self.step)
+        else:
+          newv = cur
+        value = self._write_raw(newv)
+        self._cached_value = value
+        self._last_update_left = now
+        self._last_press_left = now
+        self._left_handled = True
+      elif now - self._last_update_left > self._repeat_interval and now - self._last_press_left > 1.0:
+        cur = self._get_value_for_display()
+        if self.value_type == "BOOL":
+          newv = not bool(cur)
+        elif self.value_type == "INT":
+          newv = int(cur) - int(self.step)
+        elif self.value_type == "FLOAT":
+          newv = float(cur) - float(self.step)
+        else:
+          newv = cur
+        value = self._write_raw(newv)
+        self._cached_value = value
+        self._last_update_left = now
+      else:
+        cur = self._get_value_for_display()
+    else:
+      self._left_handled = False
+      cur = self._get_value_for_display()
+
+    if self.right_button.is_pressed:
+      if not self._right_handled:
+        cur = self._get_value_for_display()
+        if self.value_type == "BOOL":
+          newv = not bool(cur)
+        elif self.value_type == "INT":
+          newv = int(cur) + int(self.step)
+        elif self.value_type == "FLOAT":
+          newv = float(cur) + float(self.step)
+        else:
+          newv = cur
+        value = self._write_raw(newv)
+        self._cached_value = value
+        self._last_update_right = now
+        self._last_press_right = now
+        self._right_handled = True
+      elif now - self._last_update_right > self._repeat_interval and now - self._last_press_right > 1.0:
+        cur = self._get_value_for_display()
+        if self.value_type == "BOOL":
+          newv = not bool(cur)
+        elif self.value_type == "INT":
+          newv = int(cur) + int(self.step)
+        elif self.value_type == "FLOAT":
+          newv = float(cur) + float(self.step)
+        else:
+          newv = cur
+        value = self._write_raw(newv)
+        self._cached_value = value
+        self._last_update_right = now
+      else:
+        cur = self._get_value_for_display()
+    else:
+      self._right_handled = False
+      cur = self._get_value_for_display()
+
+    disp = self._format_display(cur)
+    text_size = measure_text_cached(self._font, disp, ITEM_TEXT_FONT_SIZE)
+    text_x = value_area.x + (value_area.width - text_size.x)
+    text_y = rect.y + (rect.height - text_size.y) / 2
+    rl.draw_text_ex(self._font, disp, rl.Vector2(text_x, text_y), ITEM_TEXT_FONT_SIZE, 0, ITEM_TEXT_VALUE_COLOR)
+
+    return False
+
+
+def numeric_item(title: str, param_key: str, value_type: str = "INT", step: float = 1,
+                 min_value: float | None = None, max_value: float | None = None,
+                 decimals: int = 0, enabled: bool | Callable[[], bool] = True,
+                 description: str | Callable[[], str] | None = None) -> ListItem:
+  action = NumericStepperAction(param_key, value_type=value_type, step=step,
+                                min_value=min_value, max_value=max_value, decimals=decimals,
+                                button_width=120, enabled=enabled)
+  return ListItem(title=title, description=description, action_item=action)
 
 
 # Factory functions

@@ -1066,7 +1066,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
     ET.WARNING: Alert(
       tr(196),
       "",
-      AlertStatus.normal, AlertSize.small,
+      AlertStatus.clear, AlertSize.small,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, .1),
   },
 
