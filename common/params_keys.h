@@ -248,7 +248,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"IgnoreCANErroronISG", {PERSISTENT, BOOL, "0"}},
     {"RESCountatStandstill", {PERSISTENT, INT, "25"}},
     {"KisaSpeedLimitOffsetOption", {PERSISTENT, INT, "0"}},
-    {"KisaSpeedLimitSignType", {PERSISTENT, BOOL, "0"}},
+    {"KisaSpeedLimitSignType", {PERSISTENT, INT, "0"}},
     {"StockLKASEnabled", {PERSISTENT, BOOL, "0"}},
     {"SpeedLimitDecelOff", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"CurvDecelOption", {PERSISTENT, INT, "2"}},
@@ -313,4 +313,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"LFAButtonEngagement", {PERSISTENT, BOOL, "0"}},
     {"TimeFactorModHours", {PERSISTENT, STRING, "0"}},
     {"TimeFactorModMinutes", {PERSISTENT, STRING, "0"}},
+    {"KisaCANType", {PERSISTENT, STRING, "-"}},
+    {"KisaSCCType", {PERSISTENT, STRING, "-"}},
 };

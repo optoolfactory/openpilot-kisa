@@ -541,7 +541,8 @@ class ListItem(Widget):
 class NumericStepperAction(ItemAction):
   def __init__(self, param_key: str, value_type: str = "STR", step: float = 1,
                min_value: float | None = None, max_value: float | None = None,
-               decimals: int = 0, button_width: int = 120, enabled: bool | Callable[[], bool] = True):
+               decimals: int = 0, button_width: int = 120, enabled: bool | Callable[[], bool] = True,
+               special_texts: dict[int | float, str] | None = None):
     total_width = button_width * 2 + 140
     super().__init__(width=total_width, enabled=enabled)
 
@@ -552,6 +553,7 @@ class NumericStepperAction(ItemAction):
     self.max_value = max_value
     self.decimals = int(decimals)
     self.button_width = button_width
+    self.special_texts = special_texts
 
     self.params = Params()
     self._cached_value = None
@@ -734,6 +736,9 @@ class NumericStepperAction(ItemAction):
       cur = self._get_value_for_display()
 
     disp = self._format_display(cur)
+    if self.special_texts:
+      disp = self.special_texts.get(str(cur), disp)
+
     text_size = measure_text_cached(self._font, disp, ITEM_TEXT_FONT_SIZE)
     text_x = value_area.x + (value_area.width - text_size.x)
     text_y = rect.y + (rect.height - text_size.y) / 2
@@ -745,11 +750,13 @@ class NumericStepperAction(ItemAction):
 def numeric_item(title: str, param_key: str, value_type: str = "INT", step: float = 1,
                  min_value: float | None = None, max_value: float | None = None,
                  decimals: int = 0, enabled: bool | Callable[[], bool] = True,
-                 description: str | Callable[[], str] | None = None) -> ListItem:
+                 description: str | Callable[[], str] | None = None,
+                 special_texts: dict[int | float, str] | None = None) -> ListItem:
   action = NumericStepperAction(param_key, value_type=value_type, step=step,
                                 min_value=min_value, max_value=max_value, decimals=decimals,
-                                button_width=120, enabled=enabled)
+                                button_width=120, enabled=enabled, special_texts=special_texts)
   return ListItem(title=title, description=description, action_item=action)
+
 
 
 # Factory functions

@@ -78,7 +78,7 @@ class SoftwareLayout(Widget):
 
   def _update_state(self):
     # Show/hide onroad warning
-    self._onroad_label.set_visible(ui_state.is_onroad())
+    self._onroad_label.set_visible(False)
 
     # Update current version and release notes
     current_desc = ui_state.params.get("UpdaterCurrentDescription") or ""

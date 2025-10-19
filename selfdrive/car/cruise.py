@@ -81,6 +81,8 @@ class VCruiseHelper:
     self.prev_acc_reset_btn = False
     self.prev_main_btn = False
 
+    self.long_time_btn = False
+
   @property
   def v_cruise_initialized(self):
     return self.v_cruise_kph != V_CRUISE_UNSET
@@ -122,7 +124,10 @@ class VCruiseHelper:
               self.cruise_road_limit_spd_switch_prev = navi.roadLimitSpeed
               self.cruise_road_limit_spd_switch = False
             elif (self.cruise_road_limit_spd_enabled and cstate.setLoadspeedTempStop) and (CS.cruiseButtons == Buttons.SET_DECEL or self.first_acc):
-              if 1 < int(navi.roadLimitSpeed) < 150:
+              if self.long_time_btn:
+                self.cruise_road_limit_spd_switch = False
+                self.long_time_btn = False
+              elif 1 < int(navi.roadLimitSpeed) < 150:
                 self.cruise_road_limit_spd_switch = True
               else:
                 self.cruise_road_limit_spd_switch = False
@@ -319,6 +324,7 @@ class VCruiseHelper:
     # long press should set scc speed with cluster scc number
     if self.cruise_buttons_time >= 60:
       self.cruise_set_speed_kph = CS.vSetDis
+      self.long_time_btn = True
       return self.cruise_set_speed_kph
 
     if self.prev_cruise_btn == CS.cruiseButtons:
@@ -381,6 +387,7 @@ class VCruiseHelper:
     # long press should set scc speed with cluster scc number
     if self.cruise_buttons_time >= 70:
       self.cruise_set_speed_kph = CS.vSetDis
+      self.long_time_btn = True
       return self.cruise_set_speed_kph
 
     if CS.cruiseAccStatus and not CS.cruiseButtons and not self.prev_main_btn:

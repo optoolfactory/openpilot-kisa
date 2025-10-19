@@ -43,6 +43,7 @@ class CarInterface(CarInterfaceBase):
     kisaLongAlt = params.get("KISALongAlt", return_default=True)
 
     if ret.flags & HyundaiFlags.CANFD:
+      params.put("KisaCANType", "CANFD")
       # Shared configuration for CAN-FD cars
       ret.alphaLongitudinalAvailable = candidate not in CANFD_UNSUPPORTED_LONGITUDINAL_CAR
       if lka_steering and Ecu.adas not in [fw.ecu for fw in car_fw]:
@@ -124,6 +125,7 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalActuatorDelay = 0.5
 
     else:
+      params.put("KisaCANType", "CAN")
       ret.isCanFD = False
       # Shared configuration for non CAN-FD cars
       ret.alphaLongitudinalAvailable = candidate not in UNSUPPORTED_LONGITUDINAL_CAR
@@ -174,7 +176,12 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalActuatorDelay = 0.5
 
       if (ret.flags & HyundaiFlags.CAMERA_SCC) or ret.sccBus == 2:
+        params.put("KisaSCCType", "CAMERA_SCC")
         ret.safetyConfigs[0].safetyParam |= HyundaiSafetyFlags.CAMERA_SCC.value
+      elif ret.openpilotLongitudinalControl:
+        params.put("KisaSCCType", "OP_LONG")
+      else:
+        params.put("KisaSCCType", "STOCK")
       if ret.sccBus == 2:
         ret.safetyConfigs[-1].safetyParam |= HyundaiSafetyFlags.LONG.value
 

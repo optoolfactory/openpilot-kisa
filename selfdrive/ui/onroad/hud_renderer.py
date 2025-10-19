@@ -303,11 +303,11 @@ class HudRenderer(Widget):
     if ui_state.leftBlinker:
       blinker_left = rl.Rectangle(x_center - blinker_spacing - blinker_width + 30 + 14, y_center - img.height // 2 + 8, blinker_width, blinker_height)
       rl.draw_rectangle_pro(blinker_left, rl.Vector2(blinker_left.width / 2, blinker_left.height / 2), -23, rl.Color(230, 165, 0, alpha))
-      draw_sequence(center_x - 700 + sway, center_y, "left")
+      draw_sequence(center_x - 700 - sway, center_y, "left")
     if ui_state.rightBlinker:
       blinker_right = rl.Rectangle(x_center + blinker_spacing - 2 + 5, y_center - img.height // 2 + 8, blinker_width, blinker_height)
       rl.draw_rectangle_pro(blinker_right, rl.Vector2(blinker_right.width / 2, blinker_right.height / 2), 23, rl.Color(230, 165, 0, alpha))
-      draw_sequence(center_x + 700 - sway, center_y, "right")
+      draw_sequence(center_x + 700 + sway, center_y, "right")
 
   def _draw_speed_limit_sign(self, rect: rl.Rectangle) -> None:
     """Draw KisaPilot-style speed limit sign."""

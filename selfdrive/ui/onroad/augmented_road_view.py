@@ -126,7 +126,7 @@ class AugmentedRoadView(CameraView):
     y = self._content_rect.y + self._content_rect.height
     x = self._content_rect.x
 
-    thickness = 3
+    thickness = 5
 
     for text in texts:
       text_width = rl.measure_text(text, font_size)
