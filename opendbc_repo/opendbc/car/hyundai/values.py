@@ -465,6 +465,14 @@ class CAR(Platforms):
     CarSpecs(mass=3543 * CV.LB_TO_KG, wheelbase=2.7, steerRatio=13.6, tireStiffnessFactor=0.385),  # average of all the cars
     flags=HyundaiFlags.MANDO_RADAR | HyundaiFlags.EV,
   )
+  KIA_NIRO_PLUS_EV = HyundaiPlatformConfig(
+    [
+      HyundaiCarDocs("Kia Niro Plus EV 2022", "All", video="https://www.youtube.com/watch?v=lT7zcG6ZpGo", car_parts=CarParts.common([CarHarness.hyundai_h])),
+    ],
+    CarSpecs(mass=3543 * CV.LB_TO_KG, wheelbase=2.7, steerRatio=13.6, tireStiffnessFactor=0.385),  # average of all the cars
+    flags=HyundaiFlags.MANDO_RADAR | HyundaiFlags.EV,
+  )
+  
   KIA_NIRO_EV_2ND_GEN = HyundaiCanFDPlatformConfig(
     [
       HyundaiCarDocs("Kia Niro EV (without HDA II) 2023-25", "All", car_parts=CarParts.common([CarHarness.hyundai_a])),
