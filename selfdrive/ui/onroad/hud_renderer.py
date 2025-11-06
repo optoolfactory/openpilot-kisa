@@ -137,7 +137,7 @@ class HudRenderer(Widget):
 
     self._draw_standstill_timer(rect)
 
-    self._draw_tpms(rect)
+    self._draw_car_stat(rect)
 
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + UI_CONFIG.border_size
@@ -146,7 +146,7 @@ class HudRenderer(Widget):
     self._kisa_button.render(rl.Rectangle(button_x, button_y + 960 - UI_CONFIG.button_size, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
   def user_interacting(self) -> bool:
-    return self._exp_button.is_pressed
+    return self._exp_button.is_pressed or self._kisa_button.is_pressed
 
   def _draw_set_speed(self, rect: rl.Rectangle) -> None:
     """Draw the MAX speed indicator box."""
@@ -272,7 +272,16 @@ class HudRenderer(Widget):
     base_color = rl.Color(230, 165, 0, 230)
     overlap = 0.25
 
-    def draw_chevron(x, y, direction="right", alpha=255):
+    img = self.img_car
+    x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
+    y_center = rect.y + 450
+    blinker_y = y_center - img.height // 2 - 40
+    blinker_width = 20
+    blinker_height = 10
+    blinker_spacing = 45
+    alpha = int(((math.sin(t * freq) + 1) / 2) * 230)
+
+    def draw_chevron(x, y, direction="right", alpha=230):
       delta = size * overlap
       if direction == "right":
         points = [(x - size + delta, y - size + delta), (x, y), (x - size + delta, y + size - delta)]
@@ -292,9 +301,13 @@ class HudRenderer(Widget):
         draw_chevron(pos_x, y, direction, alpha)
 
     if ui_state.leftBlinker:
-      draw_sequence(center_x - 700 + sway, center_y, "left")
+      blinker_left = rl.Rectangle(x_center - blinker_spacing - blinker_width + 30 + 14, y_center - img.height // 2 + 8, blinker_width, blinker_height)
+      rl.draw_rectangle_pro(blinker_left, rl.Vector2(blinker_left.width / 2, blinker_left.height / 2), -23, rl.Color(230, 165, 0, alpha))
+      draw_sequence(center_x - 700 - sway, center_y, "left")
     if ui_state.rightBlinker:
-      draw_sequence(center_x + 700 - sway, center_y, "right")
+      blinker_right = rl.Rectangle(x_center + blinker_spacing - 2 + 5, y_center - img.height // 2 + 8, blinker_width, blinker_height)
+      rl.draw_rectangle_pro(blinker_right, rl.Vector2(blinker_right.width / 2, blinker_right.height / 2), 23, rl.Color(230, 165, 0, alpha))
+      draw_sequence(center_x + 700 + sway, center_y, "right")
 
   def _draw_speed_limit_sign(self, rect: rl.Rectangle) -> None:
     """Draw KisaPilot-style speed limit sign."""
@@ -401,8 +414,8 @@ class HudRenderer(Widget):
       rl.draw_text_ex(self._font_bold, time_text, rl.Vector2(time_x, time_y),
                       140, 0, time_color)
 
-  def _draw_tpms(self, rect: rl.Rectangle) -> None:
-    """Draw KisaPilot-style TPMS."""
+  def _draw_car_stat(self, rect: rl.Rectangle) -> None:
+    """Draw KisaPilot-style CAR Status."""
     img = self.img_car
     x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
     y_center = rect.y + 450
@@ -410,28 +423,23 @@ class HudRenderer(Widget):
     icon_y = y_center - img.height // 2
     icon_rect = rl.Rectangle(icon_x, icon_y, self.img_car_width, self.img_car_height)
     source_rect = rl.Rectangle(0, 0, img.width, img.height)
-    rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 100))
+    rl.draw_texture_pro(img, source_rect, icon_rect, rl.Vector2(0, 0), 0, rl.Color(255, 255, 255, 150))
 
-    # fl = ui_state.tpmsPressureFl
-    # fr = ui_state.tpmsPressureFr
-    # rl_p = ui_state.tpmsPressureRl
-    # rr = ui_state.tpmsPressureRr
-    # unit = ui_state.tpmsUnit  # 0: psi, 1: kpa, 2: bar
+    fl = ui_state.tpmsPressureFl
+    fr = ui_state.tpmsPressureFr
+    rl_p = ui_state.tpmsPressureRl
+    rr = ui_state.tpmsPressureRr
+    unit = ui_state.tpmsUnit  # 0: psi, 1: kpa, 2: bar
 
-    fl = 36.0
-    fr = 37.0
-    rl_p = 38.0
-    rr = 39.0
-    unit = 0  # 0: psi, 1: kpa, 2: bar
-
-    font_size = 43 if unit == 2 else (36 if unit != 0 else 42)
+    font_size = 36 if unit == 2 else (32 if unit != 0 else 37)
 
     def fmt_val(v):
-      if v is None or v > 50:
+      if v is None or v == 0 or v == 255:
         return ""
-      return f"{v:.1f}" if unit != 0 else f"{int(round(v))}"
+      return f"{int(round(v))}" if unit != 2 else f"{v:.1f}"
 
     def draw_value(offset_x, offset_y, value):
+      offset = 0.52 if unit == 2 else (0.51 if unit != 0 else 0.465)
       if value is None:
         col = rl.Color(255, 255, 255, 210)
         text = ""
@@ -441,16 +449,17 @@ class HudRenderer(Widget):
         elif (value > 45 and unit != 2) or (value > 2.8 and unit == 2):
           col = rl.Color(255, 0, 0, 210)    # red
         else:
-          col = rl.Color(255, 255, 255, 210)    # white
+          col = rl.Color(0, 255, 0, 210)    # green
         text = fmt_val(value)
       tsz = measure_text_cached(self._font_bold, text, font_size).x
       rl.draw_text_ex(self._font_bold, text,
-                      rl.Vector2(offset_x - (tsz / 2)*0.34, offset_y),
+                      rl.Vector2(offset_x - (tsz / 2)*offset, offset_y),
                       font_size, 0, col)
 
-    x_offset = img.width // 1.33  # left_right wheel distance
-    y_offset_front = -img.height // 2.25  # front
-    y_offset_rear = img.height // 4.5    # rear
+    offset_add = 1.1 if unit == 2 else (0.7 if unit != 0 else 1.2)
+    x_offset = img.width // offset_add  # left_right wheel distance
+    y_offset_front = -img.height // 3.3  # front
+    y_offset_rear = img.height // 4.2    # rear
 
     # offset based on tire loc
     y_text_adjust = -10
@@ -460,24 +469,36 @@ class HudRenderer(Widget):
     draw_value(x_center - x_offset, y_center + y_offset_rear + y_text_adjust, rl_p)  # Rear-left
     draw_value(x_center + x_offset, y_center + y_offset_rear + y_text_adjust, rr)  # Rear-right
 
-    if ui_state.brakeLights or True:
+    if ui_state.brakeLights:
       brake_width = 20
       brake_height = 10
       brake_spacing = 35
 
       brake_left = rl.Rectangle(
-        x_center - brake_spacing - brake_width + 30,
-        y_center + img.height // 2 - 8,
+        x_center - brake_spacing - brake_width + 33,
+        y_center + img.height // 2 - 12,
         brake_width,
         brake_height
       )
-      rl.draw_rectangle_rounded(brake_left, 0.8, 8, rl.Color(255, 0, 0, 180))
+      rl.draw_rectangle_rounded(brake_left, 0.9, 8, rl.Color(255, 0, 0, 180))
 
       brake_right = rl.Rectangle(
-        x_center + brake_spacing - 5,
-        y_center + img.height // 2 - 8,
+        x_center + brake_spacing - 6,
+        y_center + img.height // 2 - 12,
         brake_width,
         brake_height
       )
-      rl.draw_rectangle_rounded(brake_right, 0.8, 8, rl.Color(255, 0, 0, 180))
+      rl.draw_rectangle_rounded(brake_right, 0.9, 8, rl.Color(255, 0, 0, 180))
 
+    if ui_state.autoHold:
+      center_text = "AUTO\nHOLD"
+      font = self._font_bold
+      font_size = 27
+      color = rl.Color(0, 255, 0, 230)
+      lines = center_text.split("\n")
+      line_height = font_size + 3
+      total_height = line_height * len(lines)
+
+      for i, line in enumerate(lines):
+        tsz = measure_text_cached(font, line, font_size).x
+        rl.draw_text_ex(font, line, rl.Vector2(x_center - tsz / 2 + 14, y_center - total_height / 2 + i * line_height), font_size, 0, color)
