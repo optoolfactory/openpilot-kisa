@@ -17,9 +17,9 @@ LaneChangeState = log.LateralPlan.LaneChangeState
 
 TRAJECTORY_SIZE = 33
 
-CAMERA_OFFSET = Params().get("CameraOffsetAdj", return_default=True) * 0.001 if Params().get("CameraOffsetAdj", return_default=True) is not None else 0.04 # default 0.04
+CAMERA_OFFSET = Params().get("CameraOffsetAdj", return_default=True) if Params().get("CameraOffsetAdj", return_default=True) is not None else 0.04 # default 0.04
 CAMERA_OFFSET_A = CAMERA_OFFSET + 0.15
-PATH_OFFSET = Params().get("PathOffsetAdj", return_default=True) * 0.001 if Params().get("PathOffsetAdj", return_default=True) is not None else 0.0 # default 0.0
+PATH_OFFSET = Params().get("PathOffsetAdj", return_default=True) if Params().get("PathOffsetAdj", return_default=True) is not None else 0.0 # default 0.0
 
 PATH_COST = 1.0
 LATERAL_MOTION_COST = 0.11
@@ -152,7 +152,7 @@ class LateralPlanner:
       self.timer = 0.0
       self.speed_offset = self.params.get_bool("SpeedCameraOffset")
       if self.params.get_bool("KisaLiveTunePanelEnable"):
-        self.camera_offset = self.params.get("CameraOffsetAdj", return_default=True) * 0.001
+        self.camera_offset = self.params.get("CameraOffsetAdj", return_default=True)
 
     if self.drive_close_to_edge: # kisapilot
       left_edge_prob = np.clip(1.0 - md.roadEdgeStds[0], 0.0, 1.0)

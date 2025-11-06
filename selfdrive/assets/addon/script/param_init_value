@@ -31,7 +31,7 @@ TorqueKd:0
 TorqueFriction:80
 TorqueMaxLatAccel:30
 TorqueAngDeadZone:10
-CameraOffsetAdj:40
+CameraOffsetAdj:0.04
 PathOffsetAdj:0
 SteerRatioAdj:1375
 SteerActuatorDelayAdj:15

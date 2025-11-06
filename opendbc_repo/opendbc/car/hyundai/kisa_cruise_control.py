@@ -79,6 +79,7 @@ class KisaCruiseControl():
     self.t_interval = 7
     self.t_interval2 = self.params.get("KISACruiseSpammingInterval", return_default=True)
     self.faststart = False
+    self.faststart_curv = False
     self.safetycam_speed = 0
     self.decelonstop = False
 
@@ -477,17 +478,24 @@ class KisaCruiseControl():
         self.cutInControl = False
       elif CS.out.cruiseState.modeSel == 3: # curv only
         vRel = int(CS.lead_objspd * (CV.MS_TO_MPH if not CS.is_metric else CV.MS_TO_KPH)) if self.use_radar_value and CS.lead_distance < 149 else int(lead_0.vRel * (CV.MS_TO_MPH if not CS.is_metric else CV.MS_TO_KPH))
-        if CS.out.brakeLights and CS.out.vEgo == 0:
-          var_speed = navi_speed
+        if (CS.out.brakeLights and CS.out.vEgo == 0) or (self.faststart_curv and round(controls_state.vFuture) < (15 if not CS.is_metric else 25)):
+          self.faststart_curv = True
+          var_speed = min(navi_speed, 20 if not CS.is_metric else 30)
+        elif self.faststart_curv and (15 if not CS.is_metric else 25) <= round(controls_state.vFuture) <= (25 if not CS.is_metric else 35):
+          var_speed = min(navi_speed, 30 if not CS.is_metric else 45)
         elif vRel >= 0:
+          self.faststart_curv = False
           self.decelonstop = False
           var_speed = navi_speed
         elif vRel < (-12 if not CS.is_metric else -20): # encounter with a stopped car
+          self.faststart_curv = False
           self.decelonstop = True
           var_speed = min(round(controls_state.vFuture), navi_speed)
         elif self.decelonstop:
+          self.faststart_curv = False
           var_speed = min(round(controls_state.vFuture), navi_speed)
         else:
+          self.faststart_curv = False
           var_speed = navi_speed
         self.faststart = False
         self.t_interval = randint(self.t_interval2+3, self.t_interval2+5) if not CS.is_metric else randint(self.t_interval2, self.t_interval2+2)

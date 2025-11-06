@@ -126,9 +126,17 @@ class AugmentedRoadView(CameraView):
     y = self._content_rect.y + self._content_rect.height
     x = self._content_rect.x
 
+    thickness = 5
+
     for text in texts:
-      rl.draw_text(text, int(x), int(y), font_size, rl.WHITE)
       text_width = rl.measure_text(text, font_size)
+      for dx in range(-thickness, thickness+1):
+        for dy in range(-thickness, thickness+1):
+          if dx == 0 and dy == 0:
+            continue
+          rl.draw_text(text, int(x+dx), int(y+dy), font_size, rl.BLACK)
+      rl.draw_text(text, int(x), int(y), font_size, rl.WHITE)
+
       x += text_width + padding
 
   def _switch_stream_if_needed(self, sm):

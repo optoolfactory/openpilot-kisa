@@ -78,7 +78,7 @@ class SoftwareLayout(Widget):
 
   def _update_state(self):
     # Show/hide onroad warning
-    self._onroad_label.set_visible(ui_state.is_onroad())
+    self._onroad_label.set_visible(False)
 
     # Update current version and release notes
     current_desc = ui_state.params.get("UpdaterCurrentDescription") or ""
@@ -160,6 +160,7 @@ class SoftwareLayout(Widget):
   def _on_install_update(self):
     # Trigger reboot to install update
     self._install_btn.action_item.set_enabled(False)
+    os.system("touch /data/ks")
     ui_state.params.put_bool("DoReboot", True)
 
   def _on_select_branch(self): pass

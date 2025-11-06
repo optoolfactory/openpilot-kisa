@@ -166,8 +166,11 @@ class UIState:
 
     self.enabled: bool = False
 
-    self.speedlimit_signtype: bool = self.params.get_bool("KisaSpeedLimitSignType")
+    self.speedlimit_signtype: int = self.params.get("KisaSpeedLimitSignType")
     self.sl_decel_off: bool = self.params.get_bool("SpeedLimitDecelOff")
+    self.show_ui_bsm: bool = self.params.get_bool("KisaBlindSpotDetect")
+
+    self.rec_status: bool = False
 
     # Callbacks
     self._offroad_transition_callbacks: list[Callable[[], None]] = []
