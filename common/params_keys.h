@@ -315,4 +315,5 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TimeFactorModMinutes", {PERSISTENT, STRING, "0"}},
     {"KisaCANType", {PERSISTENT, STRING, "-"}},
     {"KisaSCCType", {PERSISTENT, STRING, "-"}},
+    {"CanFdHda2", {PERSISTENT, BOOL, "0"}},
 };
