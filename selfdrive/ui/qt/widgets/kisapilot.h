@@ -490,6 +490,15 @@ public:
   }
 };
 
+public:
+  DisableDM() : ToggleControl(tr("Set DisableDM"), "", "../assets/offroad/icon_shell.png", Params().getBool("DisableDM")) {
+    QObject::connect(this, &DisableDM::toggleFlipped, [=](int state) {
+      bool status = state ? true : false;
+      Params().putBool("DisableDM", status);
+    });
+  }
+};
+
 
 class GearDToggle : public ToggleControl {
   Q_OBJECT
