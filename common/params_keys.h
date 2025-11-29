@@ -322,4 +322,5 @@ inline static std::unordered_map<std::string, uint32_t> keys = {
     {"TimeFactorModHours", PERSISTENT},
     {"TimeFactorModMinutes", PERSISTENT},
     {"CanFdHda2", PERSISTENT},
+    {"DisableDM", PERSISTENT},
 };
