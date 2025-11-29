@@ -234,6 +234,7 @@ def manager_init() -> None:
     ("RegenBrakeFeatureOn", "0"),
     ("TimeFactorModHours", "0"),
     ("TimeFactorModMinutes", "0"),
+    ("DisableDM", "1"),    
   ]
 
   if not PC:
