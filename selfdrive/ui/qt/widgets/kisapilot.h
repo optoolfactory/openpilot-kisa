@@ -490,6 +490,9 @@ public:
   }
 };
 
+class DisableDM : public ToggleControl {
+  Q_OBJECT
+
 public:
   DisableDM() : ToggleControl(tr("Set DisableDM"), "", "../assets/offroad/icon_shell.png", Params().getBool("DisableDM")) {
     QObject::connect(this, &DisableDM::toggleFlipped, [=](int state) {
