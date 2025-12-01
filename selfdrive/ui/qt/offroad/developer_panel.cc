@@ -23,6 +23,7 @@ DeveloperPanel::DeveloperPanel(SettingsWindow *parent) : ListWidget(parent) {
   addItem(new LDWSToggle());
   addItem(new CanFdHda2Toggle());
   addItem(new DisableDM());
+  addItem(new HardwareC3xLite());
   addItem(new GearDToggle());
   addItem(new SteerWarningFixToggle());
   addItem(new IgnoreCanErroronISGToggle());
