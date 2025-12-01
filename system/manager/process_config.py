@@ -61,6 +61,9 @@ def or_(*fns):
 def and_(*fns):
   return lambda *args: operator.and_(*(fn(*args) for fn in fns))
 
+def c3x_lite(started: bool, params: Params, CP: car.CarParams) -> bool:
+  return started and params.get_bool("HardwareC3xLite")
+
 EnableLogger = Params().get_bool('KisaEnableLogger')
 EnableUploader = Params().get_bool('KisaEnableUploader')
 EnableOSM = Params().get_bool('OSMEnable') or Params().get_bool('OSMSpeedLimitEnable') or Params().get("CurvDecelOption", encoding="utf8") in ("1", "3")
@@ -114,6 +117,9 @@ procs = [
   PythonProcess("statsd", "system.statsd", always_run),
 
   PythonProcess("kupdate", "system.kupdate", always_run),
+
+  # c3x lite
+  PythonProcess("beep", "selfdrive.controls.beep", c3x_lite, enabled=TICI),
 
   # debug procs
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),
