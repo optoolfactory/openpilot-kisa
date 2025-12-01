@@ -506,7 +506,7 @@ class HardwareC3xLite : public ToggleControl {
   Q_OBJECT
 
 public:
-  DisableDM() : ToggleControl(tr("HardwareC3xLite"), "", "../assets/offroad/icon_shell.png", Params().getBool("HardwareC3xLite")) {
+  HardwareC3xLite() : ToggleControl(tr("HardwareC3xLite"), "", "../assets/offroad/icon_shell.png", Params().getBool("HardwareC3xLite")) {
     QObject::connect(this, &HardwareC3xLite::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("HardwareC3xLite", status);
