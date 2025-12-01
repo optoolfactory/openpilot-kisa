@@ -149,6 +149,16 @@ function launch {
   if [ -z "$MODEL_NAME" ]; then MODEL_NAME=$(head -n 1 /data/openpilot/selfdrive/assets/addon/model/ModelList | awk '{print $3}'); fi
   echo -en "$MODEL_NAME" > /data/params/d/DrivingModel
 
+  # c3xl amplifier file change
+  C3XL=$(cat /data/params/d/HardwareC3xLite)
+
+  if [ "${C3XL}" = "1" ] && [[ ! "${EVENTSTAT}" == *"modified:   system/hardware/tici/amplifier.py"* ]]; then
+    cp -f $DIR/system/hardware/tici/amplifier.py $DIR/scripts/add/amplifier_org.py
+    cp -f $DIR/scripts/add/amplifier_c3xl.py $DIR/system/hardware/tici/amplifier.py
+  elif [ "${C3XL}" = "0" ] && [[ "${EVENTSTAT}" == *"modified:   system/hardware/tici/amplifier.py"* ]]; then
+    cp -f $DIR/scripts/add/amplifier_org.py $DIR/system/hardware/tici/amplifier.py
+  fi
+
   # start manager
   cd system/manager
   if [ -f "/data/params/d/OSMEnable" ]; then
