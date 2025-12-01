@@ -369,6 +369,7 @@ def hardware_thread(end_event, hw_queue) -> None:
       if not os.path.isfile("/persist/comma/living-in-the-moment"):
         if not Path("/data/media").is_mount():
           set_offroad_alert_if_changed("Offroad_StorageMissing", True)
+"""
         else:
           # check for bad NVMe
           try:
@@ -379,6 +380,7 @@ def hardware_thread(end_event, hw_queue) -> None:
               cloudlog.event("Unsupported NVMe", model=model, error=True)
           except Exception:
             pass
+"""
 
     if params.get_bool("OnRoadRefresh"):
       onroad_conditions["onroad_refresh"] = not params.get_bool("OnRoadRefresh")
