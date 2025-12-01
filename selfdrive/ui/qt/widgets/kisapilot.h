@@ -482,7 +482,7 @@ class CanFdHda2Toggle : public ToggleControl {
   Q_OBJECT
 
 public:
-  CanFdHda2Toggle() : ToggleControl(tr("Set HDA2 Vehicles"), "", "../assets/offroad/icon_shell.png", Params().getBool("CanFdHda2")) {
+  CanFdHda2Toggle() : ToggleControl(tr("Set HDA2 Vehicles"), "", "../assets/icons/shell.png", Params().getBool("CanFdHda2")) {
     QObject::connect(this, &CanFdHda2Toggle::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("CanFdHda2", status);
@@ -494,7 +494,7 @@ class DisableDM : public ToggleControl {
   Q_OBJECT
 
 public:
-  DisableDM() : ToggleControl(tr("Set DisableDM"), "", "../assets/offroad/icon_shell.png", Params().getBool("DisableDM")) {
+  DisableDM() : ToggleControl(tr("Set DisableDM"), "", "../assets/icons/shell.png", Params().getBool("DisableDM")) {
     QObject::connect(this, &DisableDM::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("DisableDM", status);
@@ -506,7 +506,7 @@ class HardwareC3xLite : public ToggleControl {
   Q_OBJECT
 
 public:
-  HardwareC3xLite() : ToggleControl(tr("HardwareC3xLite"), "", "../assets/offroad/icon_shell.png", Params().getBool("HardwareC3xLite")) {
+  HardwareC3xLite() : ToggleControl(tr("HardwareC3xL 소리"), "", "../assets/icons/shell.png", Params().getBool("HardwareC3xLite")) {
     QObject::connect(this, &HardwareC3xLite::toggleFlipped, [=](int state) {
       bool status = state ? true : false;
       Params().putBool("HardwareC3xLite", status);
