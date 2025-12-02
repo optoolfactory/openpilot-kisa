@@ -87,12 +87,8 @@ class Beepd:
         self.dispatch_beep(self.engage)
       elif new_alert == AudibleAlert.disengage:
         self.dispatch_beep(self.disengage)
-      elif new_alert in [AudibleAlert.refuse, AudibleAlert.prompt, AudibleAlert.warningImmediate,AudibleAlert.warningSoft]:
+      if new_alert in [AudibleAlert.refuse, AudibleAlert.prompt, AudibleAlert.warningSoft]:
         self.dispatch_beep(self.warning)
-      elif new_alert in [AudibleAlert.laneChange]:
-        self.dispatch_beep(self.ding)
-      elif new_alert in [AudibleAlert.stopping, AudibleAlert.autoHold, AudibleAlert.reverseGear]:
-        self.dispatch_beep(self.dong)
 
   def get_audible_alert(self, sm):
     if sm.updated['selfdriveState']:
