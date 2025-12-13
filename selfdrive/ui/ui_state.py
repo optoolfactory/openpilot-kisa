@@ -3,23 +3,35 @@ import numpy as np
 import time
 import threading
 from collections.abc import Callable
-from enum import Enum
+from enum import Enum, IntEnum
 from cereal import messaging, car, log
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.params import Params
 from openpilot.common.swaglog import cloudlog
 from openpilot.selfdrive.ui.lib.prime_state import PrimeState
 from openpilot.system.ui.lib.application import gui_app
-from openpilot.system.hardware import HARDWARE
+from openpilot.system.hardware import HARDWARE, PC
 
-UI_BORDER_SIZE = 30
-BACKLIGHT_OFFROAD = 50
+BACKLIGHT_OFFROAD = 65 if HARDWARE.get_device_type() == "mici" else 50
 
 
 class UIStatus(Enum):
   DISENGAGED = "disengaged"
   ENGAGED = "engaged"
   OVERRIDE = "override"
+
+
+class GearShifter(IntEnum):
+  unknown = 0
+  park = 1
+  drive = 2
+  neutral = 3
+  reverse = 4
+  sport = 5
+  low = 6
+  brake = 7
+  eco = 8
+  manumatic = 9
 
 
 class UIState:
@@ -37,6 +49,7 @@ class UIState:
       [
         "modelV2",
         "controlsState",
+        "onroadEvents",
         "liveCalibration",
         "radarState",
         "deviceState",
@@ -50,7 +63,13 @@ class UIState:
         "managerState",
         "selfdriveState",
         "longitudinalPlan",
+        "gpsLocationExternal",
+        "carOutput",
+        "carControl",
+        "liveParameters",
         "rawAudioData",
+        "peripheralState",
+        "gpsLocation",
         "lateralPlan",
         "liveENaviData",
         "liveMapData",
@@ -68,6 +87,8 @@ class UIState:
 
     # Core state variables
     self.is_metric: bool = self.params.get_bool("IsMetric")
+    self.is_release = self.params.get_bool("IsReleaseBranch")
+    self.always_on_dm: bool = self.params.get_bool("AlwaysOnDM")
     self.started: bool = False
     self.ignition: bool = False
     self.recording_audio: bool = False
@@ -97,7 +118,7 @@ class UIState:
     self.exp_mode_temp: bool = False
     self.btn_pressing: int = 0
     self.standStill: bool = False
-    self.standstillElapsedTime: int = 0
+    self.standstillElapsedTimer: int = 0
 
     self.brakePress: bool = False
     self.gasPress: bool = False
@@ -195,6 +216,7 @@ class UIState:
     return not self.started
 
   def update(self) -> None:
+    self.prime_state.start()  # start thread after manager forks ui
     self.sm.update(0)
     self._update_state()
     self._update_status()
@@ -213,6 +235,7 @@ class UIState:
         # Check ignition status across all pandas
         if self.panda_type != log.PandaState.PandaType.unknown:
           self.ignition = any(state.ignitionLine or state.ignitionCan for state in panda_states)
+          self.controlAllowed = panda_states[0].controlsAllowed
     elif self.sm.frame - self.sm.recv_frame["pandaStates"] > 5 * rl.get_fps():
       self.panda_type = log.PandaState.PandaType.unknown
 
@@ -230,8 +253,66 @@ class UIState:
     self.recording_audio = self.params.get_bool("RecordAudio") and self.started
 
     self.is_metric = self.params.get_bool("IsMetric")
+    self.always_on_dm = self.params.get_bool("AlwaysOnDM")
 
     # Kisa states update
+    if self.sm.updated["deviceState"]:
+      device_state = self.sm["deviceState"]
+      self.freeSpace = device_state.freeSpacePercent
+      self.memoryUsage = device_state.memoryUsagePercent
+      cpu_temps = list(device_state.cpuTempC)
+      gpu_temps = list(device_state.gpuTempC)
+      cpu_usages = list(device_state.cpuUsagePercent)
+      if len(cpu_temps) > 0:
+        self.cpuTemp = sum(cpu_temps) / len(cpu_temps)
+      else:
+        self.cpuTemp = 0.0
+      if len(gpu_temps) > 0:
+        self.gpuTemp = sum(gpu_temps) / len(gpu_temps)
+      else:
+        self.gpuTemp = 0.0
+      valid_usages = [u for u in cpu_usages if u > 0]
+      if len(valid_usages) > 0:
+        self.cpuUsage = sum(valid_usages) / len(valid_usages)
+      else:
+        self.cpuUsage = 0.0
+      self.dspTemp = device_state.dspTempC
+      self.memoryTemp = device_state.memoryTempC
+      modem_temps = list(device_state.modemTempC)
+      if len(modem_temps) > 0:
+        self.modemTemp = sum(modem_temps) / len(modem_temps)
+      else:
+        self.modemTemp = 0.0
+      pmic_temps = list(device_state.pmicTempC)
+      if len(pmic_temps) > 0:
+        self.pmicTemp = sum(pmic_temps) / len(pmic_temps)
+      else:
+        self.pmicTemp = 0.0
+      self.intakeTemp = device_state.intakeTempC
+      self.exhaustTemp = device_state.exhaustTempC
+      self.caseTemp = device_state.caseTempC
+      self.maxTemp = device_state.maxTempC
+
+      self.fanSpeedPercentDesired = device_state.fanSpeedPercentDesired
+      self.storageUsage = int(round(100. - device_state.freeSpacePercent))
+
+    if self.sm.updated["peripheralState"]:
+      peripheral_state = self.sm["peripheralState"]
+      self.voltage = peripheral_state.voltage / 1000.0
+      self.fanSpeedRpm = peripheral_state.fanSpeedRpm
+
+    if self.sm.updated["gpsLocation"]:
+      gps_Location = self.sm["gpsLocation"]
+      self.gpsAccuracy = gps_Location.verticalAccuracy
+      self.altitude = gps_Location.altitude
+      self.bearing = gps_Location.bearingDeg
+
+    if self.sm.updated["liveParameters"]:
+      live_Parameters = self.sm["liveParameters"]
+      self.angleOffsetDeg = live_Parameters.angleOffsetDeg
+      self.angleOffsetAverageDeg = live_Parameters.angleOffsetAverageDeg
+      self.steerRatio = live_Parameters.steerRatio
+
     if self.sm.updated["controlsState"]:
       controls_state = self.sm["controlsState"]
       self.lateralControlMethod = controls_state.lateralControlMethod
@@ -259,14 +340,14 @@ class UIState:
       self.exp_mode_temp = controls_state.expModeTemp
       self.btn_pressing = controls_state.btnPressing
       self.standStill = controls_state.standStill
-      self.standstillElapsedTime = controls_state.standStillTimer
+      self.standstillElapsedTimer = controls_state.standStillTimer
 
     if self.sm.updated["carState"]:
       car_state = self.sm["carState"]
       self.brakePress = car_state.brakePressed
       self.gasPress = car_state.gasPressed
       self.brakeLights = car_state.brakeLights
-      self.getGearShifter = car_state.gearShifter
+      self.gearShifter = car_state.gearShifter
       self.leftBlinker = car_state.leftBlinker
       self.rightBlinker = car_state.rightBlinker
       self.leftblindspot = car_state.leftBlindspot
@@ -382,16 +463,21 @@ class Device:
     self._interaction_time: float = -1
     self._interactive_timeout_callbacks: list[Callable] = []
     self._prev_timed_out = False
-    self._awake = False
+    self._awake: bool = True
 
     self._offroad_brightness: int = BACKLIGHT_OFFROAD
     self._last_brightness: int = 0
     self._brightness_filter = FirstOrderFilter(BACKLIGHT_OFFROAD, 10.00, 1 / gui_app.target_fps)
     self._brightness_thread: threading.Thread | None = None
 
+  @property
+  def awake(self) -> bool:
+    return self._awake
+
   def reset_interactive_timeout(self, timeout: int = -1) -> None:
     if timeout == -1:
-      timeout = 10 if ui_state.ignition else 30
+      ignition_timeout = 10 if gui_app.big_ui() else 5
+      timeout = ignition_timeout if ui_state.ignition else 30
     self._interaction_time = time.monotonic() + timeout
 
   def add_interactive_timeout_callback(self, callback: Callable):
@@ -405,8 +491,9 @@ class Device:
     self._update_brightness()
     self._update_wakefulness()
 
-  def set_offroad_brightness(self, brightness: int):
-    # TODO: not yet used, should be used in prime widget for QR code, etc.
+  def set_offroad_brightness(self, brightness: int | None):
+    if brightness is None:
+      brightness = BACKLIGHT_OFFROAD
     self._offroad_brightness = min(max(brightness, 0), 100)
 
   def _update_brightness(self):
@@ -421,7 +508,7 @@ class Device:
       else:
         clipped_brightness = ((clipped_brightness + 16.0) / 116.0) ** 3.0
 
-      clipped_brightness = float(np.clip(100 * clipped_brightness, 10, 100))
+      clipped_brightness = float(np.interp(clipped_brightness, [0, 1], [30, 100]))
 
     brightness = round(self._brightness_filter.update(clipped_brightness))
     if not self._awake:
@@ -447,13 +534,14 @@ class Device:
         callback()
     self._prev_timed_out = interaction_timeout
 
-    self._set_awake(ui_state.ignition or not interaction_timeout)
+    self._set_awake(ui_state.ignition or not interaction_timeout or PC)
 
   def _set_awake(self, on: bool):
     if on != self._awake:
       self._awake = on
       cloudlog.debug(f"setting display power {int(on)}")
       HARDWARE.set_display_power(on)
+      gui_app.set_should_render(on)
 
 
 # Global instance

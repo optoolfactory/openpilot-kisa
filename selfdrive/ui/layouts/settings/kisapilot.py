@@ -1,11 +1,12 @@
 from openpilot.common.params import Params
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.widgets import Widget, DialogResult
-from openpilot.system.ui.widgets.list_view import toggle_item, button_item, numeric_item
-from openpilot.system.ui.widgets.scroller import Scroller
-from openpilot.system.ui.widgets.confirm_dialog import ConfirmDialog
+from openpilot.system.ui.widgets.list_view import toggle_item, button_item, numeric_item, single_button_item
+from openpilot.system.ui.widgets.scroller_tici import Scroller
+from openpilot.system.ui.widgets.confirm_dialog import ConfirmDialog, alert_dialog
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.common.filter_simple import FirstOrderFilter
+from openpilot.system.ui.widgets.option_dialog import MultiOptionDialog
 import os
 import pyray as rl
 
@@ -14,8 +15,8 @@ BUTTON_PADDING = 10
 HIGHLIGHT_COLOR = (34, 139, 34, 241)
 DEFAULT_COLOR = (128, 128, 128, 255)
 TEXT_COLOR = (255, 255, 255, 255)
-TEXT_SIZE = 60
-CORNER_RADIUS = 10
+TEXT_SIZE = 55
+CORNER_RADIUS = 5
 
 TOGGLES = [
   {"n": "0", "param": "PutPrebuiltOn", "title": "Use Smart Prebuilt", "description": "Create a Prebuilt file and speed up booting. When this function is turned on, the booting speed is accelerated using the cache, and if you press the update button in the menu after modifying the code, or if you rebooted with the 'gi' command in the command window, remove it automatically and compile it."},
@@ -230,3 +231,52 @@ class KisaPilotLayout(Widget):
         visible_condition_scc = not meta.get("scc_type") or meta["scc_type"] == self.scc_type
 
         item.set_visible(visible_condition_can and visible_condition_scc)
+
+  def _show_car_selection_dialog(self):
+    car_path = "/data/CarList"
+
+    try:
+      with open(car_path, "r") as f:
+        car_files = [line.strip() for line in f.readlines() if line.strip()]
+    except Exception:
+      car_files = []
+
+    if not car_files:
+      gui_app.set_modal_overlay(
+        alert_dialog("No car files found.")
+      )
+      return
+
+    cur = self._params.get("CarModel")
+    if isinstance(cur, (bytes, bytearray)):
+      try:
+        cur = cur.decode()
+      except Exception:
+        cur = str(cur)
+    cur = cur or None
+
+    def handle_car_selection(result: int):
+      if result == 1 and self._select_car_dialog:
+        selected_car = self._select_car_dialog.selection
+        self._params.put("CarModel", selected_car)
+        self._select_car_dialog = None
+        return
+      else:
+        if not cur:
+          self._select_car_dialog = None
+          return
+        else:
+          def confirm_delete(res):
+            if res == DialogResult.CONFIRM:
+              self._params.remove("CarModel")
+            self._select_car_dialog = None
+
+          gui_app.set_modal_overlay(
+            ConfirmDialog(f"Do you want to delete the current selection {cur} ?", "Delete"),
+            callback=confirm_delete
+          )
+          self._select_car_dialog = None
+          return
+
+    self._select_car_dialog = MultiOptionDialog("Select Your Car", car_files, cur)
+    gui_app.set_modal_overlay(self._select_car_dialog, callback=handle_car_selection)

@@ -432,7 +432,7 @@ class CarController(CarControllerBase):
     # *** CAN/CAN FD specific ***
     if self.CP.flags & HyundaiFlags.CANFD:
       can_sends.extend(self.create_canfd_msgs(lat_active, apply_torque, set_speed_in_units, accel,
-                                              stopping, hud_control, CS, CC, apply_angle, self.lkas_max_torque))
+                                              stopping, hud_control, CS, CC, apply_angle, self.lkas_max_torque, actuators))
     else:
       can_sends.extend(self.create_can_msgs(lat_active, apply_torque, torque_fault, set_speed_in_units, accel,
                                             stopping, hud_control, actuators, CS, CC))
@@ -1032,7 +1032,7 @@ class CarController(CarControllerBase):
 
     return can_sends
 
-  def create_canfd_msgs(self, apply_steer_req, apply_torque, set_speed_in_units, accel, stopping, hud_control, CS, CC, apply_angle, lkas_max_torque):
+  def create_canfd_msgs(self, apply_steer_req, apply_torque, set_speed_in_units, accel, stopping, hud_control, CS, CC, apply_angle, lkas_max_torque, actuators):
     can_sends = []
 
     lka_steering = self.CP.flags & HyundaiFlags.CANFD_LKA_STEERING
@@ -1054,18 +1054,23 @@ class CarController(CarControllerBase):
                                                         self.CP.flags & HyundaiFlags.CANFD_LKA_STEERING_ALT, CC.enabled))
 
     # LFA and HDA icons
-    if self.frame % 5 == 0 and (not lka_steering or lka_steering_long) and not self.CP.adrvControl:
-      can_sends.append(hyundaicanfd.create_lfahda_cluster(self.packer, self.CAN, CC.enabled))
-
-    if self.CP.adrvControl:
-      if self.frame % 5 == 0:
-        can_sends.extend(hyundaicanfd.create_ccnc(self.packer, self.CAN, self.frame, CC.enabled, apply_steer_req, CS.ccnc_161, CS.ccnc_162, CS.adrv_1ea))
+    if self.frame % 5 == 0 and (not lka_steering or lka_steering_long) or self.CP.adrvControl:
+      can_sends.append(hyundaicanfd.create_lfahda_cluster(self.packer, self.CAN, CC.enabled, CC.longActive, CC.latActive, self.CP.adrvControl))
 
     # blinkers
     if lka_steering and self.CP.flags & HyundaiFlags.ENABLE_BLINKERS:
       can_sends.extend(hyundaicanfd.create_spas_messages(self.packer, self.CAN, CC.leftBlinker, CC.rightBlinker))
 
-    if self.CP.openpilotLongitudinalControl:
+    if self.CP.adrvControl:
+      self.hyundai_jerk.make_jerk(self.CP, CS, accel, actuators)
+      if self.frame % 5 == 0:
+        can_sends.extend(hyundaicanfd.create_ccnc(self.packer, self.CAN, self.frame, CC.enabled, apply_steer_req, CS.ccnc_161, CS.ccnc_162, CS.adrv_1ea))
+        can_sends.extend(hyundaicanfd.create_adrv_messages(self.CP, self.packer, self.CAN, self.frame))
+      if self.frame % 2 == 0:
+        can_sends.append(hyundaicanfd.create_acc_control_scc2(self.packer, self.CAN, CC.enabled, self.accel_last, accel, stopping, CC.cruiseControl.override,
+                                                          set_speed_in_units, hud_control, self.hyundai_jerk, CS))
+        can_sends.extend(hyundaicanfd.create_tcs_messages(self.packer, self.CAN, CS)) # for sorento SCC radar...
+    elif self.CP.openpilotLongitudinalControl:
       if lka_steering:
         can_sends.extend(hyundaicanfd.create_adrv_messages(self.packer, self.CAN, self.frame))
       else:
@@ -1538,7 +1543,7 @@ class CarController(CarControllerBase):
           int(CC.enabled), int(CC.latActive), int(lat_active), int(CC.longActive), CS.out.cruiseState.modeSel, self.CP.sccBus, self.model_speed, abs(self.sm['controlsState'].curvature), abs(new_torque), abs(CS.out.steeringTorque), self.vFuture, self.params.STEER_MAX, self.params.STEER_DELTA_UP, self.params.STEER_DELTA_DOWN)
       if CS.acc_active:
         self.str_log2 = 'AQ={:+04.2f}  SS={:03.0f}/{:03.0f}  VF={:03.0f}/{:03.0f}  TS/VS={:03.0f}/{:03.0f}  RD/ED/C/T={:04.1f}/{:04.1f}/{}/{}  C={:1.0f}/{:1.0f}/{}'.format(
-        self.aq_value if self.longcontrol else CS.scc_control["aReqValue"], set_speed_in_units, self.sm['carState'].vCruise, self.vFuture, self.vFutureA, self.KCC.ctrl_speed, round(CS.VSetDis), CS.lead_distance, self.dRel, int(self.KCC.cut_in), self.KCC.cut_in_run_timer, 0, CS.cruiseGapSet, self.btnsignal if self.btnsignal is not None else 0, self.KCC.t_interval)
+          self.aq_value if self.longcontrol else CS.scc_control["aReqValue"], set_speed_in_units, self.sm['carState'].vCruise, self.vFuture, self.vFutureA, self.KCC.ctrl_speed, round(CS.VSetDis), CS.lead_distance, self.dRel, int(self.KCC.cut_in), self.KCC.cut_in_run_timer, 0, CS.cruiseGapSet, self.btnsignal if self.btnsignal is not None else 0, )
       else:
         self.str_log2 = 'MDPS={}  LKAS={:1.0f}  LEAD={}  AQ={:+04.2f}  VF={:03.0f}/{:03.0f}  CG={:1.0f}  M/C={:1.0f}/{:1.0f}'.format(
         int(not CS.out.steerFaultTemporary), 0, int(bool(0 < CS.lead_distance < 149)), self.aq_value if self.longcontrol else CS.scc_control["aReqValue"], self.vFuture, self.vFutureA, CS.cruiseGapSet, CS.main_buttons[-1], CS.cruise_buttons[-1])
@@ -1610,3 +1615,28 @@ class CarController(CarControllerBase):
     apply_torque *= self.steer_timer_apply_torque
 
     return int(round(float(apply_torque)))
+  
+  def make_jerk(self, CP, CS, accel, actuators):
+    if actuators.longControlState == LongCtrlState.stopping:
+      self.jerk = self.jerk_u_min / 2 - CS.out.aEgo
+    else:
+      jerk = actuators.jerk if actuators.longControlState == LongCtrlState.pid else 0.0
+      #a_error = actuators.aTarget - CS.out.aEgo
+      self.jerk = jerk# + a_error
+
+    jerk_max_l = 5.0
+    jerk_max_u = jerk_max_l
+    if actuators.longControlState == LongCtrlState.off:
+      self.jerk_u = jerk_max_u
+      self.jerk_l = jerk_max_l
+      self.cb_upper = self.cb_lower = 0.0
+    else:
+      if CP.flags & HyundaiFlags.CANFD:
+        self.jerk_u = min(max(self.jerk_u_min, self.jerk * 2.0), jerk_max_u)
+        self.jerk_l = min(max(1.0, -self.jerk * 4.0), jerk_max_l)
+        self.cb_upper = self.cb_lower = 0.0
+      else:
+        self.jerk_u = min(max(self.jerk_u_min, self.jerk * 2.0), jerk_max_u)
+        self.jerk_l = min(max(1.0, -self.jerk * 2.0), jerk_max_l)
+        self.cb_upper = np.clip(0.9 + accel * 0.2, 0, 1.2)
+        self.cb_lower = np.clip(0.8 + accel * 0.2, 0, 1.2)
