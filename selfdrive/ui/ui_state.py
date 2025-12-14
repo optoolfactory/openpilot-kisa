@@ -108,7 +108,34 @@ class UIState:
     self.limitSpeedCamera: float = 0
     self.limitSpeedCameraDist: float = 0
     self.mapSign: str = ""
+
+    self.controlAllowed: bool = False
+    self.freeSpace: float = 0.0
+    self.memoryUsage: float = 0.0
+    self.cpuTemp: float = 0.0
+    self.gpuTemp: float = 0.0
+    self.cpuUsage: float = 0.0
+    self.voltage: float = 0.0
+    self.fanSpeedPercentDesired: int = 0
+    self.storageUsage: int = 0
+    self.dspTemp: float = 0.0
+    self.memoryTemp: float = 0.0
+    self.modemTemp: float = 0.0
+    self.pmicTemp: float = 0.0
+    self.intakeTemp: float = 0.0
+    self.exhaustTemp: float = 0.0
+    self.caseTemp: float = 0.0
+    self.maxTemp: float = 0.0
+    self.fanSpeedRpm: int = 0
+
+    self.gpsAccuracy: float = 0.0
+    self.altitude: float = 0.0
+    self.bearing: float = 0.0
+
+    self.angleOffsetDeg: float = 0.0
+    self.angleOffsetAverageDeg: float = 0.0
     self.steerRatio: float = 0.0
+
     self.dynamic_tr_mode: int = 0
     self.dynamic_tr_value: float = 0.0
     self.accel: float = 0.0
@@ -120,10 +147,15 @@ class UIState:
     self.standStill: bool = False
     self.standstillElapsedTimer: int = 0
 
+    self.pandaSafetyModel: str = ""
+    self.interfaceSafetyModel: str = ""
+    self.rxChecks: bool = False
+    self.mismatchCounter: bool = False
+
     self.brakePress: bool = False
     self.gasPress: bool = False
     self.brakeLights: bool = False
-    self.getGearShifter: int = 0
+    self.gearShifter: GearShifter = GearShifter.unknown
     self.leftBlinker: bool = False
     self.rightBlinker: bool = False
     self.leftblindspot: bool = False
@@ -192,6 +224,9 @@ class UIState:
     self.show_ui_bsm: bool = self.params.get_bool("KisaBlindSpotDetect")
 
     self.rec_status: bool = False
+
+    self.cruise_gap: int = self.params.get("LongitudinalPersonality") + 1
+    self.debug_msg: int = self.params.get("ShowDebugUI")
 
     # Callbacks
     self._offroad_transition_callbacks: list[Callable[[], None]] = []
@@ -425,6 +460,10 @@ class UIState:
         self.status = UIStatus.ENGAGED if ss.enabled else UIStatus.DISENGAGED
 
       self.enabled = ss.enabled
+      self.pandaSafetyModel = ss.pandaSafetyModel
+      self.interfaceSafetyModel = ss.interfaceSafetyModel
+      self.rxChecks = ss.rxChecks
+      self.mismatchCounter = ss.mismatchCounter
 
     # Check for engagement state changes
     if self.engaged != self._engaged_prev:
@@ -454,6 +493,10 @@ class UIState:
         self.has_longitudinal_control = self.params.get_bool("AlphaLongitudinalEnabled")
       else:
         self.has_longitudinal_control = self.CP.openpilotLongitudinalControl
+
+    # Update user params
+    self.show_ui_bsm = self.params.get_bool("KisaBlindSpotDetect")
+    self.debug_msg = self.params.get("ShowDebugUI")
     self._param_update_time = time.monotonic()
 
 
@@ -469,6 +512,9 @@ class Device:
     self._last_brightness: int = 0
     self._brightness_filter = FirstOrderFilter(BACKLIGHT_OFFROAD, 10.00, 1 / gui_app.target_fps)
     self._brightness_thread: threading.Thread | None = None
+
+    self.custom_brightness: int = Params().get("KisaUIBrightness")
+    self._default_custom_brightness = self.custom_brightness
 
   @property
   def awake(self) -> bool:
@@ -511,6 +557,8 @@ class Device:
       clipped_brightness = float(np.interp(clipped_brightness, [0, 1], [30, 100]))
 
     brightness = round(self._brightness_filter.update(clipped_brightness))
+    brightness = round(brightness * self.custom_brightness / 100)
+    brightness = round(np.clip(brightness, 10, 100))
     if not self._awake:
       brightness = 0
 
@@ -527,11 +575,13 @@ class Device:
 
     if ignition_just_turned_off or any(ev.left_down for ev in gui_app.mouse_events):
       self.reset_interactive_timeout()
+      self.custom_brightness = 100
 
     interaction_timeout = time.monotonic() > self._interaction_time
     if interaction_timeout and not self._prev_timed_out:
       for callback in self._interactive_timeout_callbacks:
         callback()
+      self.custom_brightness = self._default_custom_brightness
     self._prev_timed_out = interaction_timeout
 
     self._set_awake(ui_state.ignition or not interaction_timeout or PC)

@@ -133,7 +133,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"IsOpenpilotViewEnabled", {CLEAR_ON_MANAGER_START, BOOL}},
     {"KisaAutoShutdown", {PERSISTENT, INT, "12"}},
     {"KisaAutoScreenOff", {PERSISTENT, STRING, "-2"}},
-    {"KisaUIBrightness", {PERSISTENT, STRING, "0"}},
+    {"KisaUIBrightness", {PERSISTENT, INT, "0"}},
     {"KisaUIVolumeBoost", {PERSISTENT, STRING, "0"}},
     {"KisaEnableLogger", {PERSISTENT, BOOL, "0"}},
     {"KisaAutoResume", {PERSISTENT, BOOL, "1"}},
