@@ -49,7 +49,7 @@ LateralAccelFromTorqueCallbackType = Callable[[float, structs.CarParams.LateralT
 UseLiveTorque = Params().get_bool("KisaLiveTorque") if Params().get_bool("KisaLiveTorque") is not None else False
 NoMdpsMod = Params().get_bool("NoSmartMDPS") if Params().get_bool("NoSmartMDPS") is not None else False
 TireStiffnessFactor = Params().get("TireStiffnessFactorAdj", return_default=True) * 0.01 if Params().get("TireStiffnessFactorAdj", return_default=True) is not None else 1.0
-CAR_CANDIDATE = Params().get("CarModel", return_default=True)
+CAR_CANDIDATE = Params().get("CarName", return_default=True)
 
 @cache
 def get_torque_params():

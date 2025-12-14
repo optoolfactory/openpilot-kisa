@@ -352,12 +352,6 @@ class UIState:
       controls_state = self.sm["controlsState"]
       self.lateralControlMethod = controls_state.lateralControlMethod
       if self.lateralControlMethod == 0:
-        self.output_scale = controls_state.lateralControlState.pidState.output
-      elif self.lateralControlMethod == 1:
-        self.output_scale = controls_state.lateralControlState.indiState.output
-      elif self.lateralControlMethod == 2:
-        self.output_scale = controls_state.lateralControlState.lqrState.output
-      elif self.lateralControlMethod == 3:
         self.output_scale = controls_state.lateralControlState.torqueState.output
       self.alertTextMsg1 = controls_state.alertTextMsg1  # debug1
       self.alertTextMsg2 = controls_state.alertTextMsg2  # debug2
@@ -497,6 +491,7 @@ class UIState:
     # Update user params
     self.show_ui_bsm = self.params.get_bool("KisaBlindSpotDetect")
     self.debug_msg = self.params.get("ShowDebugUI")
+    self.rec_status = self.params.get_bool("RecordingRunning")
     self._param_update_time = time.monotonic()
 
 
