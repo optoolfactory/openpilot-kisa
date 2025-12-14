@@ -492,7 +492,7 @@ def create_acc_control_scc2(packer, CAN, enabled, accel_last, accel, stopping, g
 
 
 # carrot
-def create_ccnc_messages(CP, packer, CAN, frame, CC, CS, hud_control, disp_angle, left_lane_warning, right_lane_warning, canfd_debug, MainMode_ACC_trigger, LFA_trigger):
+def create_ccnc_messages(CP, packer, CAN, frame, CC, CS, hud_control, disp_angle, left_lane_warning, right_lane_warning, canfd_debug, MainMode_ACC_trigger, LFA_trigger, hdp_use):
   
   ret = []
 
@@ -524,7 +524,6 @@ def create_ccnc_messages(CP, packer, CAN, frame, CC, CS, hud_control, disp_angle
         nav_active = hud_control.activeCarrot > 1
 
         # hdpuse carrot
-        hdp_use = int(Params().get("HDPuse"))
         hdp_active = False
         if hdp_use == 1:
             hdp_active = cruise_enabled and nav_active

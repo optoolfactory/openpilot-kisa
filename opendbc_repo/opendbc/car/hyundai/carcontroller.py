@@ -278,6 +278,12 @@ class CarController(CarControllerBase):
     self.regen_stop_pre_activated = False
     self.regen_stop_timer = 0
 
+    self.hyundai_jerk = HyundaiJerk()
+    self.hdp_use = int(self.c_params.get("HDPuse", return_default=True))
+    self.canfd_debug = self.c_params.get("CanfdDebug", return_default=True)
+    self.MainMode_ACC_trigger = 0
+    self.LFA_trigger = 0
+
     # self.usf = 0
 
     self.str_log1 = ''
@@ -1038,6 +1044,10 @@ class CarController(CarControllerBase):
     lka_steering = self.CP.flags & HyundaiFlags.CANFD_LKA_STEERING
     lka_steering_long = lka_steering and self.CP.openpilotLongitudinalControl
 
+    # HUD messages
+    sys_warning, sys_state, left_lane_warning, right_lane_warning = process_hud_alert(CC.enabled, self.car_fingerprint,
+                                                                                      hud_control)
+
     # lfa init
     # if not self.lfa_init:
     #   self.lfa_init = True
@@ -1062,9 +1072,10 @@ class CarController(CarControllerBase):
       can_sends.extend(hyundaicanfd.create_spas_messages(self.packer, self.CAN, CC.leftBlinker, CC.rightBlinker))
 
     if self.CP.adrvControl:
+      self.canfd_toggle_adas(CC, CS)
       self.hyundai_jerk.make_jerk(self.CP, CS, accel, actuators)
       if self.frame % 5 == 0:
-        can_sends.extend(hyundaicanfd.create_ccnc(self.packer, self.CAN, self.frame, CC.enabled, apply_steer_req, CS.ccnc_161, CS.ccnc_162, CS.adrv_1ea))
+        can_sends.extend(hyundaicanfd.create_ccnc_messages(self.CP, self.packer, self.CAN, self.frame, CC, CS, hud_control, apply_angle, left_lane_warning, right_lane_warning, self.canfd_debug, self.MainMode_ACC_trigger, self.LFA_trigger, self.hdp_use))
         can_sends.extend(hyundaicanfd.create_adrv_messages(self.CP, self.packer, self.CAN, self.frame))
       if self.frame % 2 == 0:
         can_sends.append(hyundaicanfd.create_acc_control_scc2(self.packer, self.CAN, CC.enabled, self.accel_last, accel, stopping, CC.cruiseControl.override,
@@ -1616,7 +1627,49 @@ class CarController(CarControllerBase):
 
     return int(round(float(apply_torque)))
   
-  def make_jerk(self, CP, CS, accel, actuators):
+  def canfd_toggle_adas(self, CC, CS):
+    trigger_min = -200
+    trigger_start = 6
+    self.MainMode_ACC_trigger = max(trigger_min, self.MainMode_ACC_trigger - 1)
+    self.LFA_trigger = max(trigger_min, self.LFA_trigger - 1)
+    if self.MainMode_ACC_trigger == trigger_min and self.LFA_trigger == trigger_min:
+      if CC.enabled and not CS.MainMode_ACC and CS.out.vEgo > 3.:
+        self.MainMode_ACC_trigger = trigger_start
+      elif CC.latActive and CS.LFA_ICON == 0:
+        self.LFA_trigger = trigger_start
+
+
+class HyundaiJerk:
+  def __init__(self):
+    self.params = Params()
+    self.jerk = 0.0
+    self.jerk_u = self.jerk_l = 0.0
+    self.cb_upper = self.cb_lower = 0.0
+    self.jerk_u_min = 0.5
+    self.carrot_cruise = 1
+    self.carrot_cruise_accel = 0.0
+
+  def check_carrot_cruise(self, CC, CS, hud_control, stopping, accel, a_target):
+    carrot_cruise_decel = self.params.get("CarrotCruiseDecel", return_default=True)
+    carrot_cruise_atc_decel = self.params.get("CarrotCruiseAtcDecel", return_default=True)
+    if carrot_cruise_atc_decel >= 0 and 0 < hud_control.atcDistance < 500:
+      carrot_cruise_decel = max(carrot_cruise_decel, carrot_cruise_atc_decel)
+    self.carrot_cruise = 0
+    if CS.out.carrotCruise > 0 and not CC.cruiseControl.override:
+      if CS.softHoldActive == 0 and not stopping:
+        if CS.out.vEgo > 10/3.6:
+          if carrot_cruise_decel < 0:
+            if (a_target > -0.1 or accel > -0.1):
+              self.carrot_cruise = 1
+              self.carrot_cruise_accel = 0.0
+          else:
+            self.carrot_cruise = 2
+            carrot_cruise = min(accel, -carrot_cruise_decel * 0.01)
+            self.carrot_cruise_accel = max(carrot_cruise, self.carrot_cruise_accel - 1.0 * DT_CTRL) #  점진적으로 줄임.
+    if self.carrot_cruise == 0:
+      self.carrot_cruise_accel = CS.out.aEgo
+    
+  def make_jerk(self, CP, CS, accel, actuators, hud_control):
     if actuators.longControlState == LongCtrlState.stopping:
       self.jerk = self.jerk_u_min / 2 - CS.out.aEgo
     else:
