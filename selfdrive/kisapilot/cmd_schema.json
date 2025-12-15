@@ -1,0 +1,110 @@
+[
+  {
+    "title": "Git Pull",
+    "cmd": "git_pull",
+    "exec": [
+      "sh",
+      "-c",
+      "cd /data/openpilot && git pull && touch /data/ks"
+    ],
+    "description": "깃풀을 수행합니다.",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Git Pull & Reboot",
+    "cmd": "git_pull_reboot",
+    "exec": [
+      "sh",
+      "-c",
+      "cd /data/openpilot && git pull && touch /data/ks && echo -en 1 > /data/params/d/DoReboot"
+    ],
+    "description": "깃풀 및 리부팅 후 자동으로 컴파일을 수행합니다.(파라미터를 통한 안전종료 포함, 부팅시 에러가 난 경우 파라미터 인식이 안되니 임의로 재부팅하세요.)",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Git Reset & Reboot",
+    "cmd": "git_reset_reboot",
+    "exec": [
+      "sh",
+      "-c",
+      "cd /data/openpilot && git reset --hard @{u} && touch /data/ks && echo -en 1 > /data/params/d/DoReboot"
+    ],
+    "description": "로컬 브랜치를 원격 브랜치로 강제 초기화 합니다. 로컬 수정사항은 사라집니다.",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Git Reset~1",
+    "cmd": "git_reset_1",
+    "exec": [
+      "sh",
+      "-c",
+      "cd /data/openpilot && git show --stat HEAD~1 && git reset --hard HEAD~1 && touch /data/ks"
+    ],
+    "description": "로컬 브랜치 커밋 사항을 한 단계 전으로 되돌립니다.(여러번 수행 가능. 최근 커밋에 오류가 난 경우 유용, 원하는 데까지 이동 후 재부팅하면 적용됩니다.)",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Reboot(Safe)",
+    "cmd": "reboot",
+    "exec": [
+      "sh",
+      "-c",
+      "echo -en 1 > /data/params/d/DoReboot"
+    ],
+    "description": "파라미터를 통한 리부팅을 안전하게 수행합니다.",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Reboot(Force)",
+    "cmd": "sudo_reboot",
+    "exec": [
+      "sh",
+      "-c",
+      "sudo reboot"
+    ],
+    "description": "sudo reboot를 사용하여 강제 리부팅 합니다. 캔 체크 등으로 인해 재부팅 직전 클러스터 에러가 나는 경우가 있으나 정상 상황입니다.",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Delete Driving Logs",
+    "cmd": "del_driving_logs",
+    "exec": [
+      "sh",
+      "-c",
+      "rm -rfv /data/media/0/realdata/*"
+    ],
+    "description": "오픈파일럿 로거 데이터(realdata[qlog, rlog, video files])를 삭제합니다.",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "Delete Recorded Videos",
+    "cmd": "del_rec_videos",
+    "exec": [
+      "sh",
+      "-c",
+      "rm -rfv /data/media/0/videos/*"
+    ],
+    "description": "녹화된 주행하면 파일들을 삭제합니다.",
+    "confirm": true,
+    "onroad": true
+  },
+  {
+    "title": "OnRoad Refresh",
+    "cmd": "onroad_refresh",
+    "exec": [
+      "sh",
+      "-c",
+      "echo -en 1 > /data/params/d/OnRoadRefresh"
+    ],
+    "description": "온로드 상태에서 리프레시(퀵리셋)가 필요한 경우 실행합니다.",
+    "confirm": true,
+    "onroad": true
+  }
+]
