@@ -122,6 +122,10 @@ def manager_init() -> None:
     print("shapely Installing...")
     os.system("pip install shapely")
     print("shapely Installed!")
+  if importlib.util.find_spec("netifaces") is None:
+    print("netifaces Installing...")
+    os.system("pip install netifaces")
+    print("netifaces Installed!")
 
   # preimport all processes
   for p in managed_processes.values():
