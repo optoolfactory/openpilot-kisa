@@ -288,17 +288,34 @@ static safety_config hyundai_init(uint16_t param) {
 
   static const CanMsg HYUNDAI_CAMERA_SCC_TX_MSGS[] = {
     HYUNDAI_COMMON_TX_MSGS(2)
+    {0x251, 2, 8, .check_relay = false}, // MDPS12, Bus 2
   };
 
   static const CanMsg HYUNDAI_CAMERA_SCC_LONG_TX_MSGS[] = {
     HYUNDAI_LONG_COMMON_TX_MSGS(2)
+    {0x251, 2, 8, .check_relay = false}, // MDPS12, Bus 2
   };
 
   hyundai_common_init(param);
   hyundai_legacy = false;
 
   safety_config ret;
-  if (hyundai_longitudinal) {
+  if (hyundai_camera_scc) {
+    static RxCheck hyundai_cam_scc_rx_checks[] = {
+      HYUNDAI_COMMON_RX_CHECKS(false)
+      HYUNDAI_SCC12_ADDR_CHECK(2)
+    };
+    static RxCheck hyundai_cam_scc_rx_checks_legacy[] = {
+      HYUNDAI_COMMON_RX_CHECKS(true)
+      HYUNDAI_SCC12_ADDR_CHECK(2)
+    };
+
+    if (hyundai_legacy) {
+      ret = BUILD_SAFETY_CFG(hyundai_cam_scc_rx_checks_legacy, HYUNDAI_CAMERA_SCC_TX_MSGS);
+    } else {
+      ret = BUILD_SAFETY_CFG(hyundai_cam_scc_rx_checks, HYUNDAI_CAMERA_SCC_TX_MSGS);
+    }
+  } else if (hyundai_longitudinal) {
     // Use CLU11 (buttons) to manage controls allowed instead of SCC cruise state
     static RxCheck hyundai_long_rx_checks[] = {
       HYUNDAI_COMMON_RX_CHECKS(false)
@@ -319,18 +336,13 @@ static safety_config hyundai_init(uint16_t param) {
     } else {
       SET_TX_MSGS(HYUNDAI_LONG_TX_MSGS, ret);
     }
-
-  } else if (hyundai_camera_scc) {
-    static RxCheck hyundai_cam_scc_rx_checks[] = {
-      HYUNDAI_COMMON_RX_CHECKS(false)
-      HYUNDAI_SCC12_ADDR_CHECK(2)
-    };
-
-    ret = BUILD_SAFETY_CFG(hyundai_cam_scc_rx_checks, HYUNDAI_CAMERA_SCC_TX_MSGS);
   } else {
     static RxCheck hyundai_rx_checks[] = {
        HYUNDAI_COMMON_RX_CHECKS(false)
        HYUNDAI_SCC12_ADDR_CHECK(0)
+    };
+    static RxCheck hyundai_rx_checks_legacy[] = {
+      HYUNDAI_COMMON_RX_CHECKS(true)
     };
 
     static RxCheck hyundai_fcev_rx_checks[] = {
@@ -340,7 +352,9 @@ static safety_config hyundai_init(uint16_t param) {
     };
 
     SET_TX_MSGS(HYUNDAI_TX_MSGS, ret);
-    if (hyundai_fcev_gas_signal) {
+    if (hyundai_legacy) {
+      SET_RX_CHECKS(hyundai_rx_checks_legacy, ret);
+    } else if (hyundai_fcev_gas_signal) {
       SET_RX_CHECKS(hyundai_fcev_rx_checks, ret);
     } else {
       SET_RX_CHECKS(hyundai_rx_checks, ret);

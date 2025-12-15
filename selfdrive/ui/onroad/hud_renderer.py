@@ -4,12 +4,14 @@ from openpilot.common.constants import CV
 from openpilot.selfdrive.ui.onroad.exp_button import ExpButton
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.system.ui.lib.application import gui_app, FontWeight
+from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.widgets import Widget
 
 # kisa
 from openpilot.selfdrive.ui.onroad.kisa_button import KisaButton
 import math
+from collections import deque
 
 # Constants
 SET_SPEED_NA = 255
@@ -83,6 +85,7 @@ class HudRenderer(Widget):
     self._kisa_button: KisaButton = KisaButton(UI_CONFIG.button_size, UI_CONFIG.wheel_icon_size)
     self.img_width = 200
     self.img_car_width, self.img_car_height = 120, 200
+    self.img_speed_bump = gui_app.texture("addon/img/img_speed_bump.png", self.img_width, self.img_width)
     self.img_speed_cam = gui_app.texture("addon/img/img_speed_cam.png", self.img_width, self.img_width)
     self.img_police_car = gui_app.texture("addon/img/img_police_car.png", self.img_width, self.img_width)
     self.img_car = gui_app.texture("addon/img/car.png", self.img_car_width, self.img_car_height)
@@ -131,13 +134,11 @@ class HudRenderer(Widget):
       self._draw_set_speed(rect)
 
     self._draw_current_speed(rect)
-
     self._draw_blinkers(rect)
     self._draw_speed_limit_sign(rect)
-
     self._draw_standstill_timer(rect)
-
     self._draw_car_stat(rect)
+    self._draw_debug_msg(rect)
 
     button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
     button_y = rect.y + UI_CONFIG.border_size
@@ -266,16 +267,15 @@ class HudRenderer(Widget):
     t = rl.get_time()
     center_x = rect.x + rect.width // 2
     center_y = rect.y + 200
-    size, thickness, freq, sway_amp = 100, 40, 6, 20
+    size, thickness, freq, sway_amp = 100, 50, 3, 20
     sway = sway_amp * math.sin(t * freq)
-    count, spacing = 5, 90
+    count, spacing = 3, 110
     base_color = rl.Color(230, 165, 0, 230)
     overlap = 0.25
 
     img = self.img_car
     x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
     y_center = rect.y + 450
-    blinker_y = y_center - img.height // 2 - 40
     blinker_width = 20
     blinker_height = 10
     blinker_spacing = 45
@@ -395,8 +395,8 @@ class HudRenderer(Widget):
   def _draw_standstill_timer(self, rect: rl.Rectangle) -> None:
     """Draw KisaPilot-style standstill timer."""
     if ui_state.standStill:
-      minute = int(ui_state.standstillElapsedTime // 60)
-      second = int(ui_state.standstillElapsedTime % 60)
+      minute = int(ui_state.standstillElapsedTimer // 60)
+      second = int(ui_state.standstillElapsedTimer % 60)
       time_text = f"{minute:02d}:{second:02d}"
 
       stop_x = rect.x + rect.width - UI_CONFIG.border_size - 645
@@ -417,8 +417,8 @@ class HudRenderer(Widget):
   def _draw_car_stat(self, rect: rl.Rectangle) -> None:
     """Draw KisaPilot-style CAR Status."""
     img = self.img_car
-    x_center = rect.x + UI_CONFIG.border_size + 57 + img.width // 2
-    y_center = rect.y + 450
+    x_center = rect.x + UI_CONFIG.border_size + 56 + img.width // 2
+    y_center = rect.y + 460
     icon_x = x_center - img.width // 2
     icon_y = y_center - img.height // 2
     icon_rect = rl.Rectangle(icon_x, icon_y, self.img_car_width, self.img_car_height)
@@ -502,3 +502,133 @@ class HudRenderer(Widget):
       for i, line in enumerate(lines):
         tsz = measure_text_cached(font, line, font_size).x
         rl.draw_text_ex(font, line, rl.Vector2(x_center - tsz / 2 + 14, y_center - total_height / 2 + i * line_height), font_size, 0, color)
+
+    if s.cruise_gap:
+      gap_count = int(s.cruise_gap)
+      gap_w, gap_h, spacing, radius = 50, 12, 6, 0
+      color = rl.Color(0, 150, 255, 255)
+      border = rl.WHITE
+      x = x_center - gap_w // 2 + 15
+      base_y = y_center - img.height // 2 - 20
+
+      for i in range(gap_count):
+        y = base_y - i * (gap_h + spacing)
+        rect = rl.Rectangle(x, y, gap_w, gap_h)
+        rl.draw_rectangle_rounded(rect, 0.9, radius, color)
+        rl.draw_rectangle_rounded_lines(rect, radius, 1, border)
+
+      lead_dist = s.radarDRel
+
+      if lead_dist is not None and 0 < lead_dist < 150:
+        dist_text = f"{lead_dist:.1f} m"
+
+        text_font = self._font_bold
+        text_size = 40
+        tsz = measure_text_cached(text_font, dist_text, text_size).x
+
+        top_y = base_y - (gap_count * (gap_h + spacing)) - 35
+
+        if lead_dist < 5:
+          color = rl.Color(255, 0, 0, 255)
+        elif lead_dist < 10:
+          color = rl.Color(255, 140, 0, 255)
+        else:
+          color = rl.Color(255, 255, 255, 230)
+
+        rl.draw_text_ex(text_font, dist_text, rl.Vector2(x_center - tsz / 2 + 14, top_y), text_size, 0, color)
+
+  def _draw_debug_msg(self, rect: rl.Rectangle) -> None:
+    if ui_state.debug_msg <= 0:
+      return
+
+    s = ui_state
+
+    right_debug_lines = [
+      ("CPU", f"{s.cpuUsage:.0f}%"),
+      ("MaxTemp", f"{s.maxTemp:.0f}°C"),
+      ("Storage", f"{s.storageUsage:.0f}%"),
+      ("FAN", f"{s.fanSpeedRpm}"),
+      ("Altitude", f"{s.altitude:.0f}m"),
+      ("Bearing", f"{s.bearing:.0f}°"),
+      ("Voltage", f"{s.voltage:.1f}V"),
+    ]
+
+    left_debug_lines = []
+    if ui_state.debug_msg > 1:
+      left_debug_lines = [
+        ("AngOffset", f"{s.angleOffsetDeg:.1f}°"),
+        ("SteerRatio", f"{s.steerRatio:.2f}"),
+        ("Accel", f"{s.accel:.2f}"),
+      ]
+
+    small_font_size = 30
+    large_font_size = 40
+    line_spacing = 6
+    value_spacing = 0
+    line_height = small_font_size + large_font_size + line_spacing
+
+    def draw_debug_box(box_x, box_y, debug_lines, box_width=160, bg_alpha=10):
+      total_lines = len(debug_lines)
+      box_height = total_lines * line_height + 15
+      # Draw semi-transparent background
+      bg_color = rl.Color(0, 0, 0, bg_alpha)
+      rl.draw_rectangle(int(box_x), int(box_y), int(box_width), int(box_height), bg_color)
+
+      # Draw top and bottom lines safely
+      line_color = rl.Color(255, 255, 255, 180)
+      line_thickness = 5
+
+      # top line
+      top_start = rl.Vector2(box_x, box_y)
+      top_end = rl.Vector2(box_x + box_width, box_y)
+      try:
+        rl.draw_line_ex(top_start, top_end, line_thickness, line_color)
+      except Exception:
+        rl.draw_rectangle_rounded(rl.Rectangle(top_start.x, top_start.y - line_thickness//2, box_width, line_thickness), 0.1, 3, line_color)
+
+      # bottom line
+      bottom_start = rl.Vector2(box_x, box_y + box_height)
+      bottom_end = rl.Vector2(box_x + box_width, box_y + box_height)
+      try:
+        rl.draw_line_ex(bottom_start, bottom_end, line_thickness, line_color)
+      except Exception:
+        rl.draw_rectangle_rounded(rl.Rectangle(bottom_start.x, bottom_start.y - line_thickness//2, box_width, line_thickness), 0.1, 3, line_color)
+
+      # Draw text
+      for i, (label, value) in enumerate(debug_lines):
+        item_y = box_y + 10 + i * line_height
+
+        # Label
+        label_size = rl.measure_text_ex(self._font_bold, label, small_font_size, 0)
+        label_x = box_x + (box_width - label_size.x) / 2 - 5
+        rl.draw_text_ex(
+          self._font_bold,
+          label,
+          rl.Vector2(label_x, item_y),
+          small_font_size,
+          0,
+          rl.Color(200, 200, 200, 220)
+        )
+
+        # Value
+        value_size = rl.measure_text_ex(self._font_bold, value, large_font_size, 0)
+        value_x = box_x + (box_width - value_size.x) / 2 - 5
+        value_y = item_y + small_font_size + value_spacing
+        rl.draw_text_ex(
+          self._font_bold,
+          value,
+          rl.Vector2(value_x, value_y),
+          large_font_size,
+          0,
+          rl.Color(255, 255, 255, 220)
+        )
+
+    # Draw right box
+    right_box_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size + 15
+    right_box_y = rect.y + UI_CONFIG.border_size + 210
+    draw_debug_box(right_box_x, right_box_y, right_debug_lines)
+
+    if left_debug_lines:
+      left_box_x = rect.x + rect.width + UI_CONFIG.border_size - UI_CONFIG.button_size + 15 - 160 - 65
+      left_box_y = rect.y + UI_CONFIG.border_size + 210
+      draw_debug_box(left_box_x, left_box_y, left_debug_lines)

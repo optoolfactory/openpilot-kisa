@@ -14,8 +14,6 @@ from opendbc.car.vehicle_model import VehicleModel
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature, get_lag_adjusted_curvature
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
-from openpilot.selfdrive.controls.lib.latcontrol_indi import LatControlINDI
-from openpilot.selfdrive.controls.lib.latcontrol_lqr import LatControlLQR
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle, STEER_ANGLE_SATURATION_THRESHOLD
 from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
@@ -207,7 +205,7 @@ class Controls:
     actuators.curvature = float(self.desired_curvature)
     steer, steeringAngleDeg, lac_log = self.LaC.update(CC.latActive, CS, self.VM, lp,
                                                        self.steer_limited_by_safety, self.desired_curvature,
-                                                       curvature_limited, lat_delay, self.desired_curvature_rate)
+                                                       curvature_limited, lat_delay)
     actuators.torque = float(steer)
     actuators.steeringAngleDeg = float(steeringAngleDeg)
     self.desired_angle_deg = actuators.steeringAngleDeg
@@ -371,10 +369,6 @@ class Controls:
       cs.lateralControlState.angleState = lac_log
     elif lat_tuning == 'pid':
       cs.lateralControlState.pidState = lac_log
-    elif lat_tuning == 'lqr':
-      cs.lateralControlState.lqrState = lac_log
-    elif lat_tuning == 'indi':
-      cs.lateralControlState.indiState = lac_log
     elif lat_tuning == 'torque':
       cs.lateralControlState.torqueState = lac_log
 

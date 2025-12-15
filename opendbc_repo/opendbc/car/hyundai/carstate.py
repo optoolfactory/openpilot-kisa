@@ -142,6 +142,10 @@ class CarState(CarStateBase):
     self.brake_check = False
     self.cancel_check = False
 
+    self.MainMode_ACC = False
+    self.LFA_ICON = 0
+
+
     self.sm = messaging.SubMaster(['carState'])
 
 
@@ -581,6 +585,8 @@ class CarState(CarStateBase):
       self.cruise_info = copy.copy(cp_cruise_info.vl["SCC_CONTROL"])
       self.cruise_btn_info = copy.copy(cp.vl[self.cruise_btns_msg_canfd])
       if self.CP.adrvControl:
+        self.MainMode_ACC = cp_cam.vl["SCC_CONTROL"]["MainMode_ACC"] == 1
+        self.LFA_ICON = cp_cam.vl["LFAHDA_CLUSTER"]["LFA_ICON"] == 2
         self.lfa_info = copy.copy(cp_cruise_info.vl["LFA"])
         self.lfa_alt_info = copy.copy(cp_cruise_info.vl["ADAS_CMD_35_10ms"])
         self.ccnc_161 = copy.copy(cp_cruise_info.vl["CCNC_0x161"])

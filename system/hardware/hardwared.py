@@ -13,7 +13,7 @@ import psutil
 import cereal.messaging as messaging
 from cereal import log
 from cereal.services import SERVICE_LIST
-from openpilot.common.dict_helpers import strip_deprecated_keys
+from openpilot.common.utils import strip_deprecated_keys
 from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.params import Params
 from openpilot.common.realtime import DT_HW
@@ -53,7 +53,6 @@ THERMAL_BANDS = OrderedDict({
 OFFROAD_DANGER_TEMP = 75
 
 prev_offroad_states: dict[str, tuple[bool, str | None]] = {}
-
 
 
 def get_available_percenta(default=None):
@@ -121,8 +120,8 @@ def hw_state_thread(end_event, hw_queue):
 
   modem_version = None
   modem_configured = False
-  modem_restarted = False
   modem_missing_count = 0
+  modem_restart_count = 0
 
   ip_address = ""
 
@@ -141,16 +140,18 @@ def hw_state_thread(end_event, hw_queue):
 
           if modem_version is not None:
             cloudlog.event("modem version", version=modem_version)
-          else:
-            if not modem_restarted:
-              # TODO: we may be able to remove this with a MM update
-              # ModemManager's probing on startup can fail
-              # rarely, restart the service to probe again.
-              modem_missing_count += 1
-              if modem_missing_count > 3:
-                modem_restarted = True
-                cloudlog.event("restarting ModemManager")
-                os.system("sudo systemctl restart --no-block ModemManager")
+
+        if AGNOS and modem_restart_count < 3 and HARDWARE.get_modem_version() is None:
+          # TODO: we may be able to remove this with a MM update
+          # ModemManager's probing on startup can fail
+          # rarely, restart the service to probe again.
+          # Also, AT commands sometimes timeout resulting in ModemManager not
+          # trying to use this modem anymore.
+          modem_missing_count += 1
+          if (modem_missing_count % 4) == 0:
+            modem_restart_count += 1
+            cloudlog.event("restarting ModemManager")
+            os.system("sudo systemctl restart --no-block ModemManager")
 
         tx, rx = HARDWARE.get_modem_data_usage()
 
@@ -219,6 +220,7 @@ def hardware_thread(end_event, hw_queue) -> None:
   should_start_prev = False
   in_car = False
   engaged_prev = False
+  pwrsave = False
   offroad_cycle_count = 0
 
   params = Params()
@@ -234,6 +236,7 @@ def hardware_thread(end_event, hw_queue) -> None:
   fan_controller = None
 
   onroadrefresh = False
+  onroadrefresh_ts = None
 
   while not end_event.is_set():
     sm.update(PANDA_STATES_TIMEOUT)
@@ -361,12 +364,15 @@ def hardware_thread(end_event, hw_queue) -> None:
     #   # to make a different decision in your software
     #   startup_conditions["registered_device"] = PC or (params.get("DongleId") != UNREGISTERED_DONGLE_ID)
 
-    if params.get_bool("OnRoadRefresh"):
-      onroad_conditions["onroad_refresh"] = not params.get_bool("OnRoadRefresh")
+    if params.get_bool("OnRoadRefresh") and not onroadrefresh:
+      onroad_conditions["onroad_refresh"] = False
       onroadrefresh = True
+      onroadrefresh_ts = time.monotonic()
     elif onroadrefresh:
-       onroadrefresh = False
-       onroad_conditions["onroad_refresh"] = True
+      if time.monotonic() - onroadrefresh_ts >= 3.0:
+        params.remove("OnRoadRefresh")
+        onroadrefresh = False
+        onroad_conditions["onroad_refresh"] = True
 
     # Handle offroad/onroad transition
     should_start = all(onroad_conditions.values())
@@ -376,7 +382,6 @@ def hardware_thread(end_event, hw_queue) -> None:
     if should_start != should_start_prev or (count == 0):
       params.put_bool("IsEngaged", False)
       engaged_prev = False
-      HARDWARE.set_power_save(not should_start)
 
     if sm.updated['selfdriveState']:
       engaged = sm['selfdriveState'].enabled
@@ -389,6 +394,11 @@ def hardware_thread(end_event, hw_queue) -> None:
           kmsg.write(f"<3>[hardware] engaged: {engaged}\n")
       except Exception:
         pass
+
+    should_pwrsave = not onroad_conditions["ignition"] and msg.deviceState.screenBrightnessPercent < 1e-3
+    if should_pwrsave != pwrsave or (count == 0):
+      HARDWARE.set_power_save(should_pwrsave)
+    pwrsave = should_pwrsave
 
     if should_start:
       off_ts = None
