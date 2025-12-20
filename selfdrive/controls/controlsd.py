@@ -70,19 +70,10 @@ class Controls:
     self.lateral_control_method = -1
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
       self.LaC = LatControlAngle(self.CP, self.CI, DT_CTRL)
-      self.lateral_control_method = 4
-    elif self.CP.lateralTuning.which() == 'pid':
-      self.LaC = LatControlPID(self.CP, self.CI, DT_CTRL)
-      self.lateral_control_method = 0
-    elif self.CP.lateralTuning.which() == 'indi':
-      self.LaC = LatControlINDI(self.CP, self.CI, DT_CTRL)
       self.lateral_control_method = 1
-    elif self.CP.lateralTuning.which() == 'lqr':
-      self.LaC = LatControlLQR(self.CP, self.CI, DT_CTRL)
-      self.lateral_control_method = 2
     elif self.CP.lateralTuning.which() == 'torque':
       self.LaC = LatControlTorque(self.CP, self.CI, DT_CTRL)
-      self.lateral_control_method = 3
+      self.lateral_control_method = 0
 
     self.new_steerRatio = self.params.get("SteerRatioAdj", return_default=True) * 0.01
     self.steerRatio_to_send = 0
@@ -367,8 +358,6 @@ class Controls:
     lat_tuning = self.CP.lateralTuning.which()
     if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
       cs.lateralControlState.angleState = lac_log
-    elif lat_tuning == 'pid':
-      cs.lateralControlState.pidState = lac_log
     elif lat_tuning == 'torque':
       cs.lateralControlState.torqueState = lac_log
 

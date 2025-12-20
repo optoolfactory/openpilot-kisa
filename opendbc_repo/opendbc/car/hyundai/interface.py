@@ -80,8 +80,8 @@ class CarInterface(CarInterfaceBase):
         # no LKA steering
         if 0x1cf not in fingerprint[CAN.ECAN]:
           ret.flags |= HyundaiFlags.CANFD_ALT_BUTTONS.value
-        if not ret.flags & HyundaiFlags.RADAR_SCC:
-          ret.flags |= HyundaiFlags.CANFD_CAMERA_SCC.value
+        #if not ret.flags & HyundaiFlags.RADAR_SCC:
+        #  ret.flags |= HyundaiFlags.CANFD_CAMERA_SCC.value
 
       # Some LKA steering cars have alternative messages for gear checks
       # ICE cars do not have 0x130; GEARS message on 0x40 or 0x70 instead
@@ -210,12 +210,6 @@ class CarInterface(CarInterfaceBase):
     else:
       lat_control_method = params.get("LateralControlMethod", return_default=True)
       if lat_control_method == 0:
-        set_lat_tune(ret.lateralTuning, LatTunes.PID)
-      elif lat_control_method == 1:
-        set_lat_tune(ret.lateralTuning, LatTunes.INDI)
-      elif lat_control_method == 2:
-        set_lat_tune(ret.lateralTuning, LatTunes.LQR)
-      elif lat_control_method == 3:
         #set_lat_tune(ret.lateralTuning, LatTunes.TORQUE)
         CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
 
@@ -239,6 +233,11 @@ class CarInterface(CarInterfaceBase):
 
   @staticmethod
   def init(CP, can_recv, can_send, communication_control=None):
+
+    params = Params()
+
+    params.put('LongitudinalPersonalityMax', 4)
+
     # 0x80 silences response
     if communication_control is None:
       communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, 0x80 | uds.CONTROL_TYPE.DISABLE_RX_DISABLE_TX, uds.MESSAGE_TYPE.NORMAL])
@@ -249,6 +248,10 @@ class CarInterface(CarInterfaceBase):
         addr, bus = 0x730, CanBus(CP).ECAN
       disable_ecu(can_recv, can_send, bus=bus, addr=addr, com_cont_req=communication_control)
 
+    if params.get("EnableRadarTracks") > 0 and not CP.flags & HyundaiFlags.CANFD:
+      result = enable_radar_tracks(CP, can_recv, can_send)
+      params.put_bool("EnableRadarTracksResult", result)
+
     # for blinkers
     if CP.flags & HyundaiFlags.ENABLE_BLINKERS:
       disable_ecu(can_recv, can_send, bus=CanBus(CP).ECAN, addr=0x7B1, com_cont_req=communication_control)
@@ -257,3 +260,33 @@ class CarInterface(CarInterfaceBase):
   def deinit(CP, can_recv, can_send):
     communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, 0x80 | uds.CONTROL_TYPE.ENABLE_RX_ENABLE_TX, uds.MESSAGE_TYPE.NORMAL])
     CarInterface.init(CP, can_recv, can_send, communication_control)
+
+def enable_radar_tracks(CP, logcan, sendcan):
+  from opendbc.car.isotp_parallel_query import IsoTpParallelQuery
+  print("################ Try To Enable Radar Tracks ####################")
+
+  ret = False
+  sccBus = 2 if CP.flags & HyundaiFlags.CAMERA_SCC.value else 0
+  rdr_fw = None
+  rdr_fw_address = 0x7d0 #
+  try:
+    try:
+      query = IsoTpParallelQuery(sendcan, logcan, sccBus, [rdr_fw_address], [b'\x10\x07'], [b'\x50\x07'])
+      for addr, dat in query.get_data(0.1).items(): # pylint: disable=unused-variable
+        print("ecu write data by id ...")
+        new_config = b"\x00\x00\x00\x01\x00\x01"
+        #new_config = b"\x00\x00\x00\x00\x00\x01"
+        dataId = b'\x01\x42'
+        WRITE_DAT_REQUEST = b'\x2e'
+        WRITE_DAT_RESPONSE = b'\x68'
+        query = IsoTpParallelQuery(sendcan, logcan, sccBus, [rdr_fw_address], [WRITE_DAT_REQUEST+dataId+new_config], [WRITE_DAT_RESPONSE])
+        result = query.get_data(0)
+        print("result=", result)
+        ret = True
+        break
+    except Exception as e:
+      print(f"Failed : {e}") 
+  except Exception as e:
+    print("##############  Failed to enable tracks" + str(e))
+  print("################ END Try to enable radar tracks")
+  return ret

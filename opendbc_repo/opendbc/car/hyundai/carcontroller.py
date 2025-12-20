@@ -1589,14 +1589,6 @@ class CarController(CarControllerBase):
       if self.c_params.get_bool("KisaLiveTunePanelEnable"):
         if self.CP.isAngleControl:
           pass
-        elif self.CP.lateralTuning.which() == 'pid':
-          self.str_log3 = 'T={:0.2f}/{:0.3f}/{:0.1f}/{:0.5f}'.format(self.c_params.get("PidKp", return_default=True)*0.01, \
-          self.c_params.get("PidKi", return_default=True)*0.001, self.c_params.get("PidKd", return_default=True)*0.01, self.c_params.get("PidKf", return_default=True)*0.00001)
-        elif self.CP.lateralTuning.which() == 'indi':
-          self.str_log3 = 'T={:03.1f}/{:03.1f}/{:03.1f}/{:03.1f}'.format(self.c_params.get("InnerLoopGain", return_default=True)*0.1, \
-          self.c_params.get("OuterLoopGain", return_default=True)*0.1, self.c_params.get("TimeConstant", return_default=True)*0.1, self.c_params.get("ActuatorEffectiveness", return_default=True)*0.1)
-        elif self.CP.lateralTuning.which() == 'lqr':
-          self.str_log3 = 'T={:04.0f}/{:05.3f}/{:07.5f}'.format(self.c_params.get("Scale", return_default=True)*1.0, self.c_params.get("LqrKi", return_default=True)*0.001, self.c_params.get("DcGain", return_default=True)*0.00001)
         elif self.CP.lateralTuning.which() == 'torque':
           self.str_log3 = 'T={:0.1f}/{:0.1f}/{:0.1f}/{:0.1f}/{:0.1f}/{:0.3f}'.format(self.c_params.get("TorqueMaxLatAccel", return_default=True)*0.1, \
           self.c_params.get("TorqueKp", return_default=True)*0.1, self.c_params.get("TorqueKf", return_default=True)*0.1, self.c_params.get("TorqueKi", return_default=True)*0.1, \

@@ -372,6 +372,13 @@ class GuiApplication:
 
     with self._kisa_record_queue.mutex:
       self._kisa_record_queue.queue.clear()
+    
+    if self._kisa_record_file and self._kisa_record_start_time:
+      duration = (datetime.now() - self._kisa_record_start_time).total_seconds()
+      print(f"Recording finished ({duration:.1f}s)")
+      print(f"Saved to: {self._kisa_record_file}")
+    else:
+      print("Recording finished")
 
   def _update_recording(self):
     running = self._params.get_bool("RecordingRunning")

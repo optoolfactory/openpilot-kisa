@@ -22,19 +22,21 @@ class CarControllerParams:
   ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
     # ToDo, seen changing at 0.2 deg/frame down, 0.1 deg/frame up at 100Hz, testing with IONIQ5_PE 2025(The New IONIQ5)
     #   CANPacker packs wrong angle output to be decoded by panda
-    480,  # deg, reasonable limit
-  (
-    [0 * CV.KPH_TO_MS, 5 * CV.KPH_TO_MS, 10 * CV.KPH_TO_MS, 20 * CV.KPH_TO_MS, 30 * CV.KPH_TO_MS,
-     40 * CV.KPH_TO_MS, 50 * CV.KPH_TO_MS, 60 * CV.KPH_TO_MS, 70 * CV.KPH_TO_MS,
-     80 * CV.KPH_TO_MS],
-    [0.1, 2.0, 0.84, 0.48, 0.30, 0.20, 0.17, 0.144, 0.132, 0.12]  # down
-  ),
-  (
-    [0 * CV.KPH_TO_MS, 5 * CV.KPH_TO_MS, 10 * CV.KPH_TO_MS, 20 * CV.KPH_TO_MS, 30 * CV.KPH_TO_MS,
-     40 * CV.KPH_TO_MS, 50 * CV.KPH_TO_MS, 60 * CV.KPH_TO_MS, 70 * CV.KPH_TO_MS,
-     80 * CV.KPH_TO_MS],
-    [0.1, 2.4, 2.0, 1.0, 0.6, 0.4, 0.3, 0.26, 0.24, 0.22]   # up
-  )
+    175,  # deg, reasonable limit
+    # (
+    #   [0 * CV.KPH_TO_MS, 5 * CV.KPH_TO_MS, 10 * CV.KPH_TO_MS, 20 * CV.KPH_TO_MS, 30 * CV.KPH_TO_MS,
+    #   40 * CV.KPH_TO_MS, 50 * CV.KPH_TO_MS, 60 * CV.KPH_TO_MS, 70 * CV.KPH_TO_MS,
+    #   80 * CV.KPH_TO_MS],
+    #   [0.1, 2.0, 0.84, 0.48, 0.30, 0.20, 0.17, 0.144, 0.132, 0.12]  # down
+    # ),
+    # (
+    #   [0 * CV.KPH_TO_MS, 5 * CV.KPH_TO_MS, 10 * CV.KPH_TO_MS, 20 * CV.KPH_TO_MS, 30 * CV.KPH_TO_MS,
+    #   40 * CV.KPH_TO_MS, 50 * CV.KPH_TO_MS, 60 * CV.KPH_TO_MS, 70 * CV.KPH_TO_MS,
+    #   80 * CV.KPH_TO_MS],
+    #   [0.1, 2.4, 2.0, 1.0, 0.6, 0.4, 0.3, 0.26, 0.24, 0.22]   # up
+    # )
+    ([0, 9, 16, 25], [1.4, 1.2, 0.8, 0.2]),
+    ([0, 9, 16, 25], [2.0, 1.6, 1.0, 0.35]),
   )
 
   def __init__(self, CP):
@@ -150,7 +152,7 @@ class HyundaiPlatformConfig(PlatformConfig):
   dbc_dict: DbcDict = field(default_factory=lambda: {Bus.pt: "hyundai_kia_generic"})
 
   def init(self):
-    if (self.flags & HyundaiFlags.MANDO_RADAR) or Params().get_bool("UseRadarTrack"):
+    if self.flags & HyundaiFlags.MANDO_RADAR:
       self.dbc_dict = {Bus.pt: "hyundai_kia_generic", Bus.radar: 'hyundai_kia_mando_front_radar_generated'}
 
     if self.flags & HyundaiFlags.MIN_STEER_32_MPH:
@@ -159,7 +161,7 @@ class HyundaiPlatformConfig(PlatformConfig):
 
 @dataclass
 class HyundaiCanFDPlatformConfig(PlatformConfig):
-  dbc_dict: DbcDict = field(default_factory=lambda: {Bus.pt: "hyundai_canfd_generated"})
+  dbc_dict: DbcDict = field(default_factory=lambda: {Bus.pt: "hyundai_canfd_generated", Bus.radar: 'hyundai_canfd_radar_generated'})
 
   def init(self):
     self.flags |= HyundaiFlags.CANFD

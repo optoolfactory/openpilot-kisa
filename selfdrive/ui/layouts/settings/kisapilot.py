@@ -9,6 +9,9 @@ from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.system.ui.widgets.option_dialog import MultiOptionDialog
 import os
 import pyray as rl
+import json
+from pathlib import Path
+import subprocess
 
 BUTTON_HEIGHT = 90
 BUTTON_PADDING = 10
@@ -18,133 +21,134 @@ TEXT_COLOR = (255, 255, 255, 255)
 TEXT_SIZE = 55
 CORNER_RADIUS = 5
 
-TOGGLES = [
-  {"n": "0", "param": "PutPrebuiltOn", "title": "Use Smart Prebuilt", "description": "Create a Prebuilt file and speed up booting. When this function is turned on, the booting speed is accelerated using the cache, and if you press the update button in the menu after modifying the code, or if you rebooted with the 'gi' command in the command window, remove it automatically and compile it."},
-  {"n": "1", "param": "UFCModeEnabled", "title": "User-Friendly Control (UFC) Mode", "description": "OP activates with Main Cruise Switch, AutoRES while driving, Seperate Lat/Long and etc"},
-  {"n": "2", "param": "LFAButtonEngagement", "title": "Enable LFA Button Engagement", "can_type": "CANFD", "description": "Use LFA Button to engage Openpilot Lateral"},
-  {"n": "3", "param": "KisaEnableLogger", "title": "Enable Driving Log Record", "description": "Record the driving log locally for data analysis. Only loggers are activated and not uploaded to the server."},
-  {"n": "4", "param": "KisaBlindSpotDetect", "title": "Display BSM Status", "description": "If a car is detected in the rear, it will be displayed on the screen."},
-  {"n": "5", "param": "KisaVariableCruise", "title": "Cruise Button Spamming(VC)", "description": "Use the cruise button while using SCC to assist in acceleration and deceleration."},
-  {"n": "6", "param": "KisaAutoResume", "title": "Use Auto Resume at Stop", "description": "It uses the automatic departure function when stopping while using SCC."},
-  {"n": "7", "param": "CruiseGapAdjust", "title": "Change Cruise Gap at Stop", "description": "For a quick start when stopping, the cruise gap will be changed to 1 step, and after departure, it will return to the original cruise gap according to certain conditions."},
-  {"n": "8", "param": "AutoEnable", "title": "Use Auto Engagement", "description": "If the cruise button status is standby (CRUISE indication only and speed is not specified) in the Disengagement state, activate the automatic Engagement."},
-  {"n": "9", "param": "CruiseAutoRes", "title": "Use Auto RES while Driving", "description": "If the brake is applied while using the SCC and the standby mode is changed (CANCEL is not applicable), set it back to the previous speed when the brake pedal is released/accelerated pedal is operated. It operates when the cruise speed is set and the vehicle speed is more than 30 km/h or the car in front is recognized."},
-  {"n": "10", "param": "StandstillResumeAlt", "title": "Standstill Resume Alternative", "can_type": "CAN", "description": "Turn this on, if auto resume doesn't work at standstill. some cars only(ex. GENESIS). before enable, try to adjust RES message counts above.(reboot required)"},
-  {"n": "11", "param": "DepartChimeAtResume", "title": "Depart Chime at Resume", "description": "Use Chime for Resume. This can notify for you to get start while not using SCC."},
-  {"n": "12", "param": "CruiseGapBySpdOn", "title": "Cruise Gap Change by Speed", "description": "Cruise Gap is changeable by vehicle speed."},
-  {"n": "13", "param": "KISAEarlyStop", "title": "Early Slowdown with Gap", "description": "This feature may help your vehicle to stop early using Cruise Gap with value 4 when your car start to stop from model."},
-  {"n": "14", "param": "KisaTurnSteeringDisable", "title": "Stop Steer Assist on Turn Signals", "description": "When driving below the lane change speed, the automatic steering is temporarily paused while the turn signals on."},
-]
+SCHEMA_PATH = Path("/data/openpilot/selfdrive/kisapilot/param_schema.json")
+CMD_SCHEMA_PATH = Path("/data/openpilot/selfdrive/kisapilot/cmd_schema.json")
+with SCHEMA_PATH.open() as f:
+  PARAM_SCHEMA = json.load(f)
+with CMD_SCHEMA_PATH.open() as f:
+  CMD_SCHEMA = {c["cmd"]: c for c in json.load(f)}
 
-BUTTONS = [
-  {"n": "0", "title": "Delete All Driving Logs", "text": "RUN", "callback": lambda: gui_app.set_modal_overlay(
-    ConfirmDialog("Delete all saved driving logs. Do you want to proceed?", "OK"),
-    callback=lambda result: os.system("rm -rf /data/media/0/realdata/*") if result == DialogResult.CONFIRM else None),
-    "description": "This removes all driving logs under /data/media/0/realdata/."},
-]
+LANG = Params().get("LanguageSetting", return_default=True)
 
-NUMERICS = [
-  {"n": "0", "title": "CameraOffset[0.04]", "param": "CameraOffsetAdj", "min_value": -1.0, "max_value": 1.0, "step": 0.01, "decimals": 2, "value_type": "FLOAT", "description": "Adjust camera offset."},
-  {"n": "1", "title": "LaneChange Speed", "param": "KisaLaneChangeSpeed", "min_value": 0, "max_value": 100, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {0: "OFF"}, "description": "On/Off lane change(push (-) btn till Off value) and set the lane changeable speed. This value can be kph or mph."},
-  {"n": "2", "title": "Auto Engage Speed", "param": "AutoEnableSpeed", "min_value": -1, "max_value": 30, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"-1": "atDGear", "0": "atDepart"}, "description": "Set the automatic engage speed."},
-  {"n": "3", "title": "RES Count at Standstill", "param": "RESCountatStandstill", "min_value": 1, "max_value": 50, "step": 1, "decimals": 0, "value_type": "INT", "description": "Comma Default: 25, this value cannot be acceptable at some cars. So adjust the number if you want to. It generates RES CAN messages when leadcar is moving. If departure is failed, increase the number. In opposite, if CAN error occurs, decrease the number."},
-  {"n": "4", "title": "AutoRES Option", "param": "AutoResOption", "min_value": 0, "max_value": 2, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "CruiseSet", "1": "MaxSpeedSet", "2": "AUTO(LeadCar)"}, "description": "Sets the auto RES option. 1. Adjust the temporary cruise speed, 2. Adjust the set speed itself according to the presence or absence of a preceding car. 3. Adjust the cruise speed if there is a preceding car, and adjust the set speed if there is no preceding car. Please note that the automatic RES may not work well depending on the conditions."},
-  {"n": "5", "title": "AutoRES Condition", "param": "AutoResCondition", "min_value": 0, "max_value": 1, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "RelBrake", "1": "OnGas"}, "description": "Sets the automatic RES condition. When the brake is released/operated when the accelerator pedal is operated."},
-  {"n": "6", "title": "AutoRES Allow(sec)", "param": "AutoResLimitTime", "min_value": 0, "max_value": 60, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "NoLimit"}, "description": "Adjust the automatic RES allowance time. Automatic RES operates only within the set time after the cruise is released."},
-  {"n": "7", "title": "AutoRES Delay(sec)", "param": "AutoRESDelay", "min_value": 0, "max_value": 20, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "No Delay"}, "description": "Give delay time to trigger for AutoRES while driving."},
-  {"n": "8", "title": "LaneChange Delay", "param": "KisaAutoLaneChangeDelay", "min_value": 0, "max_value": 5, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "Nudge", "1": "RightNow", "2": "0.5sec", "3": "1sec", "4": "1.5sec", "5": "2secs"}, "description": "Set the delay time after turn signal operation before lane change."},
-  {"n": "9", "title": "SafetyCam SignType", "param": "KisaSpeedLimitSignType", "min_value": 0, "max_value": 1, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "Circle", "1": "Rectangle"}, "description": "Select SafetyCam SignType (Circle/Rectangle)"},
-  {"n": "10", "title": "Lateral Plan Mode", "param": "UseLegacyLaneModel", "min_value": 0, "max_value": 2, "step": 1, "decimals": 0, "value_type": "INT", "special_texts": {"0": "Model", "1": "MPC", "2": "Mix"}, "description": "1.Model(latest model path), 2.MPC(mpc path from post processing of model), 3.Mix(Model(high curvature), MPC(low curvature), interpolation value)"},
-]
+def get_text(v):
+  if isinstance(v, dict):
+    return v.get(LANG) or v.get("en")
+  return str(v) if v is not None else ""
 
+def get_special_texts(m):
+  out = {}
+  if isinstance(m, dict):
+    for k, v in m.items():
+      if isinstance(v, dict):
+        out[k] = v.get(LANG) or v.get("en")
+      else:
+        out[k] = str(v)
+  return out
+
+def detect_ui_type(item):
+  if item.get("value_type") == "BOOL":
+    return "TOGGLE"
+  if "min_value" in item:
+    return "NUMERIC"
+  return None
+
+def run_command(cmd_key):
+  cmd = CMD_SCHEMA.get(cmd_key)
+  if not cmd:
+    return
+
+  def _exec():
+    subprocess.Popen(cmd["exec"])
+
+  if cmd.get("confirm", False):
+    gui_app.set_modal_overlay(
+      ConfirmDialog(cmd["description"][LANG], "OK"),
+      callback=lambda result: _exec() if result == DialogResult.CONFIRM else None
+      )
+  else:
+    _exec()
 
 class KisaPilotLayout(Widget):
+  def build_items_by_groups(self, group_names):
+    if isinstance(group_names, str):
+      group_names = [group_names]
+
+    items = []
+
+    for meta in PARAM_SCHEMA:
+      if meta.get("group") not in group_names:
+        continue
+
+      ui_type = detect_ui_type(meta)
+
+      # TOGGLE
+      if ui_type == "TOGGLE":
+        key = meta["param"]
+        w = toggle_item(
+          get_text(meta.get("title")),
+          description=get_text(meta.get("description")),
+          initial_state=self._params.get_bool(key),
+          callback=lambda state, k=key: self._params.put_bool(k, state)
+        )
+        self._param_mapping.append((key, w))
+        self._meta_mapping[w] = meta
+        items.append(w)
+
+      # NUMERIC
+      elif ui_type == "NUMERIC":
+        key = meta["param"]
+        w = numeric_item(
+          get_text(meta.get("title")),
+          param_key=key,
+          description=get_text(meta.get("description")),
+          value_type=meta.get("value_type", "INT"),
+          min_value=meta.get("min_value"),
+          max_value=meta.get("max_value"),
+          step=meta.get("step", 1),
+          decimals=meta.get("decimals", 0),
+          special_texts=get_special_texts(meta.get("special_texts"))
+        )
+        self._param_mapping.append((key, w))
+        self._meta_mapping[w] = meta
+        items.append(w)
+
+    if "DEV" in group_names:
+      for cmd_key, cmd in CMD_SCHEMA.items():
+        if cmd_key not in ["onroad_refresh", "reboot"]:
+          w = button_item(
+            cmd["title"],
+            "RUN",
+            description=get_text(cmd.get("description")),
+            callback=lambda c=cmd_key: run_command(c)
+          )
+          self._meta_mapping[w] = cmd
+          items.append(w)
+
+    return items
+
   def __init__(self):
     super().__init__()
     self._params = Params()
 
-    self._toggles, self._buttons, self._numeric = [], [], []
+    self._select_car_dialog = None
+    self._select_car_btn = single_button_item(
+      lambda: self._params.get("CarName") or "Select Your Car",
+      callback=self._show_car_selection_dialog
+    )
+
     self._param_mapping = []
     self._meta_mapping = {}
 
     self.can_type = str(self._params.get("KisaCANType", return_default=True)).strip().upper()
     self.scc_type = str(self._params.get("KisaSCCType", return_default=True)).strip().upper()
 
-    # Toggle widgets
-    for meta in TOGGLES:
-      key = meta["param"]
-      initial = self._params.get_bool(key)
-      w = toggle_item(meta["title"], description=meta.get("description", ""), initial_state=initial,
-        callback=lambda state, k=key: self._params.put_bool(k, state))
-      self._toggles.append(w)
-      self._param_mapping.append((key, w))
-      self._meta_mapping[w] = meta
-
-    # Button widgets
-    for meta in BUTTONS:
-      btn = button_item(meta["title"], meta["text"], description=meta.get("description", ""), callback=meta["callback"])
-      self._buttons.append(btn)
-
-    # Numeric widgets
-    for meta in NUMERICS:
-      key = meta["param"]
-      val_type = meta.get("value_type", "INT")
-      step = meta.get("step", 1)
-      min_v = meta.get("min_value")
-      max_v = meta.get("max_value")
-      decimals = meta.get("decimals", 0)
-      w = numeric_item(meta["title"], param_key=key, description=meta.get("description", ""), value_type=val_type, min_value=min_v, max_value=max_v, step=step, decimals=decimals, special_texts=meta.get("special_texts"))
-      self._numeric.append(w)
-      self._param_mapping.append((key, w))
-
-    self._menu_titles = ["Lane", "Cruise", "Tuning", "Safety", "Advance"]
+    self._menu_titles = ["Str/UI", "Lat/Lon", "B/Ga/St", "C/Sf/Nv", "DEV"]
     self._menu_items = [
-      # Lane
-      [
-        self._toggles[4],  # KisaBlindSpotDetect : bool
-        self._numeric[1],  # KisaLaneChangeSpeed : int
-        self._numeric[8],  # KisaAutoLaneChangeDelay : int
-        self._toggles[14], # KisaTurnSteeringDisable : bool
-      ],
-
-      # Cruise
-      [
-        self._toggles[5],  # KisaVariableCruise : bool
-        self._toggles[6],  # KisaAutoResume : bool
-        self._numeric[3],  # RESCountatStandstill : int
-        self._toggles[10], # StandstillResumeAlt : bool
-        self._toggles[11], # DepartChimeAtResume : bool
-        self._toggles[9],  # CruiseAutoRes : bool
-        self._numeric[4],  # AutoResOption : int
-        self._numeric[5],  # AutoResCondition : int
-        self._numeric[6],  # AutoResLimitTime : int
-        self._numeric[7],  # AutoRESDelay : int
-        self._toggles[7],  # CruiseGapAdjust : bool
-        self._toggles[13], # KISAEarlyStop : bool
-        self._toggles[12], # CruiseGapBySpdOn : bool
-      ],
-
-      # Tuning
-      [
-        self._numeric[0], # CameraOffsetAdj : float
-      ],
-
-      # Safety
-      [
-        self._numeric[9], # KisaSpeedLimitSignType : int
-      ],
-
-      # Advance
-      [
-        self._toggles[0],  # PutPrebuiltOn : bool
-        self._toggles[1],  # UFCModeEnabled : bool
-        self._toggles[2],  # LFAButtonEngagement : bool
-        self._toggles[3],  # KisaEnableLogger : bool
-        self._buttons[0],  # Delete All Driving Logs
-        self._toggles[8],  # AutoEnable : bool
-        self._numeric[2],  # AutoEnableSpeed : int
-        self._numeric[10], # UseLegacyLaneModel : int
-      ],
+      [self._select_car_btn] + self.build_items_by_groups("UI/Start"),
+      self.build_items_by_groups(["LAT", "LONG"]),
+      self.build_items_by_groups("Button/Gap/Stop"),
+      self.build_items_by_groups("Curv/Safety/Nav"),
+      self.build_items_by_groups("DEV"),
     ]
     self._current_menu = 0
 
@@ -233,7 +237,7 @@ class KisaPilotLayout(Widget):
         item.set_visible(visible_condition_can and visible_condition_scc)
 
   def _show_car_selection_dialog(self):
-    car_path = "/data/CarList"
+    car_path = "/data/params/d/CarList"
 
     try:
       with open(car_path, "r") as f:
@@ -247,7 +251,7 @@ class KisaPilotLayout(Widget):
       )
       return
 
-    cur = self._params.get("CarModel")
+    cur = self._params.get("CarName")
     if isinstance(cur, (bytes, bytearray)):
       try:
         cur = cur.decode()
@@ -258,7 +262,7 @@ class KisaPilotLayout(Widget):
     def handle_car_selection(result: int):
       if result == 1 and self._select_car_dialog:
         selected_car = self._select_car_dialog.selection
-        self._params.put("CarModel", selected_car)
+        self._params.put("CarName", selected_car)
         self._select_car_dialog = None
         return
       else:
@@ -268,7 +272,7 @@ class KisaPilotLayout(Widget):
         else:
           def confirm_delete(res):
             if res == DialogResult.CONFIRM:
-              self._params.remove("CarModel")
+              self._params.remove("CarName")
             self._select_car_dialog = None
 
           gui_app.set_modal_overlay(
