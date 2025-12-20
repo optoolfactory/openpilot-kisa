@@ -30,6 +30,21 @@
     "onroad": true
   },
   {
+    "title": "Git Pull & Reboot(Force)",
+    "cmd": "git_pull_reboot_force",
+    "exec": [
+      "sh",
+      "-c",
+      "cd /data/openpilot && git pull && touch /data/ks && sudo reboot"
+    ],
+    "description": {
+      "ko": "깃 풀 수행 후 강제로 재부팅 합니다., 재부팅 후 자동으로 컴파일을 진행합니다.",
+      "en": "Runs git pull, then forcibly reboots and automatically compiles after reboot."
+    },
+    "confirm": true,
+    "onroad": true
+  },
+  {
     "title": "Git Reset & Reboot",
     "cmd": "git_reset_reboot",
     "exec": [

@@ -1179,17 +1179,17 @@
       "en": "Lane Change Delay"
     },
     "param": "LaneChangeDelay",
-    "min_value": 0,
-    "max_value": 100,
-    "step": 5,
+    "min_value": 0.0,
+    "max_value": 10.0,
+    "step": 0.5,
     "decimals": 0,
-    "value_type": "INT",
+    "value_type": "FLOAT",
     "special_texts": {
       "0": { "ko": "즉시", "en": "Immediate" }
     },
     "description": {
-      "ko": "차선 변경 요청 후 실제 변경까지의 대기 시간입니다. (단위: x0.1초)",
-      "en": "Delay before executing a lane change after request. (Unit: x0.1 sec)"
+      "ko": "차선 변경 요청 후 실제 변경까지의 대기 시간입니다. (단위: 초)",
+      "en": "Delay before executing a lane change after request. (Unit: sec)"
     }
   },
   {

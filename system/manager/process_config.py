@@ -1,6 +1,7 @@
 import os
 import operator
 import platform
+import subprocess
 
 from cereal import car
 from openpilot.common.params import Params
@@ -61,6 +62,16 @@ def or_(*fns):
 def and_(*fns):
   return lambda *args: operator.and_(*(fn(*args) for fn in fns))
 
+def is_kisa_agent_running() -> bool:
+  try:
+    out = subprocess.check_output(
+      ["pgrep", "-f", "kisa_agent"],
+      stderr=subprocess.DEVNULL,
+    )
+    return bool(out.strip())
+  except subprocess.CalledProcessError:
+    return False
+
 EnableLogger = Params().get_bool('KisaEnableLogger')
 EnableUploader = Params().get_bool('KisaEnableUploader')
 EnableOSM = Params().get_bool('OSMEnable') or Params().get_bool('OSMSpeedLimitEnable') or Params().get("CurvDecelOption", return_default=True) in (1, 3)
@@ -114,8 +125,6 @@ procs = [
   PythonProcess("statsd", "system.statsd", always_run),
   PythonProcess("feedbackd", "selfdrive.ui.feedback.feedbackd", only_onroad),
 
-  PythonProcess("kupdate", "system.kupdate", always_run),
-
   # debug procs
   NativeProcess("bridge", "cereal/messaging", ["./bridge"], notcar),
   PythonProcess("webrtcd", "system.webrtc.webrtcd", notcar),
@@ -123,7 +132,7 @@ procs = [
   PythonProcess("joystick", "tools.joystick.joystick_control", and_(joystick, iscar)),
 
   PythonProcess("fleet_manager", "selfdrive.frogpilot.fleetmanager.fleet_manager", always_run, enabled=not PC),
-  PythonProcess("kisa_agent", "selfdrive.kisapilot.kisa_agent", always_run, enabled=True),
+  PythonProcess("kisa_agent", "selfdrive.kisapilot.kisa_agent", always_run, enabled=(not PC and not is_kisa_agent_running())),
 ]
 
 if EnableLogger:

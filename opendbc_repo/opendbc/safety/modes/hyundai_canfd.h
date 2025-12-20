@@ -267,39 +267,53 @@ static safety_config hyundai_canfd_init(uint16_t param) {
   };
 
   static const CanMsg HYUNDAI_CANFD_LKA_STEERING_ADRV_LONG_TX_MSGS[] = {
-    {0x1CF, 0,  8, .check_relay = false},  // CRUISE_BUTTON
-    {0x1CF, 2,  8, .check_relay = false},  // CRUISE_BUTTON
-    {0x1AA, 0, 16, .check_relay = false},  // CRUISE_BUTTON
-    {0x1AA, 2, 16, .check_relay = false},  // CRUISE_BUTTON
+    {0x1CF, 2,  8, .check_relay = true},  // CRUISE_BUTTON
+    // {0x1AA, 2, 16, .check_relay = true},  // CRUISE_BUTTON
 
-    {0x50,  1, 16, .check_relay = false},  // LKAS
-    {0x110, 1, 32, .check_relay = false},  // LKAS_ALT
-    {0x2A4, 1, 24, .check_relay = false},  // 0x2A4
-    {0x362, 1, 32, .check_relay = false},  // 0x362
+    // {0x50,  0, 16, .check_relay = false},  // LKAS
+    // {0x50,  1, 16, .check_relay = false},  // LKAS
+    // {0x51,  0, 32, .check_relay = false},  // ADRV_0x51
+    // {0x51,  1, 32, .check_relay = false},  // ADRV_0x51
+    // {0x2A4, 0, 24, .check_relay = false},  // 0x2A4
+    // {0x2A4, 1, 24, .check_relay = false},  // 0x2A4
+    // {0x362, 0, 32, .check_relay = false},  // 0x362
+    // {0x362, 1, 32, .check_relay = false},  // 0x362
+
+    // {0x12A, 1, 16, .check_relay = false},  // LFA
+    // {0x160, 1, 16, .check_relay = false},  // ADRV_0x160
+    // {0x1E0, 1, 16, .check_relay = false},  // LFAHDA_CLUSTER
+    // {0x1A0, 1, 32, .check_relay = false},  // CRUISE_INFO
+    // {0x1EA, 1, 32, .check_relay = false},  // ADRV_0x1EA
+    // {0x200, 1,  8, .check_relay = false},  // ADRV_0x200
+    // {0x345, 1,  8, .check_relay = false},  // ADRV_0x345
+    // {0x1DA, 1, 32, .check_relay = false},  // ADRV_0x1DA
 
     {0x12A, 0, 16, .check_relay = true},   // LFA
     {0x1E0, 0, 16, .check_relay = true},   // LFAHDA_CLUSTER
     {0x1A0, 0, 32, .check_relay = true},   // SCC_CONTROL
-    {0xCB,  0, 24, .check_relay = true},   // LFA_ALT
     {0x160, 0, 16, .check_relay = true},   // ADRV_0x160
     {0x161, 0, 32, .check_relay = true},   // ADRV_0x161
     {0x162, 0, 32, .check_relay = true},   // ADRV_0x162
+
     {0x1EA, 0, 32, .check_relay = true},   // ADRV_0x1EA
     {0x200, 0,  8, .check_relay = true},   // ADRV_0x200
+    {0x345, 0,  8, .check_relay = true},   // ADRV_0x345
+    {0x1DA, 0, 32, .check_relay = true},   // ADRV_0x1DA
 
-    {0x345, 0,  8, .check_relay = true, .disable_static_blocking = true},  // ADRV_0x345
-    {0x1DA, 0, 32, .check_relay = false},  // ADRV_0x1DA
+    // {0x110, 0, 32, .check_relay = false},  // LKAS_ALT
+    // {0x110, 1, 32, .check_relay = false},  // LKAS_ALT
+    {0xCB,  0, 24, .check_relay = true},   // LFA_ALT
 
     {0x1BA, 0, 24, .check_relay = false},  // BLINDSPOTS_REAR_CORNERS
     {0x1E5, 0, 16, .check_relay = false},  // BLINDSPOTS_FRONT_CORNER_1
 
-    {0xEA,  2, 24, .check_relay = false},  // MDPS
-    {0x2AF, 2,  8, .check_relay = false},  // STEER_TOUCH
+    {0xEA,  2, 24, .check_relay = true},  // MDPS
+    {0x2AF, 2,  8, .check_relay = true},  // STEER_TOUCH
 
     {0x38C, 0, 32, .check_relay = false},
     {0x57A, 0, 32, .check_relay = false},
 
-    {0x175, 2, 24, .check_relay = false},
+    {0x175, 2, 24, .check_relay = true},  // TCS
 
     {0x24B, 0,  8, .check_relay = false},
     {0x1FA, 2, 32, .check_relay = false},

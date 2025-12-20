@@ -269,6 +269,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"OnRoadRefresh", {CLEAR_ON_MANAGER_START, BOOL, "0"}},
     {"StoppingDist", {PERSISTENT, INT, "35"}},
     {"SpeedCameraOffset", {PERSISTENT, BOOL, "0"}},
+    {"CarList", {PERSISTENT, STRING, "Select Your Car"}},
     {"GitCommits", {CLEAR_ON_MANAGER_START, STRING}},
     {"StopAtStopSign", {PERSISTENT, BOOL, "0"}},
     {"KISASpeedBump", {PERSISTENT, BOOL, "0"}},
