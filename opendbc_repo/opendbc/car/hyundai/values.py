@@ -800,6 +800,11 @@ class CAR(Platforms):
     CarSpecs(mass=1695, wheelbase=2.6, steerRatio=13.75),
     flags=HyundaiFlags.CHECKSUM_CRC8 | HyundaiFlags.EV,
   )
+  KIA_SOUL_SK3 = HyundaiPlatformConfig(
+    [HyundaiCarDocs("Kia Soul 2019", car_parts=CarParts.common([CarHarness.hyundai_c]))],
+    CarSpecs(mass=1695, wheelbase=2.6, steerRatio=13.75),
+    flags=HyundaiFlags.CHECKSUM_CRC8,
+  )
   KIA_MOHAVE_HM = HyundaiPlatformConfig(
     [HyundaiCarDocs("Kia Mohave 2019")],
     CarSpecs(mass=2285, wheelbase=2.895, steerRatio=14.25),
