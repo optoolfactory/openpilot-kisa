@@ -369,16 +369,16 @@ def hardware_thread(end_event, hw_queue) -> None:
       if not os.path.isfile("/persist/comma/living-in-the-moment"):
         if not Path("/data/media").is_mount():
           set_offroad_alert_if_changed("Offroad_StorageMissing", True)
-        else:
+        #else:
           # check for bad NVMe
-          try:
-            with open("/sys/block/nvme0n1/device/model") as f:
-              model = f.read().strip()
-            if not model.startswith("Samsung SSD 980") and params.get("Offroad_BadNvme") is None:
-              set_offroad_alert_if_changed("Offroad_BadNvme", True)
-              cloudlog.event("Unsupported NVMe", model=model, error=True)
-          except Exception:
-            pass
+          #try:
+            #with open("/sys/block/nvme0n1/device/model") as f:
+              #model = f.read().strip()
+            #if not model.startswith("Samsung SSD 980") and params.get("Offroad_BadNvme") is None:
+              #set_offroad_alert_if_changed("Offroad_BadNvme", True)
+              #cloudlog.event("Unsupported NVMe", model=model, error=True)
+          #except Exception:
+            #pass
 
     if params.get_bool("OnRoadRefresh"):
       onroad_conditions["onroad_refresh"] = not params.get_bool("OnRoadRefresh")
